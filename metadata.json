@@ -1,0 +1,6 @@
+{
+  "name": "تطبيق الكابتن - Al-Kaptan",
+  "description": "المنصة الرياضية المتكاملة في سوريا لحجز الملاعب، تنظيم الدوريات، الأكاديميات، المباريات الودية، كشاف المواهب ولوحة تحكم شاملة",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
