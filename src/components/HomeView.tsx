@@ -15,7 +15,11 @@ import {
   Phone,
   Flame,
   Star,
-  Clock
+  Clock,
+  Navigation,
+  Activity,
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 import {
   Playground,
@@ -23,7 +27,6 @@ import {
   FriendlyMatch,
   Academy,
   PlayerCv,
-  SyrianGovernorate,
   UserProfile
 } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
@@ -51,6 +54,9 @@ interface HomeViewProps {
   onOpenCreateMatch: () => void;
   onOpenCreateLeague: () => void;
   onOpenCreatePlayerCv: () => void;
+  onDeletePlayground?: (id: string) => void;
+  onDeleteLeague?: (id: string) => void;
+  onDeleteMatch?: (id: string) => void;
 }
 
 export default function HomeView({
@@ -70,7 +76,10 @@ export default function HomeView({
   onOpenCreatePlayground,
   onOpenCreateMatch,
   onOpenCreateLeague,
-  onOpenCreatePlayerCv
+  onOpenCreatePlayerCv,
+  onDeletePlayground,
+  onDeleteLeague,
+  onDeleteMatch
 }: HomeViewProps) {
   // Filter items by governorate
   const filteredPlaygrounds =
@@ -88,103 +97,70 @@ export default function HomeView({
       ? leagues
       : leagues.filter((l) => l.governorate === selectedGovernorate);
 
+  const isAdmin = currentUser.isAdmin || currentUser.role === 'admin';
+
   return (
-    <div id="view-home" className="space-y-8 animate-fadeIn pb-16">
-      {/* Animated Hero Banner Slider */}
-      <HeroBannerSlider onNavigateTab={onNavigateTab} featuredLeagues={leagues} />
+    <div id="view-home" className="space-y-6 animate-fadeIn pb-16 font-['Cairo']">
+      {/* 1. Animated Hero Banner Slider with Natural Colors & Admin Controls */}
+      <HeroBannerSlider
+        onNavigateTab={onNavigateTab}
+        featuredLeagues={leagues}
+        isAdmin={isAdmin}
+      />
 
-      {/* Hero Welcome & Quick Stats */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#071310] via-[#0d1e19] to-[#071310] border-2 border-[#00FFD2]/30 p-6 sm:p-8 overflow-hidden glow-primary shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00FFD2]/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#ff2a5f]/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FFD2]/15 text-[#00FFD2] text-xs font-bold border border-[#00FFD2]/40">
-              <Sparkles className="w-3.5 h-3.5" />
-              المنصة الرياضية الأولى لحجز الملاعب والبطولات في سوريا (0% عمولة)
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white font-['Cairo'] tracking-tight leading-tight">
-              أهلاً بك يا كابتن في تطبيق <span className="text-[#00FFD2]">الكابتن</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
-              احجز ملاعب كرة القدم المفضلة لديك في كافة المحافظات السورية الـ 14، نظّم وشارك في البطولات الكروية، أطلق تحديات المباريات الودية، وانضم لأقوى الأكاديميات الرياضية بدفع كاش أو شام كاش.
-            </p>
-
-            {/* Live Counters */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-2.5 text-center">
-                <div className="text-lg font-black text-[#00FFD2] font-mono">{playgrounds.length}</div>
-                <div className="text-[10px] text-gray-400 font-bold">ملاعب معتمدة</div>
-              </div>
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-2.5 text-center">
-                <div className="text-lg font-black text-amber-400 font-mono">{leagues.length}</div>
-                <div className="text-[10px] text-gray-400 font-bold">بطولات كروية</div>
-              </div>
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-2.5 text-center">
-                <div className="text-lg font-black text-[#ff2a5f] font-mono">{friendlyMatches.length}</div>
-                <div className="text-[10px] text-gray-400 font-bold">تحديات مباريات</div>
-              </div>
-              <div className="bg-black/40 border border-white/10 rounded-2xl p-2.5 text-center">
-                <div className="text-lg font-black text-purple-400 font-mono">{academies.length}</div>
-                <div className="text-[10px] text-gray-400 font-bold">أكاديميات تدريب</div>
-              </div>
-            </div>
+      {/* 2. Mandatory Cash Payment 24H Policy Notification Banner */}
+      <div className="bg-[#0d1211] border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
           </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto shrink-0">
-            <button
-              id="btn-home-book-playground"
-              onClick={() => onNavigateTab('playgrounds')}
-              className="px-6 py-3.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs transition-all shadow-xl glow-primary flex items-center justify-center gap-2"
-            >
-              <Compass className="w-4 h-4" />
-              <span>احجز ملعبك الآن</span>
-            </button>
-
-            <button
-              id="btn-home-create-match"
-              onClick={onOpenCreateMatch}
-              className="px-6 py-3.5 rounded-2xl bg-[#ff2a5f] hover:bg-[#e02050] text-white font-bold text-xs transition-all shadow-xl glow-pink flex items-center justify-center gap-2"
-            >
-              <Swords className="w-4 h-4" />
-              <span>انشر تحدي مباراة جديدة</span>
-            </button>
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-amber-300">
+              سياسة الدفع وتأكيد الحجز المعتمدة:
+            </h4>
+            <p className="text-[11px] sm:text-xs text-gray-300 mt-0.5">
+              يلزم تسديد الدفعة أو تأكيد الحجز قبل <strong className="text-white">24 ساعة</strong> من الموعد المحدد، وإلا سيتم الإلغاء تلقائياً في حال لم يتم التأكيد من قبل صاحب المنشأة أو الإدارة.
+            </p>
           </div>
         </div>
+        <button
+          onClick={() => onNavigateTab('profile')}
+          className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-[11px] transition-all"
+        >
+          حجوزاتي
+        </button>
       </div>
 
-      {/* Syrian 14 Governorates Selector */}
-      <div className="space-y-3">
+      {/* 3. Syrian 14 Governorates Horizontal Selector */}
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 font-['Cairo']">
+          <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
             <MapPin className="w-4 h-4 text-[#00FFD2]" />
-            اختر المحافظة السورية (تغطية كاملة لـ 14 محافظة):
+            <span>اختر المحافظة السورية:</span>
           </h2>
-          <span className="text-xs text-gray-400">
-            المحافظة الحالية: <strong className="text-[#00FFD2]">{selectedGovernorate}</strong>
+          <span className="text-[11px] text-gray-400">
+            المحافظة المحددة: <strong className="text-[#00FFD2] font-bold">{selectedGovernorate}</strong>
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
           <button
             onClick={() => onSelectGovernorate('الكل')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               selectedGovernorate === 'الكل'
-                ? 'bg-[#00FFD2] text-black font-black shadow-lg glow-primary'
+                ? 'bg-[#00FFD2] text-black font-black shadow-md'
                 : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
             }`}
           >
-            كل المحافظات
+            كل المحافظات (14)
           </button>
           {SYRIAN_GOVERNORATES.map((gov) => (
             <button
               key={gov}
               onClick={() => onSelectGovernorate(gov)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedGovernorate === gov
-                  ? 'bg-[#00FFD2] text-black font-black shadow-lg glow-primary'
+                  ? 'bg-[#00FFD2] text-black font-black shadow-md'
                   : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
               }`}
             >
@@ -194,199 +170,364 @@ export default function HomeView({
         </div>
       </div>
 
-      {/* 6 Core Feature Navigation Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          {
-            id: 'playgrounds',
-            title: 'الملاعب والحجوزات',
-            desc: 'حجز فوري و 7 أيام',
-            icon: Compass,
-            color: 'text-[#00FFD2]',
-            border: 'border-[#00FFD2]/30',
-            bg: 'hover:bg-[#00FFD2]/10'
-          },
-          {
-            id: 'leagues',
-            title: 'البطولات والدوريات',
-            desc: 'كؤوس وجوائز مالية',
-            icon: Trophy,
-            color: 'text-amber-400',
-            border: 'border-amber-400/30',
-            bg: 'hover:bg-amber-400/10'
-          },
-          {
-            id: 'matches',
-            title: 'المباريات الودية',
-            desc: 'تحديات وتقاسم التكلفة',
-            icon: Swords,
-            color: 'text-[#ff2a5f]',
-            border: 'border-[#ff2a5f]/30',
-            bg: 'hover:bg-[#ff2a5f]/10'
-          },
-          {
-            id: 'academies',
-            title: 'الأكاديميات الرياضية',
-            desc: 'مدارس كروية وباصات',
-            icon: Users,
-            color: 'text-purple-400',
-            border: 'border-purple-400/30',
-            bg: 'hover:bg-purple-400/10'
-          },
-          {
-            id: 'scouting',
-            title: 'كشاف المواهب (CV)',
-            desc: 'بطاقة مهارات وإشارة كشفية',
-            icon: Sparkles,
-            color: 'text-blue-400',
-            border: 'border-blue-400/30',
-            bg: 'hover:bg-blue-400/10'
-          },
-          {
-            id: 'map',
-            title: 'الخريطة التفاعلية',
-            desc: 'استكشاف الأقرب إليك',
-            icon: MapPin,
-            color: 'text-emerald-400',
-            border: 'border-emerald-400/30',
-            bg: 'hover:bg-emerald-400/10'
-          }
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigateTab(item.id)}
-              className={`bg-[#0d1211] border ${item.border} rounded-2xl p-4 text-right flex flex-col justify-between transition-all ${item.bg} group hover:scale-[1.02] shadow-lg`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-xl bg-black/40 ${item.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <ArrowLeft className="w-3.5 h-3.5 text-gray-500 group-hover:text-white transition-colors" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-xs font-['Cairo']">{item.title}</h3>
-                <p className="text-[10px] text-gray-400 mt-0.5">{item.desc}</p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {/* 4. The 3x3 Grid of Main Sections (شبكة الأقسام 3*3 المتناسقة على الجوال والديسكتوب) */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs sm:text-base font-black text-white flex items-center gap-2">
+            <Layers className="w-4 h-4 text-[#00FFD2]" />
+            <span>أقسام المنصة الرئيسية (شبكة 3×3)</span>
+          </h2>
+          {isAdmin && (
+            <span className="text-[9px] sm:text-[10px] text-[#ff2a5f] bg-[#ff2a5f]/15 px-2 py-0.5 rounded-full border border-[#ff2a5f]/30 font-bold">
+              صلاحية الإدارة مفعلة
+            </span>
+          )}
+        </div>
 
-      {/* Featured Playgrounds Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-6 bg-[#00FFD2] rounded-full"></div>
-            <h2 className="text-lg sm:text-xl font-bold text-white font-['Cairo']">
-              أبرز الملاعب المتاحة للحجز ({filteredPlaygrounds.length})
-            </h2>
-          </div>
-          <button
+        {/* 3x3 Grid: 3 columns on mobile, 3 columns on tablet/desktop */}
+        <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3.5">
+          {/* Card 1: Playgrounds */}
+          <div
             onClick={() => onNavigateTab('playgrounds')}
-            className="text-xs text-[#00FFD2] hover:underline font-bold flex items-center gap-1"
+            className="bg-[#0d1211] border border-[#00FFD2]/30 hover:border-[#00FFD2] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
-            <span>عرض كل الملاعب</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredPlaygrounds.slice(0, 3).map((pg) => (
-            <PlaygroundCard
-              key={pg.id}
-              playground={pg}
-              onViewDetails={onViewPlayground}
-              onBookNow={onBookPlayground}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Live Tournaments Spotlight */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-6 bg-amber-400 rounded-full"></div>
-            <h2 className="text-lg sm:text-xl font-bold text-white font-['Cairo']">
-              البطولات والدوريات النشطة ({filteredLeagues.length})
-            </h2>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#00FFD2]/10 text-[#00FFD2] border border-[#00FFD2]/20 shrink-0">
+                <Compass className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#00FFD2] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#00FFD2]/30">
+                {filteredPlaygrounds.length} ملعب
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-[#00FFD2] transition-colors line-clamp-1 sm:line-clamp-none">
+                الملاعب والحجوزات
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                حجز فوري لملاعب العشب الطبيعي والصناعي في كافة المحافظات بأسعار موحدة 0% عمولة.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-[#00FFD2] font-bold">
+              <span>تصفح الملاعب</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
           </div>
-          <button
+
+          {/* Card 2: Leagues */}
+          <div
             onClick={() => onNavigateTab('leagues')}
-            className="text-xs text-amber-400 hover:underline font-bold flex items-center gap-1"
+            className="bg-[#0d1211] border border-amber-400/30 hover:border-amber-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
-            <span>عرض كل البطولات</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredLeagues.slice(0, 3).map((lg) => (
-            <LeagueCard key={lg.id} league={lg} onViewDetails={onViewLeague} />
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Friendly Challenges */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-6 bg-[#ff2a5f] rounded-full"></div>
-            <h2 className="text-lg sm:text-xl font-bold text-white font-['Cairo']">
-              تحديات المباريات الودية المفتوحة ({filteredMatches.length})
-            </h2>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-400/10 text-amber-400 border border-amber-400/20 shrink-0">
+                <Trophy className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/30">
+                {filteredLeagues.length} بطولة
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-amber-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                البطولات والدوريات
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                بطولات كروية رسمية، جوائز نقدية، جداول الترتيب وإدارة كاملة لنتائج المباريات.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-amber-400 font-bold">
+              <span>استكشف الدوريات</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
           </div>
-          <button
+
+          {/* Card 3: Friendly Matches */}
+          <div
             onClick={() => onNavigateTab('matches')}
-            className="text-xs text-[#ff2a5f] hover:underline font-bold flex items-center gap-1"
+            className="bg-[#0d1211] border border-[#ff2a5f]/30 hover:border-[#ff2a5f] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
-            <span>عرض كل المباريات</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#ff2a5f]/10 text-[#ff2a5f] border border-[#ff2a5f]/20 shrink-0">
+                <Swords className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#ff2a5f] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#ff2a5f]/30">
+                {filteredMatches.length} تحدي
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-[#ff2a5f] transition-colors line-clamp-1 sm:line-clamp-none">
+                المباريات والتحديات
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                انشر تحدي أو اقبل مباراة مع فرق أخرى مع تقاسم تكلفة إيجار الملعب بسهولة.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-[#ff2a5f] font-bold">
+              <span>عرض التحديات</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredMatches.slice(0, 3).map((match) => (
-            <MatchChallengeCard
-              key={match.id}
-              match={match}
-              currentUser={currentUser}
-              onJoinChallenge={onJoinChallenge}
-            />
-          ))}
+          {/* Card 4: Academies */}
+          <div
+            onClick={() => onNavigateTab('academies')}
+            className="bg-[#0d1211] border border-purple-400/30 hover:border-purple-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-purple-400/10 text-purple-400 border border-purple-400/20 shrink-0">
+                <Users className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-purple-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-purple-400/30">
+                {academies.length} أكاديمية
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-purple-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                الأكاديميات والمدارس
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                تسجيل الفئات العمرية والناشئين في كبرى الأكاديميات الكروية بإشراف مدربين معتمدين.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-purple-400 font-bold">
+              <span>تصفح الأكاديميات</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 5: Scouting CV */}
+          <div
+            onClick={() => onNavigateTab('scouting')}
+            className="bg-[#0d1211] border border-blue-400/30 hover:border-blue-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-blue-400/10 text-blue-400 border border-blue-400/20 shrink-0">
+                <Sparkles className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-blue-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-400/30">
+                {playerCvs.length} بطاقة
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-blue-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                كشاف المواهب (CV)
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                أنشئ سيرتك الذاتية الرياضية (CV)، بطاقة المهارات، وعروضك للكشافين والأندية.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-blue-400 font-bold">
+              <span>كشاف المواهب</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 6: Google Maps & Directions */}
+          <div
+            onClick={() => onNavigateTab('map')}
+            className="bg-[#0d1211] border border-emerald-400/30 hover:border-emerald-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 shrink-0">
+                <Navigation className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-emerald-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-400/30">
+                Google Maps
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-emerald-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                الخريطة والاتجاهات
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                استكشف الملاعب القريبة منك مع رسم مسار الاتجاهات المباشر من موقعك إلى الملعب.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-emerald-400 font-bold">
+              <span>فتح الخريطة التفاعلية</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 7: Team Builder & Squads */}
+          <div
+            onClick={() => onNavigateTab('profile')}
+            className="bg-[#0d1211] border border-cyan-400/30 hover:border-cyan-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 shrink-0">
+                <Activity className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-cyan-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-400/30">
+                الملف الشخصي
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-cyan-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                الملف وإدارة الفرق
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                تعديل بيانات اللاعب، متابعة الحجوزات، تشكيل الفرق وتأكيد ألوان الأطقم.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-cyan-400 font-bold">
+              <span>عرض الملف الشخصي</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 8: Padel & Multi-sports */}
+          <div
+            onClick={() => onNavigateTab('playgrounds')}
+            className="bg-[#0d1211] border border-yellow-400/30 hover:border-yellow-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 shrink-0">
+                <Flame className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-yellow-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-yellow-400/30">
+                صالات وبادل
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-yellow-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                صالات وبادل وتنس
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                حجز ملاعب البادل الحديثة، الصالات المغلقة، وملاعب التنس في مختلف المدن.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-yellow-400 font-bold">
+              <span>استكشاف الملاعب المتنوعة</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 9: Admin & Organizers Portal */}
+          <div
+            onClick={() => onNavigateTab('profile')}
+            className="bg-[#0d1211] border border-rose-500/30 hover:border-rose-500 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
+              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+                <Shield className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-rose-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-rose-500/30">
+                الإدارة والتنظيم
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-rose-400 transition-colors line-clamp-1 sm:line-clamp-none">
+                لوحة المنظمين والتحكم
+              </h3>
+              <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
+                صلاحيات خاصة لمنظم الدوري (ownerId) لإدارة المباريات، مع تحكم الأدمن الشامل.
+              </p>
+            </div>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-rose-400 font-bold">
+              <span>دخول لوحة التحكم</span>
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Support & Admin Hotline Banner */}
-      <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4 text-center sm:text-right">
-          <div className="w-12 h-12 rounded-2xl bg-[#00FFD2]/10 border border-[#00FFD2]/40 flex items-center justify-center text-[#00FFD2] shrink-0">
-            <Phone className="w-6 h-6" />
+      {/* Responsive Section: On Mobile, only 3x3 tabs are shown. Featured lists below are shown on tablet & desktop */}
+      <div className="hidden sm:block space-y-6 pt-2">
+        {/* 5. Featured Playgrounds Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-5 bg-[#00FFD2] rounded-full"></div>
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                أبرز الملاعب المتاحة للحجز ({filteredPlaygrounds.length})
+              </h2>
+            </div>
+            <button
+              onClick={() => onNavigateTab('playgrounds')}
+              className="text-xs text-[#00FFD2] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <span>عرض كل الملاعب</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div>
-            <h4 className="font-bold text-white text-sm font-['Cairo']">
-              مركز الدعم الفني وإدارة الملاعب السورية
-            </h4>
-            <p className="text-xs text-gray-400">
-              للاستفسارات وتنظيم البطولات الكبرى وإضافة الملاعب الجديدة: +963 945688090 | family2016amer@gmail.com
-            </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPlaygrounds.slice(0, 3).map((pg) => (
+              <PlaygroundCard
+                key={pg.id}
+                playground={pg}
+                currentUser={currentUser}
+                isAdmin={isAdmin}
+                onViewDetails={onViewPlayground}
+                onBookNow={onBookPlayground}
+                onDeletePlayground={onDeletePlayground}
+              />
+            ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() =>
-              openWhatsAppShare(
-                'مرحباً فريق دعم تطبيق الكابتن، أود الاستفسار بخصوص خدمات المنصة.',
-                '0945688090'
-              )
-            }
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-lg"
-          >
-            <span>محادثة واتساب</span>
-          </button>
+        {/* 6. Active Leagues & Championships */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-5 bg-amber-400 rounded-full"></div>
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                البطولات والدوريات الكروية ({filteredLeagues.length})
+              </h2>
+            </div>
+            <button
+              onClick={() => onNavigateTab('leagues')}
+              className="text-xs text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <span>عرض كل البطولات</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredLeagues.slice(0, 3).map((lg) => (
+              <LeagueCard
+                key={lg.id}
+                league={lg}
+                currentUser={currentUser}
+                isAdmin={isAdmin}
+                onViewDetails={onViewLeague}
+                onDeleteLeague={onDeleteLeague}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 7. Friendly Match Challenges */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-5 bg-[#ff2a5f] rounded-full"></div>
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                أحدث تحديات المباريات الودية ({filteredMatches.length})
+              </h2>
+            </div>
+            <button
+              onClick={() => onNavigateTab('matches')}
+              className="text-xs text-[#ff2a5f] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+            >
+              <span>عرض كل المباريات</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredMatches.slice(0, 3).map((m) => (
+              <MatchChallengeCard
+                key={m.id}
+                match={m}
+                currentUser={currentUser}
+                isAdmin={isAdmin}
+                onJoinChallenge={onJoinChallenge}
+                onDeleteMatch={onDeleteMatch}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

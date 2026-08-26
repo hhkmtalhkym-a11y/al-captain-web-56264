@@ -181,14 +181,14 @@ export default function InteractiveMap({
       id: m.id,
       type: 'match' as const,
       title: `${m.hostTeamName} vs ${m.opponentTeamName || 'بانتظار منافس'}`,
-      subtitle: `${m.governorate} - ${m.venueName} (${m.matchDate} ${m.matchTime})`,
+      subtitle: `${m.governorate} - ${m.venueName} (${m.date} ${m.time})`,
       governorate: m.governorate,
       lat: GOVERNORATE_COORDINATES[m.governorate]?.lat || 33.5138,
       lng: GOVERNORATE_COORDINATES[m.governorate]?.lng || 36.2765,
       image: m.hostTeamImage || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=600&q=80',
-      price: m.totalCost,
-      priceLabel: `${formatSYP(m.totalCost)} إجمالي`,
-      phone: m.hostLeaderPhone,
+      price: m.pitchPrice + (m.refereePrice || 0),
+      priceLabel: `${formatSYP(m.pitchPrice + (m.refereePrice || 0))} إجمالي`,
+      phone: m.organizerPhone,
       badge: 'تحدي مباراة',
       badgeColor: 'bg-[#ff2a5f] text-white border-[#ff2a5f]',
       originalData: m
@@ -246,15 +246,15 @@ export default function InteractiveMap({
     const steps = [
       {
         instruction: `انطلق من موقعك الحالي باتجاه أقرب شريان رئيسي أو أوتوستراد نحو ${venue.governorate}.`,
-        distance: `${Math.max(0.5, (distKm * 0.15).toFixed(1))} كم`
+        distance: `${Math.max(0.5, parseFloat((distKm * 0.15).toFixed(1)))} كم`
       },
       {
         instruction: `تابع القيادة مستقيماً باتجاه منطقة ${venue.subtitle}.`,
-        distance: `${Math.max(1, (distKm * 0.65).toFixed(1))} كم`
+        distance: `${Math.max(1, parseFloat((distKm * 0.65).toFixed(1)))} كم`
       },
       {
         instruction: `انعطف نحو المدخل الرئيسي لـ "${venue.title}".`,
-        distance: `${Math.max(0.3, (distKm * 0.2).toFixed(1))} كم`
+        distance: `${Math.max(0.3, parseFloat((distKm * 0.2).toFixed(1)))} كم`
       },
       {
         instruction: `وصلت إلى الوجهة المحددة: ${venue.title} (موقف السيارات متاح أمام الملعب).`,

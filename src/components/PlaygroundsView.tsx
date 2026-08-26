@@ -26,6 +26,7 @@ import PlaygroundCard from './PlaygroundCard';
 
 interface PlaygroundsViewProps {
   playgrounds: Playground[];
+  currentUser?: any;
   selectedGovernorate: string;
   isAdmin?: boolean;
   onSelectGovernorate: (gov: string) => void;
@@ -37,6 +38,7 @@ interface PlaygroundsViewProps {
 
 export default function PlaygroundsView({
   playgrounds,
+  currentUser,
   selectedGovernorate,
   isAdmin = false,
   onSelectGovernorate,
@@ -311,6 +313,7 @@ export default function PlaygroundsView({
               <PlaygroundCard
                 key={pg.id}
                 playground={pg}
+                currentUser={currentUser}
                 isAdmin={isAdmin}
                 onViewDetails={onViewPlayground}
                 onBookNow={onBookPlayground}

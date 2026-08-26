@@ -17,6 +17,7 @@ import { openWhatsAppShare } from '../utils/helpers';
 interface PlayerCvCardProps {
   key?: React.Key;
   player: PlayerCv;
+  currentUser?: any;
   isAdmin?: boolean;
   onToggleBeacon?: (playerId: string) => void;
   onDeletePlayerCv?: (id: string) => void;
@@ -24,12 +25,22 @@ interface PlayerCvCardProps {
 
 export default function PlayerCvCard({
   player,
+  currentUser,
   isAdmin = false,
   onToggleBeacon,
   onDeletePlayerCv
 }: PlayerCvCardProps) {
   const [beaconActive, setBeaconActive] = useState(player.isBeaconSent || false);
   const [showBeaconAlert, setShowBeaconAlert] = useState(false);
+
+  const isOwner = Boolean(
+    currentUser && (
+      (player as any).ownerId === currentUser.id ||
+      player.phoneNumber === currentUser.phone ||
+      player.fullName === currentUser.name
+    )
+  );
+  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
 
   const handleBeaconClick = () => {
     const next = !beaconActive;
@@ -84,10 +95,12 @@ export default function PlayerCvCard({
       id={`player-card-${player.id}`}
       className="bg-[#0d1211] border border-blue-500/25 rounded-3xl p-5 hover:border-blue-500/60 transition-all duration-300 flex flex-col justify-between group hover:shadow-2xl hover:shadow-blue-500/10 relative overflow-hidden font-['Cairo']"
     >
-      {/* Admin Action Badge */}
-      {isAdmin && (
+      {/* Admin / Owner Action Badge */}
+      {hasManagementPermission && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">لوحة الإدارة</span>
+          <span className="text-[10px] font-bold text-red-400">
+            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'صاحب البطاقة'}
+          </span>
           {onDeletePlayerCv && (
             <button
               onClick={handleDelete}

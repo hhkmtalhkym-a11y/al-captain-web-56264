@@ -6,6 +6,7 @@ import { formatSYP, openWhatsAppShare } from '../utils/helpers';
 interface AcademyCardProps {
   key?: React.Key;
   academy: Academy;
+  currentUser?: any;
   isAdmin?: boolean;
   onViewDetails: (aca: Academy) => void;
   onRegister?: (aca: Academy) => void;
@@ -14,11 +15,20 @@ interface AcademyCardProps {
 
 export default function AcademyCard({
   academy,
+  currentUser,
   isAdmin = false,
   onViewDetails,
   onRegister,
   onDeleteAcademy
 }: AcademyCardProps) {
+  const isOwner = Boolean(
+    currentUser && (
+      (academy as any).ownerId === currentUser.id ||
+      academy.contactPhone === currentUser.phone
+    )
+  );
+  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`هل أنت متأكد من حذف أكاديمية "${academy.name}" بشكل نهائي؟`)) {
@@ -31,10 +41,12 @@ export default function AcademyCard({
       id={`academy-card-${academy.id}`}
       className="bg-[#0d1211] border border-purple-500/20 rounded-2xl overflow-hidden hover:border-purple-500/60 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-purple-500/5 font-['Cairo'] relative"
     >
-      {/* Admin Action Badge */}
-      {isAdmin && (
+      {/* Admin / Owner Action Badge */}
+      {hasManagementPermission && (
         <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">لوحة الإدارة</span>
+          <span className="text-[10px] font-bold text-purple-300">
+            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'مدير الأكاديمية'}
+          </span>
           {onDeleteAcademy && (
             <button
               onClick={handleDelete}

@@ -71,7 +71,7 @@ import {
 // Components
 import SplashScreen from './components/SplashScreen';
 import AppOfficialLogo from './components/AppOfficialLogo';
-import AdminLoginModal from './components/AdminLoginModal';
+import DashboardAuthModal from './components/DashboardAuthModal';
 import NotificationsDrawer from './components/NotificationsDrawer';
 import LiveChatSupportModal from './components/LiveChatSupportModal';
 import HomeView from './components/HomeView';
@@ -825,127 +825,32 @@ function MainApp() {
       {/* Splash Screen */}
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
 
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-[#050707]/90 backdrop-blur-md border-b border-[#00FFD2]/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Brand Logo & Name */}
-          <div
-            onClick={() => setActiveTab('home')}
-            className="flex items-center gap-2.5 cursor-pointer select-none group"
-          >
-            <AppOfficialLogo size="md" className="group-hover:scale-105 transition-transform" />
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-base sm:text-lg font-black tracking-tight text-white font-['Cairo']">
-                  الكابتن <span className="text-[#00FFD2] text-[11px] font-mono font-bold">AL-CAPTAIN</span>
-                </h1>
-                <span className="hidden md:inline px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                  0% عمولة
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-400 hidden sm:block">
-                المنصة الكروية المتكاملة في الجمهورية العربية السورية
-              </p>
-            </div>
-          </div>
-
-          {/* Syrian Governorates Filter Dropdown */}
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                id="select-governorate-global"
-                value={selectedGovernorate}
-                onChange={(e) => setSelectedGovernorate(e.target.value)}
-                className="bg-[#0d1211] border border-[#00FFD2]/30 text-[#00FFD2] text-xs font-bold rounded-xl py-2 px-3 pr-8 pl-3 focus:outline-none focus:border-[#00FFD2] cursor-pointer"
-              >
-                <option value="الكل">كل المحافظات (14)</option>
-                {SYRIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov} value={gov}>
-                    محافظة {gov}
-                  </option>
-                ))}
-              </select>
-              <MapPin className="w-3.5 h-3.5 text-[#00FFD2] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Interactive Map Shortcut */}
+      {/* Top Navbar - Responsive Header: Right: Profile & Notifs | Center: Logo & Name | Left: Governorates & Google Maps */}
+      <header className="sticky top-0 z-40 bg-[#050707]/95 backdrop-blur-md border-b border-[#00FFD2]/20">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-4">
+          {/* RIGHT SIDE (الطرف اليميني): Profile Button & Notifications Bell */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* User Profile / Account Button */}
             <button
-              onClick={() => setActiveTab('map')}
-              className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                activeTab === 'map'
-                  ? 'bg-emerald-500 text-black font-bold'
-                  : 'bg-[#0d1211] text-gray-300 hover:text-white border border-white/10'
-              }`}
-              title="الخريطة التفاعلية للملاعب"
-            >
-              <Compass className="w-4 h-4 text-[#00FFD2]" />
-              <span className="hidden sm:inline">الخريطة</span>
-            </button>
-
-            {/* My Bookings Tab Shortcut */}
-            <button
-              onClick={() => setActiveTab('bookings')}
-              className={`p-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                activeTab === 'bookings'
-                  ? 'bg-[#00FFD2] text-black font-bold glow-primary'
-                  : 'bg-[#0d1211] text-gray-300 hover:text-white border border-white/10'
-              }`}
-              title="حجوزاتي"
-            >
-              <Calendar className="w-4 h-4 text-[#00FFD2]" />
-              <span className="hidden sm:inline">حجوزاتي</span>
-              {bookings.length > 0 && (
-                <span className="bg-[#050707] text-[#00FFD2] text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                  {bookings.length}
-                </span>
-              )}
-            </button>
-
-            {/* Notifications Bell with Neon Pink Glow */}
-            <button
-              onClick={() => setIsNotificationsOpen(true)}
-              className="relative p-2 rounded-xl bg-[#0d1211] text-gray-300 hover:text-white border border-white/10 transition-colors"
-              title="التنبيهات"
-            >
-              <Bell className="w-4 h-4 text-[#ff2a5f]" />
-              {unreadNotifsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#ff2a5f] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse glow-pink">
-                  {unreadNotifsCount}
-                </span>
-              )}
-            </button>
-
-            {/* Support Live Chat */}
-            <button
-              onClick={() => setIsLiveChatOpen(true)}
-              className="p-2 rounded-xl bg-[#0d1211] text-gray-300 hover:text-white border border-white/10 transition-colors hidden sm:flex items-center gap-1 text-xs"
-              title="الدعم الفني المباشر"
-            >
-              <MessageSquare className="w-4 h-4 text-[#00FFD2]" />
-            </button>
-
-            {/* User Profile / Admin Badge */}
-            <button
+              id="header-btn-profile"
               onClick={() => setActiveTab('profile')}
-              className={`p-1 pl-2.5 rounded-xl border flex items-center gap-2 transition-all ${
+              className={`p-1 sm:pl-2.5 rounded-xl border flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
                 activeTab === 'profile'
-                  ? 'border-[#00FFD2] bg-[#00FFD2]/10'
-                  : 'border-white/10 bg-[#0d1211]'
+                  ? 'border-[#00FFD2] bg-[#00FFD2]/15 shadow-sm'
+                  : 'border-white/10 bg-[#0d1211] hover:border-white/20'
               }`}
+              title="الملف الشخصي والحجوزات"
             >
               <img
                 src={currentUser.image || currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
                 alt={currentUser.name}
-                className="w-7 h-7 rounded-lg object-cover border border-[#00FFD2]"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border border-[#00FFD2]"
               />
-              <div className="text-right hidden md:block">
+              <div className="text-right hidden sm:block">
                 <span className="text-xs font-bold text-white block leading-none">
                   {currentUser.name}
                 </span>
-                <span className="text-[10px] text-[#00FFD2] flex items-center gap-1">
+                <span className="text-[10px] text-[#00FFD2] flex items-center gap-0.5 mt-0.5">
                   {currentUser.isAdmin ? (
                     <span className="text-[#ff2a5f] font-bold flex items-center gap-0.5">
                       <Shield className="w-2.5 h-2.5" /> المدير العام
@@ -955,6 +860,76 @@ function MainApp() {
                   )}
                 </span>
               </div>
+            </button>
+
+            {/* Notifications Bell */}
+            <button
+              id="header-btn-notifications"
+              onClick={() => setIsNotificationsOpen(true)}
+              className="relative p-2 rounded-xl bg-[#0d1211] text-gray-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
+              title="الإشعارات والتنبيهات"
+            >
+              <Bell className="w-4 h-4 text-[#ff2a5f]" />
+              {unreadNotifsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#ff2a5f] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse glow-pink">
+                  {unreadNotifsCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* CENTER (في المنتصف): App Official Logo & App Name */}
+          <div
+            id="header-btn-logo-home"
+            onClick={() => setActiveTab('home')}
+            className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer select-none group justify-center"
+          >
+            <AppOfficialLogo size="md" className="group-hover:scale-105 transition-transform" />
+            <div className="text-center sm:text-right">
+              <div className="flex items-center gap-1">
+                <h1 className="text-sm sm:text-lg font-black tracking-tight text-white font-['Cairo']">
+                  الكابتن <span className="text-[#00FFD2] text-[10px] sm:text-[11px] font-mono font-bold">AL-CAPTAIN</span>
+                </h1>
+                <span className="hidden lg:inline px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
+                  0% عمولة
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* LEFT SIDE (الجهة اليسارية): Syrian Governorates Dropdown & Google Maps */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Syrian Governorates Filter Dropdown */}
+            <div className="relative">
+              <select
+                id="select-governorate-global"
+                value={selectedGovernorate}
+                onChange={(e) => setSelectedGovernorate(e.target.value)}
+                className="bg-[#0d1211] border border-[#00FFD2]/30 text-[#00FFD2] text-[11px] sm:text-xs font-bold rounded-xl py-1.5 sm:py-2 px-2 sm:px-3 pr-7 sm:pr-8 pl-2 sm:pl-3 focus:outline-none focus:border-[#00FFD2] cursor-pointer max-w-[110px] sm:max-w-none"
+              >
+                <option value="الكل">كل المحافظات (14)</option>
+                {SYRIAN_GOVERNORATES.map((gov) => (
+                  <option key={gov} value={gov}>
+                    {gov}
+                  </option>
+                ))}
+              </select>
+              <MapPin className="w-3.5 h-3.5 text-[#00FFD2] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Google Maps Interactive Button */}
+            <button
+              id="header-btn-map"
+              onClick={() => setActiveTab('map')}
+              className={`p-1.5 sm:p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                activeTab === 'map'
+                  ? 'bg-emerald-500 text-black font-black glow-emerald'
+                  : 'bg-[#0d1211] text-emerald-400 hover:text-white border border-emerald-500/30'
+              }`}
+              title="خرائط Google ومسار الاتجاهات"
+            >
+              <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="hidden md:inline">الخريطة</span>
             </button>
           </div>
         </div>
@@ -989,6 +964,7 @@ function MainApp() {
         {activeTab === 'playgrounds' && (
           <PlaygroundsView
             playgrounds={playgrounds}
+            currentUser={currentUser}
             selectedGovernorate={selectedGovernorate}
             isAdmin={currentUser.isAdmin}
             onSelectGovernorate={setSelectedGovernorate}
@@ -1033,6 +1009,7 @@ function MainApp() {
                   <LeagueCard
                     key={lg.id}
                     league={lg}
+                    currentUser={currentUser}
                     isAdmin={currentUser.isAdmin}
                     onViewDetails={(l) => setSelectedLeague(l)}
                     onDeleteLeague={handleDeleteLeague}
@@ -1090,6 +1067,7 @@ function MainApp() {
                   <AcademyCard
                     key={aca.id}
                     academy={aca}
+                    currentUser={currentUser}
                     isAdmin={currentUser.isAdmin}
                     onViewDetails={(a) => setSelectedAcademy(a)}
                     onRegister={(a) => setRegisteringAcademy(a)}
@@ -1135,6 +1113,7 @@ function MainApp() {
                   <PlayerCvCard
                     key={pl.id}
                     player={pl}
+                    currentUser={currentUser}
                     isAdmin={currentUser.isAdmin}
                     onToggleBeacon={handleTogglePlayerBeacon}
                     onDeletePlayerCv={handleDeletePlayerCv}
@@ -1173,9 +1152,11 @@ function MainApp() {
         {activeTab === 'profile' && (
           <ProfileView
             currentUser={currentUser}
+            bookings={bookings}
             onUpdateProfile={(u) => updateCurrentUser(u)}
             onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
             onOpenSupportModal={() => setIsLiveChatOpen(true)}
+            onCancelBooking={handleCancelBooking}
           />
         )}
 
@@ -1233,11 +1214,14 @@ function MainApp() {
 
       {/* ALL MODALS & DRAWERS */}
 
-      {/* Admin Login Modal */}
-      <AdminLoginModal
+      {/* Comprehensive Dashboard & Multi-Role Auth Modal */}
+      <DashboardAuthModal
         isOpen={isAdminLoginOpen}
         onClose={() => setIsAdminLoginOpen(false)}
-        onSuccess={handleAdminLoginSuccess}
+        onSuccess={() => {
+          handleAdminLoginSuccess();
+          setIsAdminLoginOpen(false);
+        }}
       />
 
       {/* Notifications Drawer */}

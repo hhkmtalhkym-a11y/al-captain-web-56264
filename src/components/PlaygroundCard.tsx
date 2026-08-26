@@ -18,20 +18,31 @@ import { formatSYP } from '../utils/helpers';
 interface PlaygroundCardProps {
   key?: React.Key;
   playground: Playground;
+  currentUser?: any;
   isAdmin?: boolean;
   onViewDetails: (pg: Playground) => void;
   onBookNow: (pg: Playground) => void;
   onDelete?: (id: string) => void;
+  onDeletePlayground?: (id: string) => void;
 }
 
 export default function PlaygroundCard({
   playground,
+  currentUser,
   isAdmin = false,
   onViewDetails,
   onBookNow,
-  onDelete
+  onDelete,
+  onDeletePlayground
 }: PlaygroundCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const isOwner =
+    Boolean(currentUser && (
+      (playground as any).ownerId === currentUser.id ||
+      playground.managerPhone === currentUser.phone
+    ));
+  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,7 +57,8 @@ export default function PlaygroundCard({
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`هل أنت متأكد من حذف ملعب "${playground.name}" بشكل نهائي؟`)) {
-      if (onDelete) onDelete(playground.id);
+      if (onDeletePlayground) onDeletePlayground(playground.id);
+      else if (onDelete) onDelete(playground.id);
     }
   };
 
@@ -55,11 +67,13 @@ export default function PlaygroundCard({
       id={`playground-card-${playground.id}`}
       className="bg-[#0d1211] border border-[#00FFD2]/20 rounded-2xl overflow-hidden hover:border-[#00FFD2]/60 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-[#00FFD2]/5 font-['Cairo'] relative"
     >
-      {/* Admin Action Badge */}
-      {isAdmin && (
+      {/* Admin / Owner Action Badge */}
+      {hasManagementPermission && (
         <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">لوحة الإدارة</span>
-          {onDelete && (
+          <span className="text-[10px] font-bold text-red-400">
+            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'صاحب الملعب'}
+          </span>
+          {(onDelete || onDeletePlayground) && (
             <button
               onClick={handleDelete}
               className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"

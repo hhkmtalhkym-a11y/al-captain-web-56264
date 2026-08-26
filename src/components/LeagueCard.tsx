@@ -6,6 +6,7 @@ import { formatSYP, exportLeaguePdf } from '../utils/helpers';
 interface LeagueCardProps {
   key?: React.Key;
   league: League;
+  currentUser?: any;
   isAdmin?: boolean;
   onViewDetails: (l: League) => void;
   onDeleteLeague?: (id: string) => void;
@@ -13,10 +14,20 @@ interface LeagueCardProps {
 
 export default function LeagueCard({
   league,
+  currentUser,
   isAdmin = false,
   onViewDetails,
   onDeleteLeague
 }: LeagueCardProps) {
+  const isOwner = Boolean(
+    currentUser && (
+      league.ownerId === currentUser.id ||
+      league.organizerPhone === currentUser.phone ||
+      league.organizerName === currentUser.name
+    )
+  );
+  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(`هل أنت متأكد من حذف بطولة "${league.name}" بشكل نهائي؟`)) {
@@ -29,10 +40,12 @@ export default function LeagueCard({
       id={`league-card-${league.id}`}
       className="bg-[#0d1211] border border-[#00FFD2]/20 rounded-2xl overflow-hidden hover:border-amber-400/50 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-amber-400/5 font-['Cairo'] relative"
     >
-      {/* Admin Action Badge */}
-      {isAdmin && (
+      {/* Admin / Organizer Action Badge */}
+      {hasManagementPermission && (
         <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">لوحة الإدارة</span>
+          <span className="text-[10px] font-bold text-amber-400">
+            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'منظم الدوري'}
+          </span>
           {onDeleteLeague && (
             <button
               onClick={handleDelete}

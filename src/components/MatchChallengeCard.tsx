@@ -18,6 +18,7 @@ interface MatchChallengeCardProps {
   key?: React.Key;
   match: FriendlyMatch;
   currentUser: UserProfile;
+  isAdmin?: boolean;
   onJoinChallenge: (match: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
 }
@@ -25,6 +26,7 @@ interface MatchChallengeCardProps {
 export default function MatchChallengeCard({
   match,
   currentUser,
+  isAdmin = false,
   onJoinChallenge,
   onDeleteMatch
 }: MatchChallengeCardProps) {
@@ -44,15 +46,25 @@ export default function MatchChallengeCard({
 
   const totalCost = match.pitchPrice + (match.refereePrice || 0);
 
+  const isOwner = Boolean(
+    currentUser && (
+      (match as any).ownerId === currentUser.id ||
+      match.organizerPhone === currentUser.phone
+    )
+  );
+  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+
   return (
     <div
       id={`match-card-${match.id}`}
       className="bg-[#0d1211] border border-[#ff2a5f]/25 rounded-2xl p-4 sm:p-5 hover:border-[#ff2a5f]/60 transition-all duration-300 flex flex-col justify-between group hover:shadow-xl hover:shadow-[#ff2a5f]/5 font-['Cairo'] relative"
     >
-      {/* Admin Action Badge */}
-      {currentUser.isAdmin && (
+      {/* Admin / Owner Action Badge */}
+      {hasManagementPermission && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">إدارة التحدي</span>
+          <span className="text-[10px] font-bold text-red-400">
+            {isAdmin || (currentUser && currentUser.isAdmin) ? 'إدارة التحدي' : 'صاحب التحدي'}
+          </span>
           {onDeleteMatch && (
             <button
               onClick={handleDelete}

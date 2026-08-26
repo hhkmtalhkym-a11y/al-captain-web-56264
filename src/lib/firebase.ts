@@ -14,13 +14,13 @@ try {
 const env = (import.meta as any).env || {};
 
 export const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY || "AIzaSyABAelUj5ln0bAPAnHlvbnsQG42zkJqwk0",
+  apiKey: env.VITE_FIREBASE_API_KEY || "AIzaSyABAeLUj5ln0bAPAnHlvbnSQG42zkJqwk0",
   authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "al-captain-web-56264.firebaseapp.com",
   projectId: env.VITE_FIREBASE_PROJECT_ID || "al-captain-web-56264",
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "al-captain-web-56264.firebasestorage.app",
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "584756964376",
   appId: env.VITE_FIREBASE_APP_ID || "1:584756964376:web:4d85337fe4d2bcc444a76d",
-  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || "G-XKLD6WYQP5"
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || "G-XKID6WYOP5"
 };
 
 // Initialize Firebase App
