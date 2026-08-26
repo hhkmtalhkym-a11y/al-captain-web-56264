@@ -4,6 +4,7 @@ import { Academy, SyrianGovernorate, TransportStatus } from '../types';
 import { SYRIAN_GOVERNORATES, GOVERNORATE_COORDINATES } from '../constants/syrianData';
 import { readImageAsBase64 } from '../utils/helpers';
 import SportLogoPicker from './SportLogoPicker';
+import MapLocationPicker from './MapLocationPicker';
 
 interface CreateAcademyModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export default function CreateAcademyModal({
   const [name, setName] = useState('');
   const [governorate, setGovernorate] = useState<SyrianGovernorate>('دمشق');
   const [locationDetails, setLocationDetails] = useState('');
+  const [latitude, setLatitude] = useState<number>(33.5138);
+  const [longitude, setLongitude] = useState<number>(36.2765);
   const [mainCoach, setMainCoach] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [monthlyFee, setMonthlyFee] = useState<number>(150000);
@@ -32,22 +35,10 @@ export default function CreateAcademyModal({
 
   if (!isOpen) return null;
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const base64 = await readImageAsBase64(file);
-      setImage(base64);
-      setUploadError('');
-    } catch (err: any) {
-      setUploadError(err.message || 'خطأ أثناء قراءة الصورة');
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) {
-      setUploadError('يرجى رفع صورة رئيسية للأكاديمية من المعرض (إجباري)');
+      setUploadError('يرجى اختيار شعار أو رفع صورة رئيسية للأكاديمية (إجباري)');
       return;
     }
 
@@ -61,8 +52,8 @@ export default function CreateAcademyModal({
       images: [image],
       governorate,
       locationDetails,
-      latitude: coords.lat + (Math.random() * 0.02 - 0.01),
-      longitude: coords.lng + (Math.random() * 0.02 - 0.01),
+      latitude: Number(latitude) || coords.lat,
+      longitude: Number(longitude) || coords.lng,
       mainCoach,
       contactPhone,
       monthlyFee: Number(monthlyFee),
@@ -114,16 +105,24 @@ export default function CreateAcademyModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#0d1211] border-2 border-purple-500/40 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto"
+        className="bg-[#0d1211] border-2 border-purple-500/40 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto font-['Cairo']"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-[#050707] border-b border-purple-500/20 p-4 sm:p-5 flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-bold text-white font-['Cairo']">
-            إضافة وإدراج أكاديمية رياضية جديدة
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                إضافة وإدراج أكاديمية رياضية جديدة
+              </h2>
+              <p className="text-[11px] text-gray-400">حدد الموقع على الخريطة والمدربين والبرامج التدريبية</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -143,45 +142,33 @@ export default function CreateAcademyModal({
           />
           {uploadError && <p className="text-xs text-[#ff2a5f] mt-1">{uploadError}</p>}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">اسم الأكاديمية *</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="مثال: أكاديمية الأبطال"
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">المحافظة السورية *</label>
-              <select
-                value={governorate}
-                onChange={(e) => setGovernorate(e.target.value as SyrianGovernorate)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-              >
-                {SYRIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov} value={gov}>
-                    {gov}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
           <div>
-            <label className="block text-xs text-gray-300 mb-1">العنوان التفصيلي ومكان التدريب *</label>
+            <label className="block text-xs text-gray-300 mb-1">اسم الأكاديمية *</label>
             <input
               type="text"
-              value={locationDetails}
-              onChange={(e) => setLocationDetails(e.target.value)}
-              placeholder="مثال: دمشق - المزة بجانب الجلاء"
-              className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="مثال: أكاديمية الأبطال للناشئين"
+              className="w-full bg-[#050707] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-400"
               required
             />
           </div>
+
+          {/* Interactive Google Map Location Picker */}
+          <MapLocationPicker
+            governorate={governorate}
+            onGovernorateChange={(gov) => setGovernorate(gov)}
+            locationDetails={locationDetails}
+            onLocationDetailsChange={(det) => setLocationDetails(det)}
+            latitude={latitude}
+            longitude={longitude}
+            onCoordinatesChange={(lat, lng) => {
+              setLatitude(lat);
+              setLongitude(lng);
+            }}
+            title="موقع الأكاديمية ومقر التدريب على خريطة Google (GPS)"
+            accentColor="purple"
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#050707] p-3 rounded-2xl border border-white/5">
             <div>
@@ -191,7 +178,7 @@ export default function CreateAcademyModal({
                 value={mainCoach}
                 onChange={(e) => setMainCoach(e.target.value)}
                 placeholder="الكابتن..."
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-purple-400"
                 required
               />
             </div>
@@ -201,7 +188,7 @@ export default function CreateAcademyModal({
                 type="number"
                 value={monthlyFee}
                 onChange={(e) => setMonthlyFee(Number(e.target.value))}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-purple-300 font-mono"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-purple-300 font-mono focus:outline-none focus:border-purple-400"
               />
             </div>
             <div>
@@ -209,7 +196,7 @@ export default function CreateAcademyModal({
               <select
                 value={transportStatus}
                 onChange={(e) => setTransportStatus(e.target.value as TransportStatus)}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="مؤمنة">مؤمنة (باصات متوفرة)</option>
                 <option value="بحاجة مواصلات">بحاجة مواصلات</option>
@@ -226,7 +213,7 @@ export default function CreateAcademyModal({
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 placeholder="09XXXXXXXX"
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400 font-mono"
                 required
               />
             </div>
@@ -236,7 +223,7 @@ export default function CreateAcademyModal({
                 type="text"
                 value={targetAgeGroups}
                 onChange={(e) => setTargetAgeGroups(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
               />
             </div>
           </div>
@@ -248,14 +235,14 @@ export default function CreateAcademyModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="وصف البرامج والتدريب..."
-              className="w-full bg-[#050707] border border-white/10 rounded-xl p-2.5 text-xs text-white"
+              className="w-full bg-[#050707] border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-6 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-sm transition-all shadow-xl flex items-center justify-center gap-2"
+            className="w-full py-3 px-6 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-sm transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             {isSubmitting ? 'جاري الإدراج...' : 'إدراج الأكاديمية في المنصة'}

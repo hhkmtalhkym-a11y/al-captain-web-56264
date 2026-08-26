@@ -51,19 +51,6 @@ export default function PlaygroundsView({
   const [selectedSurface, setSelectedSurface] = useState<string>('الكل');
   const [selectedCapacity, setSelectedCapacity] = useState<string>('الكل');
   const [maxPrice, setMaxPrice] = useState<number>(300000);
-  const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);
-  const [showInteractiveCalendar, setShowInteractiveCalendar] = useState<boolean>(true);
-
-  // Generate 7 upcoming days
-  const upcoming7Days = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const dayName = d.toLocaleDateString('ar-SY', { weekday: 'long' });
-    const formattedDate = d.toISOString().split('T')[0];
-    return { offset: i, dayName, formattedDate };
-  });
-
-  const activeDay = upcoming7Days[selectedDayOffset];
 
   // Filter playgrounds
   const filteredPlaygrounds = playgrounds.filter((pg) => {
@@ -98,103 +85,18 @@ export default function PlaygroundsView({
             <span>دليل الملاعب والحجوزات الفورية في سوريا</span>
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            استعرض الملاعب المعتمدة، تحقق من جدول المواعيد المتاحة على مدار 7 أيام، واحجز بـ 0% عمولة
+            استعرض الملاعب المعتمدة، حدد موقعك، واحجز بـ 0% عمولة وبأفضل الأسعار
           </p>
         </div>
 
         <button
           id="btn-add-playground"
           onClick={onOpenCreateModal}
-          className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs transition-all shadow-lg glow-primary flex items-center gap-2 shrink-0"
+          className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs transition-all shadow-lg glow-primary flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>إضافة ملعب جديد</span>
         </button>
-      </div>
-
-      {/* 7-Day Visual Interactive Schedule Calendar */}
-      <div className="bg-[#0d1211] border border-[#00FFD2]/30 rounded-3xl p-5 glow-primary space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-[#00FFD2]" />
-            <h2 className="font-bold text-white text-sm font-['Cairo']">
-              التقويم التفاعلي لمواعيد الحجز (7 أيام قادمة)
-            </h2>
-          </div>
-          <div className="flex items-center gap-3 text-xs">
-            <span className="flex items-center gap-1 text-emerald-400">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> متاح
-            </span>
-            <span className="flex items-center gap-1 text-[#ff2a5f]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#ff2a5f] inline-block"></span> محجوز
-            </span>
-            <span className="flex items-center gap-1 text-gray-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-gray-600 inline-block"></span> مغلق
-            </span>
-          </div>
-        </div>
-
-        {/* 7 Days Selector Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-          {upcoming7Days.map((day) => {
-            const isSelected = selectedDayOffset === day.offset;
-            return (
-              <button
-                key={day.offset}
-                onClick={() => setSelectedDayOffset(day.offset)}
-                className={`p-2.5 rounded-2xl text-center transition-all border ${
-                  isSelected
-                    ? 'bg-[#00FFD2] text-black border-[#00FFD2] shadow-lg glow-primary font-black'
-                    : 'bg-[#050707] text-gray-300 border-white/10 hover:border-white/30'
-                }`}
-              >
-                <div className="text-[11px] font-bold">{day.dayName}</div>
-                <div className="text-[10px] opacity-80 mt-0.5">{day.formattedDate}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Interactive Slots for selected day */}
-        <div className="bg-[#050707] border border-white/5 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>
-              المواعيد التفاعلية ليوم: <strong className="text-white">{activeDay.dayName} ({activeDay.formattedDate})</strong>
-            </span>
-            <span className="text-emerald-400 font-bold">فترات الحجز الرسمية (كل 90 دقيقة)</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {[
-              { time: '08:00 - 09:30', status: 'متاح' },
-              { time: '09:30 - 11:00', status: 'متاح' },
-              { time: '11:00 - 12:30', status: 'متاح' },
-              { time: '12:30 - 14:00', status: 'محجوز' },
-              { time: '14:00 - 15:30', status: 'متاح' },
-              { time: '15:30 - 17:00', status: 'متاح' },
-              { time: '17:00 - 18:30', status: 'محجوز' },
-              { time: '18:30 - 20:00', status: 'محجوز' },
-              { time: '20:00 - 21:30', status: 'متاح' },
-              { time: '21:30 - 23:00', status: 'متاح' },
-              { time: '23:00 - 00:30', status: 'متاح' },
-              { time: '00:30 - 02:00', status: 'مغلق' }
-            ].map((slot, idx) => (
-              <div
-                key={idx}
-                className={`p-2 rounded-xl text-center border text-xs font-mono transition-all ${
-                  slot.status === 'متاح'
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer'
-                    : slot.status === 'محجوز'
-                    ? 'bg-[#ff2a5f]/10 border-[#ff2a5f]/30 text-[#ff2a5f] cursor-not-allowed'
-                    : 'bg-gray-800/30 border-gray-700 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <div className="font-bold">{slot.time}</div>
-                <div className="text-[10px] mt-0.5 font-['Cairo']">{slot.status}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Advanced Filters and Search Bar */}

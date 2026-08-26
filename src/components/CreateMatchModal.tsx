@@ -11,6 +11,7 @@ import {
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { formatSYP } from '../utils/helpers';
 import SportLogoPicker from './SportLogoPicker';
+import MapLocationPicker from './MapLocationPicker';
 
 interface CreateMatchModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export default function CreateMatchModal({
   const [venueName, setVenueName] = useState('');
   const [venueLocation, setVenueLocation] = useState('');
   const [governorate, setGovernorate] = useState<SyrianGovernorate>('دمشق');
+  const [latitude, setLatitude] = useState<number>(33.5138);
+  const [longitude, setLongitude] = useState<number>(36.2765);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('20:00 - 21:30');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>('شباب');
@@ -177,67 +180,52 @@ export default function CreateMatchModal({
           />
 
           {/* 2. Basic Match Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-white mb-1">
-                اسم الفريق المستضيف (إجباري) *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="مثال: فريق فرسان قاسيون"
-                value={hostTeamName}
-                onChange={(e) => setHostTeamName(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"
-              />
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">
+                  اسم الفريق المستضيف (إجباري) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: فريق فرسان قاسيون"
+                  value={hostTeamName}
+                  onChange={(e) => setHostTeamName(e.target.value)}
+                  className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">
+                  اسم الملعب (إجباري) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: ملعب الفيحاء العشبي الدولي"
+                  value={venueName}
+                  onChange={(e) => setVenueName(e.target.value)}
+                  className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-white mb-1">
-                اسم الملعب (إجباري) *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="مثال: ملعب الفيحاء العشبي الدولي"
-                value={venueName}
-                onChange={(e) => setVenueName(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-white mb-1">
-                مكان الملعب بالتفصيل (إجباري) *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="مثال: دمشق - المزرعة - مدينة الفيحاء"
-                value={venueLocation}
-                onChange={(e) => setVenueLocation(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-white mb-1">
-                المحافظة (14 محافظة) *
-              </label>
-              <select
-                value={governorate}
-                onChange={(e) => setGovernorate(e.target.value as SyrianGovernorate)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-[#ff2a5f]"
-              >
-                {SYRIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov} value={gov}>
-                    {gov}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Interactive Map Location Picker for Match Venue */}
+            <MapLocationPicker
+              governorate={governorate}
+              onGovernorateChange={(gov) => setGovernorate(gov)}
+              locationDetails={venueLocation}
+              onLocationDetailsChange={(det) => setVenueLocation(det)}
+              latitude={latitude}
+              longitude={longitude}
+              onCoordinatesChange={(lat, lng) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
+              title="موقع ملعب المباراة على خريطة Google (GPS)"
+              accentColor="pink"
+            />
           </div>
 
           {/* 3. Date & Time */}

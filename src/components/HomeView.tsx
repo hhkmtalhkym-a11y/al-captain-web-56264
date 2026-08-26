@@ -108,45 +108,22 @@ export default function HomeView({
         isAdmin={isAdmin}
       />
 
-      {/* 2. Mandatory Cash Payment 24H Policy Notification Banner */}
-      <div className="bg-[#0d1211] border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="text-xs sm:text-sm font-bold text-amber-300">
-              سياسة الدفع وتأكيد الحجز المعتمدة:
-            </h4>
-            <p className="text-[11px] sm:text-xs text-gray-300 mt-0.5">
-              يلزم تسديد الدفعة أو تأكيد الحجز قبل <strong className="text-white">24 ساعة</strong> من الموعد المحدد، وإلا سيتم الإلغاء تلقائياً في حال لم يتم التأكيد من قبل صاحب المنشأة أو الإدارة.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => onNavigateTab('profile')}
-          className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-[11px] transition-all"
-        >
-          حجوزاتي
-        </button>
-      </div>
-
-      {/* 3. Syrian 14 Governorates Horizontal Selector */}
-      <div className="space-y-2.5">
+      {/* 2. Syrian 14 Governorates Horizontal Selector */}
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-[#00FFD2]" />
+          <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-[#00FFD2]" />
             <span>اختر المحافظة السورية:</span>
           </h2>
-          <span className="text-[11px] text-gray-400">
-            المحافظة المحددة: <strong className="text-[#00FFD2] font-bold">{selectedGovernorate}</strong>
+          <span className="text-[10px] sm:text-xs text-gray-400">
+            المحددة: <strong className="text-[#00FFD2] font-bold">{selectedGovernorate}</strong>
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
           <button
             onClick={() => onSelectGovernorate('الكل')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               selectedGovernorate === 'الكل'
                 ? 'bg-[#00FFD2] text-black font-black shadow-md'
                 : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
@@ -158,7 +135,7 @@ export default function HomeView({
             <button
               key={gov}
               onClick={() => onSelectGovernorate(gov)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedGovernorate === gov
                   ? 'bg-[#00FFD2] text-black font-black shadow-md'
                   : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
@@ -170,10 +147,10 @@ export default function HomeView({
         </div>
       </div>
 
-      {/* 4. The 3x3 Grid of Main Sections (شبكة الأقسام 3*3 المتناسقة على الجوال والديسكتوب) */}
+      {/* 3. The 3x3 Grid of Main Sections (شبكة الأقسام 3*3 المتناسقة على الجوال والديسكتوب) */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs sm:text-base font-black text-white flex items-center gap-2">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-xs sm:text-base font-black text-white flex items-center gap-1.5">
             <Layers className="w-4 h-4 text-[#00FFD2]" />
             <span>أقسام المنصة الرئيسية (شبكة 3×3)</span>
           </h2>
@@ -189,18 +166,18 @@ export default function HomeView({
           {/* Card 1: Playgrounds */}
           <div
             onClick={() => onNavigateTab('playgrounds')}
-            className="bg-[#0d1211] border border-[#00FFD2]/30 hover:border-[#00FFD2] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-[#00FFD2]/30 hover:border-[#00FFD2] rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#00FFD2]/10 text-[#00FFD2] border border-[#00FFD2]/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#00FFD2]/10 text-[#00FFD2] border border-[#00FFD2]/20 shrink-0">
                 <Compass className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#00FFD2] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#00FFD2]/30">
+              <span className="text-[8px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#00FFD2] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#00FFD2]/30 whitespace-nowrap">
                 {filteredPlaygrounds.length} ملعب
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-[#00FFD2] transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-[#00FFD2] transition-colors leading-tight break-words">
                 الملاعب والحجوزات
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -216,18 +193,18 @@ export default function HomeView({
           {/* Card 2: Leagues */}
           <div
             onClick={() => onNavigateTab('leagues')}
-            className="bg-[#0d1211] border border-amber-400/30 hover:border-amber-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-amber-400/30 hover:border-amber-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-400/10 text-amber-400 border border-amber-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-400/10 text-amber-400 border border-amber-400/20 shrink-0">
                 <Trophy className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/30">
+              <span className="text-[8px] sm:text-[10px] font-mono font-bold bg-black/60 text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/30 whitespace-nowrap">
                 {filteredLeagues.length} بطولة
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-amber-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-amber-400 transition-colors leading-tight break-words">
                 البطولات والدوريات
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -243,18 +220,18 @@ export default function HomeView({
           {/* Card 3: Friendly Matches */}
           <div
             onClick={() => onNavigateTab('matches')}
-            className="bg-[#0d1211] border border-[#ff2a5f]/30 hover:border-[#ff2a5f] rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-[#ff2a5f]/30 hover:border-[#ff2a5f] rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#ff2a5f]/10 text-[#ff2a5f] border border-[#ff2a5f]/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#ff2a5f]/10 text-[#ff2a5f] border border-[#ff2a5f]/20 shrink-0">
                 <Swords className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#ff2a5f] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#ff2a5f]/30">
+              <span className="text-[8px] sm:text-[10px] font-mono font-bold bg-black/60 text-[#ff2a5f] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#ff2a5f]/30 whitespace-nowrap">
                 {filteredMatches.length} تحدي
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-[#ff2a5f] transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-[#ff2a5f] transition-colors leading-tight break-words">
                 المباريات والتحديات
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -270,18 +247,18 @@ export default function HomeView({
           {/* Card 4: Academies */}
           <div
             onClick={() => onNavigateTab('academies')}
-            className="bg-[#0d1211] border border-purple-400/30 hover:border-purple-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-purple-400/30 hover:border-purple-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-purple-400/10 text-purple-400 border border-purple-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-purple-400/10 text-purple-400 border border-purple-400/20 shrink-0">
                 <Users className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-purple-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-purple-400/30">
+              <span className="text-[8px] sm:text-[10px] font-mono font-bold bg-black/60 text-purple-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-purple-400/30 whitespace-nowrap">
                 {academies.length} أكاديمية
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-purple-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-purple-400 transition-colors leading-tight break-words">
                 الأكاديميات والمدارس
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -297,18 +274,18 @@ export default function HomeView({
           {/* Card 5: Scouting CV */}
           <div
             onClick={() => onNavigateTab('scouting')}
-            className="bg-[#0d1211] border border-blue-400/30 hover:border-blue-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-blue-400/30 hover:border-blue-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-blue-400/10 text-blue-400 border border-blue-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-blue-400/10 text-blue-400 border border-blue-400/20 shrink-0">
                 <Sparkles className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold bg-black/60 text-blue-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-400/30">
+              <span className="text-[8px] sm:text-[10px] font-mono font-bold bg-black/60 text-blue-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-blue-400/30 whitespace-nowrap">
                 {playerCvs.length} بطاقة
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-blue-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-blue-400 transition-colors leading-tight break-words">
                 كشاف المواهب (CV)
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -324,18 +301,18 @@ export default function HomeView({
           {/* Card 6: Google Maps & Directions */}
           <div
             onClick={() => onNavigateTab('map')}
-            className="bg-[#0d1211] border border-emerald-400/30 hover:border-emerald-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-emerald-400/30 hover:border-emerald-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 shrink-0">
                 <Navigation className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-emerald-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-400/30">
-                Google Maps
+              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-emerald-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-400/30 whitespace-nowrap">
+                الخرائط
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-emerald-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-emerald-400 transition-colors leading-tight break-words">
                 الخريطة والاتجاهات
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -351,18 +328,18 @@ export default function HomeView({
           {/* Card 7: Team Builder & Squads */}
           <div
             onClick={() => onNavigateTab('profile')}
-            className="bg-[#0d1211] border border-cyan-400/30 hover:border-cyan-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-cyan-400/30 hover:border-cyan-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 shrink-0">
                 <Activity className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-cyan-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-400/30">
-                الملف الشخصي
+              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-cyan-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-cyan-400/30 whitespace-nowrap">
+                حسابي
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-cyan-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-cyan-400 transition-colors leading-tight break-words">
                 الملف وإدارة الفرق
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -378,18 +355,18 @@ export default function HomeView({
           {/* Card 8: Padel & Multi-sports */}
           <div
             onClick={() => onNavigateTab('playgrounds')}
-            className="bg-[#0d1211] border border-yellow-400/30 hover:border-yellow-400 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-yellow-400/30 hover:border-yellow-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 shrink-0">
                 <Flame className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-yellow-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-yellow-400/30">
+              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-yellow-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-yellow-400/30 whitespace-nowrap">
                 صالات وبادل
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-yellow-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-yellow-400 transition-colors leading-tight break-words">
                 صالات وبادل وتنس
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
@@ -405,18 +382,18 @@ export default function HomeView({
           {/* Card 9: Admin & Organizers Portal */}
           <div
             onClick={() => onNavigateTab('profile')}
-            className="bg-[#0d1211] border border-rose-500/30 hover:border-rose-500 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            className="bg-[#0d1211] border border-rose-500/30 hover:border-rose-500 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
                 <Shield className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold bg-black/60 text-rose-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-rose-500/30">
-                الإدارة والتنظيم
+              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-rose-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-rose-500/30 whitespace-nowrap">
+                لوحة التحكم
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-xs sm:text-sm group-hover:text-rose-400 transition-colors line-clamp-1 sm:line-clamp-none">
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-rose-400 transition-colors leading-tight break-words">
                 لوحة المنظمين والتحكم
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">

@@ -7,9 +7,10 @@ import {
   PitchCapacity,
   PitchSurface
 } from '../types';
-import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
+import { SYRIAN_GOVERNORATES, GOVERNORATE_COORDINATES } from '../constants/syrianData';
 import { readImageAsBase64 } from '../utils/helpers';
 import SportLogoPicker from './SportLogoPicker';
+import MapLocationPicker from './MapLocationPicker';
 import { UserProfile } from '../types';
 
 interface CreateLeagueModalProps {
@@ -30,6 +31,8 @@ export default function CreateLeagueModal({
   const [governorate, setGovernorate] = useState<SyrianGovernorate>('دمشق');
   const [city, setCity] = useState('دمشق');
   const [hostingVenue, setHostingVenue] = useState('');
+  const [latitude, setLatitude] = useState<number>(33.5138);
+  const [longitude, setLongitude] = useState<number>(36.2765);
   const [system, setSystem] = useState<LeagueSystem>('دوري نقاط');
   const [capacity, setCapacity] = useState<PitchCapacity>('7v7');
   const [surface, setSurface] = useState<PitchSurface>('عشب صناعي');
@@ -48,22 +51,10 @@ export default function CreateLeagueModal({
 
   if (!isOpen) return null;
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const base64 = await readImageAsBase64(file);
-      setImage(base64);
-      setUploadError('');
-    } catch (err: any) {
-      setUploadError(err.message || 'خطأ في قراءة الصورة');
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) {
-      setUploadError('يرجى رفع بوستر أو صورة البطولة من المعرض (إجباري)');
+      setUploadError('يرجى اختيار شعار أو رفع بوستر البطولة (إجباري)');
       return;
     }
 
@@ -71,7 +62,7 @@ export default function CreateLeagueModal({
 
     const initialStandings = Array.from({ length: Number(teamsCount) }).map((_, idx) => ({
       position: idx + 1,
-      teamName: `فريق تجريبي ${idx + 1}`,
+      teamName: `فريق ${idx + 1}`,
       played: 0,
       won: 0,
       drawn: 0,
@@ -89,7 +80,7 @@ export default function CreateLeagueModal({
       season,
       image,
       governorate,
-      city,
+      city: hostingVenue ? `${city} - ${hostingVenue}` : city,
       hostingVenue,
       capacity,
       surface,
@@ -134,7 +125,7 @@ export default function CreateLeagueModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#0d1211] border-2 border-amber-400/40 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto"
+        className="bg-[#0d1211] border-2 border-amber-400/40 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto font-['Cairo']"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -144,15 +135,15 @@ export default function CreateLeagueModal({
               <Trophy className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white font-['Cairo']">
+              <h2 className="text-base sm:text-xl font-bold text-white">
                 إنشاء وتنظيم بطولة / دوري جديد
               </h2>
-              <p className="text-xs text-gray-400">إطلاق دوري رياضي متكامل بإدارة إلكترونية وجداول رسمية</p>
+              <p className="text-[11px] sm:text-xs text-gray-400">إطلاق دوري رياضي متكامل بإدارة إلكترونية وجداول رسمية</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -181,7 +172,7 @@ export default function CreateLeagueModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="مثال: بطولة صيف الشام 2026"
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                 required
               />
             </div>
@@ -191,47 +182,37 @@ export default function CreateLeagueModal({
                 type="text"
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">المحافظة السورية (الـ 14) *</label>
-              <select
-                value={governorate}
-                onChange={(e) => setGovernorate(e.target.value as SyrianGovernorate)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-              >
-                {SYRIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov} value={gov}>
-                    {gov}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">المدينة / الحي</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">الملعب المستضيف *</label>
-              <input
-                type="text"
-                value={hostingVenue}
-                onChange={(e) => setHostingVenue(e.target.value)}
-                placeholder="مثال: ملعب الفيحاء"
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
-                required
-              />
-            </div>
+          {/* Interactive Map Location Picker for Tournament Venue */}
+          <MapLocationPicker
+            governorate={governorate}
+            onGovernorateChange={(gov) => setGovernorate(gov)}
+            locationDetails={city}
+            onLocationDetailsChange={(det) => setCity(det)}
+            latitude={latitude}
+            longitude={longitude}
+            onCoordinatesChange={(lat, lng) => {
+              setLatitude(lat);
+              setLongitude(lng);
+            }}
+            title="موقع الملعب المستضيف للبطولة على خريطة Google (GPS)"
+            accentColor="amber"
+          />
+
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">اسم الملعب أو المنشأة المستضيفة *</label>
+            <input
+              type="text"
+              value={hostingVenue}
+              onChange={(e) => setHostingVenue(e.target.value)}
+              placeholder="مثال: مدينة تشرين الرياضية / ملعب الفيحاء"
+              className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#050707] p-3 rounded-2xl border border-white/5">
@@ -240,7 +221,7 @@ export default function CreateLeagueModal({
               <select
                 value={system}
                 onChange={(e) => setSystem(e.target.value as LeagueSystem)}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none"
               >
                 <option value="دوري نقاط">دوري نقاط</option>
                 <option value="خروج المغلوب">خروج المغلوب</option>
@@ -254,7 +235,7 @@ export default function CreateLeagueModal({
                 type="number"
                 value={teamsCount}
                 onChange={(e) => setTeamsCount(Number(e.target.value))}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-400"
               />
             </div>
             <div>
@@ -263,7 +244,7 @@ export default function CreateLeagueModal({
                 type="number"
                 value={entryFee}
                 onChange={(e) => setEntryFee(Number(e.target.value))}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-amber-400 font-mono"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-400"
               />
             </div>
             <div>
@@ -272,7 +253,7 @@ export default function CreateLeagueModal({
                 type="number"
                 value={cashPrize}
                 onChange={(e) => setCashPrize(Number(e.target.value))}
-                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-amber-400 font-mono"
+                className="w-full bg-[#0d1211] border border-white/10 rounded-lg p-2 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-400"
               />
             </div>
           </div>
@@ -284,7 +265,7 @@ export default function CreateLeagueModal({
                 type="text"
                 value={organizerName}
                 onChange={(e) => setOrganizerName(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                 required
               />
             </div>
@@ -294,7 +275,7 @@ export default function CreateLeagueModal({
                 type="text"
                 value={organizerPhone}
                 onChange={(e) => setOrganizerPhone(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                 required
               />
             </div>
@@ -306,14 +287,14 @@ export default function CreateLeagueModal({
               rows={3}
               value={terms}
               onChange={(e) => setTerms(e.target.value)}
-              className="w-full bg-[#050707] border border-white/10 rounded-xl p-3 text-xs text-white"
+              className="w-full bg-[#050707] border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-amber-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-6 rounded-2xl bg-amber-400 hover:bg-amber-500 text-black font-bold text-sm transition-all shadow-xl flex items-center justify-center gap-2"
+            className="w-full py-3 px-6 rounded-2xl bg-amber-400 hover:bg-amber-500 text-black font-bold text-sm transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             {isSubmitting ? 'جاري الإنشاء...' : 'نشر وإطلاق البطولة رسمياً'}

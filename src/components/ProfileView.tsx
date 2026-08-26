@@ -21,7 +21,8 @@ import {
   KeyRound,
   ShieldAlert,
   X,
-  Check
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { UserProfile, SyrianGovernorate, Booking } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
@@ -505,6 +506,36 @@ export default function ProfileView({
                 )}
               </div>
             </div>
+
+            {/* Auth Error Notification */}
+            {authError && (
+              <div className="pt-2 border-t border-red-500/20">
+                <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{authError}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => window.open(window.location.href, '_blank')}
+                      className="px-3 py-1.5 rounded-xl bg-[#00FFD2] text-black font-bold text-xs hover:bg-[#00e6bd] transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>فتح بنافذة مستقلة</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAuthError}
+                      className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                      title="إغلاق التنبيه"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Admin Access & Support */}

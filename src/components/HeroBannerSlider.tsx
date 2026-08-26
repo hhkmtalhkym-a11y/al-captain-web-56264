@@ -294,25 +294,15 @@ export default function HeroBannerSlider({
               </div>
             </div>
 
-            {/* Middle Headings */}
-            <div className="space-y-2.5 max-w-2xl bg-black/40 p-4 rounded-2xl backdrop-blur-sm border border-white/10 w-fit">
-              <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-md">
-                {currentSlide.title}
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-200 line-clamp-2 leading-relaxed">
-                {currentSlide.subtitle}
-              </p>
-            </div>
-
-            {/* Bottom Action & Arrow Nav */}
-            <div className="flex items-center justify-between gap-4 pt-2">
+              {/* Bottom Action & Arrow Nav */}
+            <div className="flex items-center justify-between gap-3 pt-2 mt-auto">
               <button
                 type="button"
                 onClick={() => onNavigateTab(currentSlide.tabTarget)}
-                className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs sm:text-sm transition-all transform active:scale-95 shadow-xl shadow-[#00FFD2]/25 flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs sm:text-sm transition-all transform active:scale-95 shadow-xl shadow-[#00FFD2]/25 flex items-center gap-2 cursor-pointer backdrop-blur-sm"
               >
                 <span>{currentSlide.actionText}</span>
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
               </button>
 
               {/* Slider Arrows & Dots */}

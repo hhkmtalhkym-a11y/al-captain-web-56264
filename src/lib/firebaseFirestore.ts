@@ -248,8 +248,15 @@ export async function registerWithEmail(email: string, password: string, fullNam
 }
 
 export async function loginWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, googleProvider);
-  return result.user;
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error: any) {
+    if (error?.code === 'auth/popup-blocked' || error?.message?.includes('popup-blocked')) {
+      throw new Error('تم حظر النافذة المنبثقة من قبل المتصفح. يرجى السماح بالنوافذ المنبثقة أو فتح التطبيق في نافذة مستقلة.');
+    }
+    throw error;
+  }
 }
 
 export async function resetPassword(email: string): Promise<boolean> {

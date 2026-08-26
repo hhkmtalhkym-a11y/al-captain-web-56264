@@ -897,39 +897,21 @@ function MainApp() {
             </div>
           </div>
 
-          {/* LEFT SIDE (الجهة اليسارية): Syrian Governorates Dropdown & Google Maps */}
+          {/* LEFT SIDE (الجهة اليسارية): Google Maps & Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Syrian Governorates Filter Dropdown */}
-            <div className="relative">
-              <select
-                id="select-governorate-global"
-                value={selectedGovernorate}
-                onChange={(e) => setSelectedGovernorate(e.target.value)}
-                className="bg-[#0d1211] border border-[#00FFD2]/30 text-[#00FFD2] text-[11px] sm:text-xs font-bold rounded-xl py-1.5 sm:py-2 px-2 sm:px-3 pr-7 sm:pr-8 pl-2 sm:pl-3 focus:outline-none focus:border-[#00FFD2] cursor-pointer max-w-[110px] sm:max-w-none"
-              >
-                <option value="الكل">كل المحافظات (14)</option>
-                {SYRIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov} value={gov}>
-                    {gov}
-                  </option>
-                ))}
-              </select>
-              <MapPin className="w-3.5 h-3.5 text-[#00FFD2] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
             {/* Google Maps Interactive Button */}
             <button
               id="header-btn-map"
               onClick={() => setActiveTab('map')}
-              className={`p-1.5 sm:p-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'map'
-                  ? 'bg-emerald-500 text-black font-black glow-emerald'
+                  ? 'bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20'
                   : 'bg-[#0d1211] text-emerald-400 hover:text-white border border-emerald-500/30'
               }`}
               title="خرائط Google ومسار الاتجاهات"
             >
               <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="hidden md:inline">الخريطة</span>
+              <span className="text-xs">الخريطة</span>
             </button>
           </div>
         </div>
