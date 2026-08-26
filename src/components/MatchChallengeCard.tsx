@@ -9,7 +9,8 @@ import {
   Users,
   AlertCircle,
   Trash2,
-  Shield
+  Shield,
+  Edit3
 } from 'lucide-react';
 import { FriendlyMatch, UserProfile } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
@@ -17,9 +18,10 @@ import { formatSYP, openWhatsAppShare } from '../utils/helpers';
 interface MatchChallengeCardProps {
   key?: React.Key;
   match: FriendlyMatch;
-  currentUser: UserProfile;
+  currentUser?: any;
   isAdmin?: boolean;
   onJoinChallenge: (match: FriendlyMatch) => void;
+  onEditMatch?: (match: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
 }
 
@@ -28,13 +30,26 @@ export default function MatchChallengeCard({
   currentUser,
   isAdmin = false,
   onJoinChallenge,
+  onEditMatch,
   onDeleteMatch
 }: MatchChallengeCardProps) {
   const [copied, setCopied] = useState(false);
 
+  // Strictly check if the current user is an authorized Administrator
+  const isSystemAdmin = Boolean(
+    isAdmin ||
+    currentUser?.isAdmin === true ||
+    currentUser?.role === 'admin'
+  );
+
   const handleShare = () => {
     const text = `⚽ *تحدي مباراة ودية عبر تطبيق الكابتن* 🚩\n\n📌 *المستضيف:* فريق ${match.hostTeamName}\n📍 *الملعب:* ${match.venueName} (${match.governorate})\n📅 *الموعد:* ${match.date} (${match.time})\n👥 *الفئة:* ${match.ageGroup}\n💰 *طريقة تقسيم التكلفة:* ${match.costSplitMethod}\n📞 *للتواصل والتحدي:* ${match.organizerPhone}`;
     openWhatsAppShare(text, match.organizerPhone);
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEditMatch) onEditMatch(match);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -46,29 +61,30 @@ export default function MatchChallengeCard({
 
   const totalCost = match.pitchPrice + (match.refereePrice || 0);
 
-  const isOwner = Boolean(
-    currentUser && (
-      (match as any).ownerId === currentUser.id ||
-      match.organizerPhone === currentUser.phone
-    )
-  );
-  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
-
   return (
     <div
       id={`match-card-${match.id}`}
       className="bg-[#0d1211] border border-[#ff2a5f]/25 rounded-2xl p-4 sm:p-5 hover:border-[#ff2a5f]/60 transition-all duration-300 flex flex-col justify-between group hover:shadow-xl hover:shadow-[#ff2a5f]/5 font-['Cairo'] relative"
     >
-      {/* Admin / Owner Action Badge */}
-      {hasManagementPermission && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">
-            {isAdmin || (currentUser && currentUser.isAdmin) ? 'إدارة التحدي' : 'صاحب التحدي'}
+      {/* Admin Action Badge (Exclusively rendered for Admins) */}
+      {isSystemAdmin && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-[#ff2a5f]/40 shadow-xl backdrop-blur-md">
+          <span className="text-[10px] font-bold text-[#ff2a5f]">
+            لوحة الإدارة
           </span>
+          {onEditMatch && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full bg-[#ff2a5f]/20 hover:bg-[#ff2a5f] text-[#ff2a5f] hover:text-white transition-colors cursor-pointer"
+              title="تعديل تفاصيل التحدي"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDeleteMatch && (
             <button
               onClick={handleDelete}
-              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"
+              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors cursor-pointer"
               title="حذف التحدي"
             >
               <Trash2 className="w-3.5 h-3.5" />

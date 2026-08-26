@@ -31,6 +31,7 @@ interface MatchesViewProps {
   onSelectGovernorate: (gov: string) => void;
   onJoinChallenge: (match: FriendlyMatch) => void;
   onOpenCreateMatch: () => void;
+  onEditMatch?: (match: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
 }
 
@@ -41,6 +42,7 @@ export default function MatchesView({
   onSelectGovernorate,
   onJoinChallenge,
   onOpenCreateMatch,
+  onEditMatch,
   onDeleteMatch
 }: MatchesViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -262,6 +264,7 @@ export default function MatchesView({
                 match={match}
                 currentUser={currentUser}
                 onJoinChallenge={onJoinChallenge}
+                onEditMatch={onEditMatch}
                 onDeleteMatch={onDeleteMatch}
               />
             ))}

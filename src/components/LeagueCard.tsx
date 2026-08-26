@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Users, MapPin, Calendar, FileText, ArrowLeft, Zap, Trash2 } from 'lucide-react';
+import { Trophy, Users, MapPin, Calendar, FileText, ArrowLeft, Zap, Trash2, Edit3 } from 'lucide-react';
 import { League } from '../types';
 import { formatSYP, exportLeaguePdf } from '../utils/helpers';
 
@@ -9,6 +9,7 @@ interface LeagueCardProps {
   currentUser?: any;
   isAdmin?: boolean;
   onViewDetails: (l: League) => void;
+  onEditLeague?: (l: League) => void;
   onDeleteLeague?: (id: string) => void;
 }
 
@@ -17,16 +18,20 @@ export default function LeagueCard({
   currentUser,
   isAdmin = false,
   onViewDetails,
+  onEditLeague,
   onDeleteLeague
 }: LeagueCardProps) {
-  const isOwner = Boolean(
-    currentUser && (
-      league.ownerId === currentUser.id ||
-      league.organizerPhone === currentUser.phone ||
-      league.organizerName === currentUser.name
-    )
+  // Strictly check if the current user is an authorized Administrator
+  const isSystemAdmin = Boolean(
+    isAdmin ||
+    currentUser?.isAdmin === true ||
+    currentUser?.role === 'admin'
   );
-  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEditLeague) onEditLeague(league);
+  };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -40,16 +45,25 @@ export default function LeagueCard({
       id={`league-card-${league.id}`}
       className="bg-[#0d1211] border border-[#00FFD2]/20 rounded-2xl overflow-hidden hover:border-amber-400/50 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-amber-400/5 font-['Cairo'] relative"
     >
-      {/* Admin / Organizer Action Badge */}
-      {hasManagementPermission && (
-        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
+      {/* Admin Action Badge (Exclusively rendered for Admins) */}
+      {isSystemAdmin && (
+        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-amber-400/40 shadow-xl backdrop-blur-md">
           <span className="text-[10px] font-bold text-amber-400">
-            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'منظم الدوري'}
+            لوحة الإدارة
           </span>
+          {onEditLeague && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full bg-amber-400/20 hover:bg-amber-400 text-amber-400 hover:text-black transition-colors cursor-pointer"
+              title="تعديل بيانات البطولة"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDeleteLeague && (
             <button
               onClick={handleDelete}
-              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"
+              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors cursor-pointer"
               title="حذف البطولة"
             >
               <Trash2 className="w-3.5 h-3.5" />

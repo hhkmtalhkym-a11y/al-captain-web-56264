@@ -22,6 +22,8 @@ interface PlaygroundCardProps {
   isAdmin?: boolean;
   onViewDetails: (pg: Playground) => void;
   onBookNow: (pg: Playground) => void;
+  onEdit?: (pg: Playground) => void;
+  onEditPlayground?: (pg: Playground) => void;
   onDelete?: (id: string) => void;
   onDeletePlayground?: (id: string) => void;
 }
@@ -32,17 +34,19 @@ export default function PlaygroundCard({
   isAdmin = false,
   onViewDetails,
   onBookNow,
+  onEdit,
+  onEditPlayground,
   onDelete,
   onDeletePlayground
 }: PlaygroundCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const isOwner =
-    Boolean(currentUser && (
-      (playground as any).ownerId === currentUser.id ||
-      playground.managerPhone === currentUser.phone
-    ));
-  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+  // Strictly check if the current user is an authorized Administrator
+  const isSystemAdmin = Boolean(
+    isAdmin ||
+    currentUser?.isAdmin === true ||
+    currentUser?.role === 'admin'
+  );
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,6 +56,12 @@ export default function PlaygroundCard({
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + playground.images.length) % playground.images.length);
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEditPlayground) onEditPlayground(playground);
+    else if (onEdit) onEdit(playground);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -67,16 +77,25 @@ export default function PlaygroundCard({
       id={`playground-card-${playground.id}`}
       className="bg-[#0d1211] border border-[#00FFD2]/20 rounded-2xl overflow-hidden hover:border-[#00FFD2]/60 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-[#00FFD2]/5 font-['Cairo'] relative"
     >
-      {/* Admin / Owner Action Badge */}
-      {hasManagementPermission && (
-        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">
-            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'صاحب الملعب'}
+      {/* Admin Action Badge (Exclusively rendered for Admins) */}
+      {isSystemAdmin && (
+        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-[#00FFD2]/40 shadow-xl backdrop-blur-md">
+          <span className="text-[10px] font-bold text-[#00FFD2]">
+            لوحة الإدارة
           </span>
+          {(onEdit || onEditPlayground) && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full bg-[#00FFD2]/20 hover:bg-[#00FFD2] text-[#00FFD2] hover:text-black transition-colors cursor-pointer"
+              title="تعديل بيانات الملعب"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {(onDelete || onDeletePlayground) && (
             <button
               onClick={handleDelete}
-              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"
+              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors cursor-pointer"
               title="حذف الملعب"
             >
               <Trash2 className="w-3.5 h-3.5" />

@@ -33,6 +33,7 @@ interface PlaygroundsViewProps {
   onViewPlayground: (pg: Playground) => void;
   onBookPlayground: (pg: Playground) => void;
   onOpenCreateModal: () => void;
+  onEditPlayground?: (pg: Playground) => void;
   onDeletePlayground?: (id: string) => void;
 }
 
@@ -45,6 +46,7 @@ export default function PlaygroundsView({
   onViewPlayground,
   onBookPlayground,
   onOpenCreateModal,
+  onEditPlayground,
   onDeletePlayground
 }: PlaygroundsViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -219,7 +221,8 @@ export default function PlaygroundsView({
                 isAdmin={isAdmin}
                 onViewDetails={onViewPlayground}
                 onBookNow={onBookPlayground}
-                onDelete={onDeletePlayground}
+                onEditPlayground={onEditPlayground}
+                onDeletePlayground={onDeletePlayground}
               />
             ))}
           </div>

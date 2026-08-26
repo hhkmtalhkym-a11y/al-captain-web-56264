@@ -9,7 +9,8 @@ import {
   Activity,
   CheckCircle2,
   Phone,
-  Trash2
+  Trash2,
+  Edit3
 } from 'lucide-react';
 import { PlayerCv } from '../types';
 import { openWhatsAppShare } from '../utils/helpers';
@@ -20,6 +21,7 @@ interface PlayerCvCardProps {
   currentUser?: any;
   isAdmin?: boolean;
   onToggleBeacon?: (playerId: string) => void;
+  onEditPlayerCv?: (player: PlayerCv) => void;
   onDeletePlayerCv?: (id: string) => void;
 }
 
@@ -28,19 +30,18 @@ export default function PlayerCvCard({
   currentUser,
   isAdmin = false,
   onToggleBeacon,
+  onEditPlayerCv,
   onDeletePlayerCv
 }: PlayerCvCardProps) {
   const [beaconActive, setBeaconActive] = useState(player.isBeaconSent || false);
   const [showBeaconAlert, setShowBeaconAlert] = useState(false);
 
-  const isOwner = Boolean(
-    currentUser && (
-      (player as any).ownerId === currentUser.id ||
-      player.phoneNumber === currentUser.phone ||
-      player.fullName === currentUser.name
-    )
+  // Strictly check if the current user is an authorized Administrator
+  const isSystemAdmin = Boolean(
+    isAdmin ||
+    currentUser?.isAdmin === true ||
+    currentUser?.role === 'admin'
   );
-  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
 
   const handleBeaconClick = () => {
     const next = !beaconActive;
@@ -50,6 +51,11 @@ export default function PlayerCvCard({
       setShowBeaconAlert(true);
       setTimeout(() => setShowBeaconAlert(false), 3500);
     }
+  };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEditPlayerCv) onEditPlayerCv(player);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -95,16 +101,25 @@ export default function PlayerCvCard({
       id={`player-card-${player.id}`}
       className="bg-[#0d1211] border border-blue-500/25 rounded-3xl p-5 hover:border-blue-500/60 transition-all duration-300 flex flex-col justify-between group hover:shadow-2xl hover:shadow-blue-500/10 relative overflow-hidden font-['Cairo']"
     >
-      {/* Admin / Owner Action Badge */}
-      {hasManagementPermission && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-red-500/40 shadow-xl">
-          <span className="text-[10px] font-bold text-red-400">
-            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'صاحب البطاقة'}
+      {/* Admin Action Badge (Exclusively rendered for Admins) */}
+      {isSystemAdmin && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-0.5 rounded-full border border-blue-500/40 shadow-xl backdrop-blur-md">
+          <span className="text-[10px] font-bold text-blue-400">
+            لوحة الإدارة
           </span>
+          {onEditPlayerCv && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-white transition-colors cursor-pointer"
+              title="تعديل بيانات اللاعب"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDeletePlayerCv && (
             <button
               onClick={handleDelete}
-              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"
+              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors cursor-pointer"
               title="حذف بطاقة اللاعب"
             >
               <Trash2 className="w-3.5 h-3.5" />

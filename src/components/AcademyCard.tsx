@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Users, Bus, ArrowLeft, Star, Phone, Trash2 } from 'lucide-react';
+import { MapPin, Users, Bus, ArrowLeft, Star, Phone, Trash2, Edit3 } from 'lucide-react';
 import { Academy } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
 
@@ -10,6 +10,7 @@ interface AcademyCardProps {
   isAdmin?: boolean;
   onViewDetails: (aca: Academy) => void;
   onRegister?: (aca: Academy) => void;
+  onEditAcademy?: (aca: Academy) => void;
   onDeleteAcademy?: (id: string) => void;
 }
 
@@ -19,15 +20,20 @@ export default function AcademyCard({
   isAdmin = false,
   onViewDetails,
   onRegister,
+  onEditAcademy,
   onDeleteAcademy
 }: AcademyCardProps) {
-  const isOwner = Boolean(
-    currentUser && (
-      (academy as any).ownerId === currentUser.id ||
-      academy.contactPhone === currentUser.phone
-    )
+  // Strictly check if the current user is an authorized Administrator
+  const isSystemAdmin = Boolean(
+    isAdmin ||
+    currentUser?.isAdmin === true ||
+    currentUser?.role === 'admin'
   );
-  const hasManagementPermission = isAdmin || (currentUser && currentUser.isAdmin) || isOwner;
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEditAcademy) onEditAcademy(academy);
+  };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,16 +47,25 @@ export default function AcademyCard({
       id={`academy-card-${academy.id}`}
       className="bg-[#0d1211] border border-purple-500/20 rounded-2xl overflow-hidden hover:border-purple-500/60 transition-all duration-300 flex flex-col group hover:shadow-xl hover:shadow-purple-500/5 font-['Cairo'] relative"
     >
-      {/* Admin / Owner Action Badge */}
-      {hasManagementPermission && (
-        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-red-500/40 shadow-xl">
+      {/* Admin Action Badge (Exclusively rendered for Admins) */}
+      {isSystemAdmin && (
+        <div className="absolute top-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/90 px-2.5 py-1 rounded-full border border-purple-500/40 shadow-xl backdrop-blur-md">
           <span className="text-[10px] font-bold text-purple-300">
-            {isAdmin || (currentUser && currentUser.isAdmin) ? 'لوحة الإدارة' : 'مدير الأكاديمية'}
+            لوحة الإدارة
           </span>
+          {onEditAcademy && (
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded-full bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-white transition-colors cursor-pointer"
+              title="تعديل بيانات الأكاديمية"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onDeleteAcademy && (
             <button
               onClick={handleDelete}
-              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors"
+              className="p-1 rounded-full bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white transition-colors cursor-pointer"
               title="حذف الأكاديمية"
             >
               <Trash2 className="w-3.5 h-3.5" />

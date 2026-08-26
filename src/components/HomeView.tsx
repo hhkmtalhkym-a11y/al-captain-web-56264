@@ -54,8 +54,11 @@ interface HomeViewProps {
   onOpenCreateMatch: () => void;
   onOpenCreateLeague: () => void;
   onOpenCreatePlayerCv: () => void;
+  onEditPlayground?: (pg: Playground) => void;
   onDeletePlayground?: (id: string) => void;
+  onEditLeague?: (l: League) => void;
   onDeleteLeague?: (id: string) => void;
+  onEditMatch?: (m: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
 }
 
@@ -77,11 +80,14 @@ export default function HomeView({
   onOpenCreateMatch,
   onOpenCreateLeague,
   onOpenCreatePlayerCv,
+  onEditPlayground,
   onDeletePlayground,
+  onEditLeague,
   onDeleteLeague,
+  onEditMatch,
   onDeleteMatch
 }: HomeViewProps) {
-  // Filter items by governorate
+  // Filter items by governorate if needed
   const filteredPlaygrounds =
     selectedGovernorate === 'الكل'
       ? playgrounds
@@ -108,46 +114,7 @@ export default function HomeView({
         isAdmin={isAdmin}
       />
 
-      {/* 2. Syrian 14 Governorates Horizontal Selector */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#00FFD2]" />
-            <span>اختر المحافظة السورية:</span>
-          </h2>
-          <span className="text-[10px] sm:text-xs text-gray-400">
-            المحددة: <strong className="text-[#00FFD2] font-bold">{selectedGovernorate}</strong>
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-          <button
-            onClick={() => onSelectGovernorate('الكل')}
-            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              selectedGovernorate === 'الكل'
-                ? 'bg-[#00FFD2] text-black font-black shadow-md'
-                : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
-            }`}
-          >
-            كل المحافظات (14)
-          </button>
-          {SYRIAN_GOVERNORATES.map((gov) => (
-            <button
-              key={gov}
-              onClick={() => onSelectGovernorate(gov)}
-              className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                selectedGovernorate === gov
-                  ? 'bg-[#00FFD2] text-black font-black shadow-md'
-                  : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
-              }`}
-            >
-              {gov}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. The 3x3 Grid of Main Sections (شبكة الأقسام 3*3 المتناسقة على الجوال والديسكتوب) */}
+      {/* 2. The 3x3 Grid of Main Sections (شبكة الأقسام 3*3 المتناسقة على الجوال والديسكتوب) */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="text-xs sm:text-base font-black text-white flex items-center gap-1.5">
@@ -437,6 +404,7 @@ export default function HomeView({
                 isAdmin={isAdmin}
                 onViewDetails={onViewPlayground}
                 onBookNow={onBookPlayground}
+                onEditPlayground={onEditPlayground}
                 onDeletePlayground={onDeletePlayground}
               />
             ))}
@@ -469,6 +437,7 @@ export default function HomeView({
                 currentUser={currentUser}
                 isAdmin={isAdmin}
                 onViewDetails={onViewLeague}
+                onEditLeague={onEditLeague}
                 onDeleteLeague={onDeleteLeague}
               />
             ))}
@@ -501,6 +470,7 @@ export default function HomeView({
                 currentUser={currentUser}
                 isAdmin={isAdmin}
                 onJoinChallenge={onJoinChallenge}
+                onEditMatch={onEditMatch}
                 onDeleteMatch={onDeleteMatch}
               />
             ))}
