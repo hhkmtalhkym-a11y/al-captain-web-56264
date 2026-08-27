@@ -332,7 +332,7 @@ export default function LeagueModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Banner Header */}
-        <div className="relative h-48 sm:h-56 w-full bg-[#050707] shrink-0 overflow-hidden">
+        <div className="relative h-36 sm:h-44 w-full bg-[#050707] shrink-0 overflow-hidden">
           <img src={league.image} alt={league.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d1211] via-black/60 to-transparent"></div>
 

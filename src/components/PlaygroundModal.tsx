@@ -87,7 +87,7 @@ export default function PlaygroundModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="relative h-64 sm:h-80 w-full bg-[#050707] shrink-0">
+        <div className="relative h-40 sm:h-52 w-full bg-[#050707] shrink-0">
           <img
             src={playground.images[activePhotoIndex] || playground.images[0]}
             alt={playground.name}

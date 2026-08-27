@@ -40,7 +40,7 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Banner & Gallery */}
-        <div className="relative h-64 w-full bg-[#050707] shrink-0">
+        <div className="relative h-40 sm:h-48 w-full bg-[#050707] shrink-0">
           <img
             src={imagesList[selectedImageIndex] || academy.image}
             alt={academy.name}

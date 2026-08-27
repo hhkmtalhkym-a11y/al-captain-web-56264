@@ -97,6 +97,7 @@ import MyBookingsView from './components/MyBookingsView';
 import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { initializeDatabase } from './utils/db-initializer';
 
 export type NavigationTab =
   | 'home'
@@ -181,6 +182,13 @@ function MainApp() {
       }
     ])
   );
+
+  // Initialize Database Collections & Default Admin on App Boot
+  useEffect(() => {
+    initializeDatabase().catch((err) => {
+      console.warn('Database initialization warning:', err);
+    });
+  }, []);
 
   // Firestore Real-time Subscriptions with Fallback
   useEffect(() => {

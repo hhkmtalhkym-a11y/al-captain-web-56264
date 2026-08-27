@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User,
   Shield,
@@ -22,12 +22,18 @@ import {
   ShieldAlert,
   X,
   Check,
-  ExternalLink
+  ExternalLink,
+  Bell,
+  BellRing,
+  FileText,
+  Scale
 } from 'lucide-react';
 import { UserProfile, SyrianGovernorate, Booking } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
-import { openWhatsAppShare, readImageAsBase64, formatSYP } from '../utils/helpers';
+import { openWhatsAppShare, readImageAsBase64, formatSYP, loadFromLocalStorage, saveToLocalStorage } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
+import AppOfficialLogo from './AppOfficialLogo';
+import LegalDocumentsModal from './LegalDocumentsModal';
 
 interface ProfileViewProps {
   currentUser: UserProfile;
@@ -64,12 +70,28 @@ export default function ProfileView({
   const [image, setImage] = useState(currentUser.image || '');
   const [isSigningIn, setIsSigningIn] = useState(false);
 
-  // Logout & Delete Modals
+  // Push Notifications state with persistence
+  const [pushEnabled, setPushEnabled] = useState<boolean>(() =>
+    loadFromLocalStorage('kaptan_push_notifications_enabled', true)
+  );
+  const [pushStatusMessage, setPushStatusMessage] = useState<string | null>(null);
+
+  // Modals
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'privacy' | 'security' | 'terms' | 'version'>('terms');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleTogglePushNotifications = () => {
+    const nextState = !pushEnabled;
+    setPushEnabled(nextState);
+    saveToLocalStorage('kaptan_push_notifications_enabled', nextState);
+    setPushStatusMessage(nextState ? 'تم تفعيل الإشعارات الفورية والتنبيهات 🔔' : 'تم كتم الإشعارات والتنبيهات 🔕');
+    setTimeout(() => setPushStatusMessage(null), 3000);
+  };
 
   const handleGoogleLogin = async () => {
     setIsSigningIn(true);
@@ -357,6 +379,149 @@ export default function ProfileView({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Push Notifications & Preferences */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl ${pushEnabled ? 'bg-[#00FFD2]/20 text-[#00FFD2]' : 'bg-gray-800 text-gray-400'}`}>
+                  {pushEnabled ? <BellRing className="w-5 h-5 animate-pulse" /> : <Bell className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">إشعارات وتنبيهات الحجوزات والمباريات (Push Notifications)</h4>
+                  <p className="text-xs text-gray-400">
+                    تلقي إشعارات فورية عند تأكيد حجز ملعب، قبول تحدي، أو انطلاق بطولات جديدة.
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle Switch */}
+              <button
+                type="button"
+                onClick={handleTogglePushNotifications}
+                className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+                  pushEnabled ? 'bg-[#00FFD2]' : 'bg-gray-700'
+                }`}
+                title="تبديل الإشعارات الفورية"
+              >
+                <div
+                  className={`bg-black w-6 h-6 rounded-full shadow-md transform transition-transform ${
+                    pushEnabled ? 'translate-x-0' : '-translate-x-6 bg-gray-300'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {pushStatusMessage && (
+              <div className="p-3 rounded-xl bg-[#00FFD2]/10 border border-[#00FFD2]/30 text-[#00FFD2] text-xs font-bold animate-fadeIn flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{pushStatusMessage}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Legal Documents, Privacy Policy & Version Info */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[#00FFD2]" />
+              <span>المستندات الرسمية، الخصوصية ومعلومات التطبيق</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('terms');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <strong className="text-white text-xs block">شروط الاستخدام والخدمة</strong>
+                    <span className="text-[11px] text-gray-400">قواعد الحجوزات وعدم العمولة 0%</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('privacy');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <strong className="text-white text-xs block">سياسة الخصوصية وحماية البيانات</strong>
+                    <span className="text-[11px] text-gray-400">سرية أرقام الهواتف والمواقع</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('security');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="w-4 h-4 text-[#ff2a5f] group-hover:scale-110 transition-transform" />
+                  <div>
+                    <strong className="text-white text-xs block">سياسة الأمان وصلاحيات الأدمن</strong>
+                    <span className="text-[11px] text-gray-400">حماية الصلاحيات وسجلات التدقيق</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('version');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Info className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <strong className="text-white text-xs block">عن التطبيق ومعلومات الإصدار</strong>
+                    <span className="text-[11px] text-[#00FFD2]">الإصدار 2.5.0 Gold Release</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Support and Logout Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#0d1211] border border-white/10 rounded-2xl">
+            <button
+              type="button"
+              onClick={onOpenSupportModal}
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Headphones className="w-4 h-4 text-[#00FFD2]" />
+              <span>الدعم الفني المباشر</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>تسجيل الخروج</span>
+            </button>
           </div>
         </div>
       )}
@@ -682,6 +847,13 @@ export default function ProfileView({
           </div>
         </div>
       )}
+
+      {/* Legal Documents Modal */}
+      <LegalDocumentsModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        defaultTab={legalModalTab}
+      />
     </div>
   );
 }

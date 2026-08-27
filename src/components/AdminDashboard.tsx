@@ -68,9 +68,22 @@ interface AdminDashboardProps {
   onOpenCreateMatch: () => void;
 }
 
+export type AdminUserRole = 'user' | 'announcer' | 'league_manager' | 'admin';
+
+export interface AuditLogItem {
+  id: string;
+  type: 'creation' | 'deletion' | 'update' | 'booking' | 'user_role' | 'security';
+  title: string;
+  description: string;
+  performedBy: string;
+  targetId?: string;
+  timestamp: string;
+}
+
 type AdminTab =
   | 'overview'
   | 'charts'
+  | 'global_management'
   | 'bookings'
   | 'playgrounds'
   | 'leagues'
@@ -104,6 +117,7 @@ export default function AdminDashboard({
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [selectedGov, setSelectedGov] = useState<string>('الكل');
   const [searchQuery, setSearchQuery] = useState('');
+  const [auditFilter, setAuditFilter] = useState<string>('الكل');
   const [shamCashAdminAccount, setShamCashAdminAccount] = useState('SHAM-9456-8809');
   const [isSavedSettings, setIsSavedSettings] = useState(false);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
@@ -120,8 +134,65 @@ export default function AdminDashboard({
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<string>('الكل');
   const [matchStatusFilter, setMatchStatusFilter] = useState<string>('الكل');
 
-  // Mock Users management list
-  const [usersList, setUsersList] = useState([
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([
+    {
+      id: 'log-1',
+      type: 'security',
+      title: 'تهيئة النظام وقاعدة البيانات',
+      description: 'تم التحقق من تشغيل مجموعات Firestore وتثبيت حساب المدير العام المعتمد (0945688090).',
+      performedBy: 'نظام الكابتن الآلي',
+      timestamp: 'اليوم، 12:00 م'
+    },
+    {
+      id: 'log-2',
+      type: 'creation',
+      title: 'إنشاء ملعب جديد: الفيحاء الكروي',
+      description: 'إضافة ملعب بمحافظة دمشق مع تحديد الإحداثيات الجغرافية وساعات العمل.',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'pg-1',
+      timestamp: 'اليوم، 11:30 ص'
+    },
+    {
+      id: 'log-3',
+      type: 'booking',
+      title: 'حجز مؤكد: KAP-2026-94812',
+      description: 'تم تسجيل حجز جديد في ملعب الفيحاء الكروي بقيمة 165,000 ل.س نقداً.',
+      performedBy: 'كابتن وسيم الرفاعي',
+      targetId: 'book-seed-1',
+      timestamp: 'اليوم، 10:15 ص'
+    },
+    {
+      id: 'log-4',
+      type: 'creation',
+      title: 'إطلاق بطولة دمشق الكبرى للصالات 2026',
+      description: 'فتح باب التسجيل لـ 16 فريقاً برسم اشتراك 250,000 ل.س وجوائز مالية.',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'lg-1',
+      timestamp: 'أمس، 08:40 م'
+    },
+    {
+      id: 'log-5',
+      type: 'user_role',
+      title: 'ترقية صلاحيات مستخدم',
+      description: 'تم تعيين كابتن حكمت الحكيم (0933112233) كـ منظم دوريات معتمد (league_manager).',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'u-2',
+      timestamp: 'منذ يومين'
+    }
+  ]);
+
+  // Users management list with roles
+  const [usersList, setUsersList] = useState<Array<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    governorate: string;
+    role: AdminUserRole;
+    isBanned: boolean;
+    bookingsCount: number;
+  }>>([
     {
       id: 'u-1',
       name: 'كابتن عامر (المدير العام)',
@@ -138,7 +209,7 @@ export default function AdminDashboard({
       phone: '0933112233',
       email: 'hhkmtalhkym@gmail.com',
       governorate: 'دمشق',
-      role: 'captain',
+      role: 'league_manager',
       isBanned: false,
       bookingsCount: 14
     },
@@ -148,7 +219,7 @@ export default function AdminDashboard({
       phone: '0988776655',
       email: 'majd@kaptan.sy',
       governorate: 'حلب',
-      role: 'captain',
+      role: 'announcer',
       isBanned: false,
       bookingsCount: 9
     },
@@ -158,7 +229,7 @@ export default function AdminDashboard({
       phone: '0955443322',
       email: 'waseem@kaptan.sy',
       governorate: 'حمص',
-      role: 'captain',
+      role: 'user',
       isBanned: false,
       bookingsCount: 6
     },
@@ -168,11 +239,62 @@ export default function AdminDashboard({
       phone: '0944118833',
       email: 'taym@kaptan.sy',
       governorate: 'اللاذقية',
-      role: 'captain',
+      role: 'user',
       isBanned: false,
       bookingsCount: 11
     }
   ]);
+
+  const handleChangeUserRole = (userId: string, newRole: AdminUserRole) => {
+    const targetUser = usersList.find((u) => u.id === userId);
+    setUsersList((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    );
+
+    const roleNameMap: Record<AdminUserRole, string> = {
+      user: 'مستخدم / كابتن',
+      announcer: 'معلن منشأة رياضية',
+      league_manager: 'منظم دوريات وبطولات',
+      admin: 'مدير نظام عام'
+    };
+
+    // Log audit
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      type: 'user_role',
+      title: `تعديل رتبة المستخدم: ${targetUser?.name || userId}`,
+      description: `تم تغيير الصلاحية إلى [${roleNameMap[newRole]}] بنجاح.`,
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: userId,
+      timestamp: 'الآن'
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  const handleDeleteUserAccount = (userId: string) => {
+    const targetUser = usersList.find((u) => u.id === userId);
+    if (targetUser?.role === 'admin' && targetUser.phone === '0945688090') {
+      alert('لا يمكن حذف حساب المدير العام الأساسي للنظام.');
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من رغبتك في حذف حساب "${targetUser?.name}" نهائياً من قاعدة البيانات؟`)) {
+      return;
+    }
+
+    setUsersList((prev) => prev.filter((u) => u.id !== userId));
+
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      type: 'deletion',
+      title: `حذف حساب مستخدم: ${targetUser?.name}`,
+      description: `تم حذف حساب ${targetUser?.phone} ومسح كافة ارتباطاته من قبل الإدارة.`,
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: userId,
+      timestamp: 'الآن'
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+  };
 
   // Mock Objections list
   const [objectionsList, setObjectionsList] = useState<ObjectionCase[]>([
@@ -323,6 +445,7 @@ export default function AdminDashboard({
       <div className="bg-[#0d1211] p-2 rounded-2xl border border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
         {[
           { id: 'overview', label: 'نظرة عامة والتقارير', icon: BarChart3 },
+          { id: 'global_management', label: `الإدارة الشاملة والتدقيق (${auditLogs.length})`, icon: Activity },
           { id: 'charts', label: 'الرسوم البيانية والإحصائيات', icon: PieChart },
           { id: 'bookings', label: `إدارة الحجوزات (${bookings.length})`, icon: Calendar },
           { id: 'playgrounds', label: `الملاعب (${playgrounds.length})`, icon: Shield },
@@ -408,6 +531,228 @@ export default function AdminDashboard({
               >
                 <Plus className="w-3.5 h-3.5" /> إضافة مباراة ودية
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Global Management & Audit Log */}
+      {activeTab === 'global_management' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Top Audit Stats & Security Banner */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-[#0d1211] border border-blue-500/30 rounded-3xl p-5 space-y-1">
+              <span className="text-xs text-blue-300 font-bold block flex items-center gap-1.5">
+                <Activity className="w-4 h-4 text-blue-400" />
+                إجمالي السجلات المسجلة (Audit Logs)
+              </span>
+              <h3 className="text-2xl font-black text-white font-mono">{auditLogs.length} حركة مسجلة</h3>
+              <p className="text-[11px] text-gray-400">تتبع لحظي دقيق لكافة عمليات الإنشاء والحذف والتعديل والحجوزات</p>
+            </div>
+
+            <div className="bg-[#0d1211] border border-[#00FFD2]/30 rounded-3xl p-5 space-y-1">
+              <span className="text-xs text-[#00FFD2] font-bold block flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-[#00FFD2]" />
+                إجمالي المستخدمين والصلاحيات
+              </span>
+              <h3 className="text-2xl font-black text-white font-mono">{usersList.length} حسابات نشطة</h3>
+              <p className="text-[11px] text-gray-400">
+                1 مدير عام • {usersList.filter(u => u.role === 'league_manager').length} منظم دوري • {usersList.filter(u => u.role === 'announcer').length} معلن ملعب
+              </p>
+            </div>
+
+            <div className="bg-[#0d1211] border border-emerald-500/30 rounded-3xl p-5 space-y-1">
+              <span className="text-xs text-emerald-300 font-bold block flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                حالة الحماية وقاعدة البيانات
+              </span>
+              <h3 className="text-2xl font-black text-emerald-400 font-mono">100% مشفرة ومؤمنة</h3>
+              <p className="text-[11px] text-gray-400">حجب كامل لكافة عناصر الأدمن عن غير المصرح لهم</p>
+            </div>
+          </div>
+
+          {/* User Role Management Panel */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2 font-['Cairo']">
+                  <Users className="w-5 h-5 text-[#00FFD2]" />
+                  التحكم الإداري بصلاحيات ورتب المستخدمين (User Role Management)
+                </h3>
+                <p className="text-xs text-gray-400">
+                  تغيير رتبة المستخدم (لاعب، معلن منشأة، منظم بطولات، مدير نظام) أو حذف الحساب فورياً
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-[#050707] text-gray-400 border-b border-white/10">
+                  <tr>
+                    <th className="p-3">اسم المستخدم</th>
+                    <th className="p-3">رقم الهاتف / البريد</th>
+                    <th className="p-3">المحافظة</th>
+                    <th className="p-3">الرتبة والصلاحية الحالية</th>
+                    <th className="p-3">تغيير الصلاحية</th>
+                    <th className="p-3 text-center">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-gray-300">
+                  {usersList.map((u) => (
+                    <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                      <td className="p-3 font-bold text-white">
+                        {u.name}
+                        {u.role === 'admin' && (
+                          <span className="mr-2 px-2 py-0.5 rounded-full bg-[#ff2a5f]/20 text-[#ff2a5f] text-[10px] font-bold">
+                            المدير العام
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 font-mono">
+                        {u.phone}
+                        <span className="block text-[10px] text-gray-400">{u.email}</span>
+                      </td>
+                      <td className="p-3">{u.governorate}</td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            u.role === 'admin'
+                              ? 'bg-[#ff2a5f]/20 text-[#ff2a5f] border border-[#ff2a5f]/40'
+                              : u.role === 'league_manager'
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              : u.role === 'announcer'
+                              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                              : 'bg-[#00FFD2]/20 text-[#00FFD2] border border-[#00FFD2]/40'
+                          }`}
+                        >
+                          {u.role === 'admin'
+                            ? 'مدير عام (Admin)'
+                            : u.role === 'league_manager'
+                            ? 'منظم دوريات'
+                            : u.role === 'announcer'
+                            ? 'معلن منشأة'
+                            : 'لاعب / كابتن'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleChangeUserRole(u.id, e.target.value as AdminUserRole)}
+                          disabled={u.role === 'admin' && u.phone === '0945688090'}
+                          className="bg-[#050707] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer disabled:opacity-50"
+                        >
+                          <option value="user">لاعب / مستخدم (User)</option>
+                          <option value="announcer">معلن منشأة (Announcer)</option>
+                          <option value="league_manager">منظم بطولات (League Manager)</option>
+                          <option value="admin">مدير نظام (Admin)</option>
+                        </select>
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleDeleteUserAccount(u.id)}
+                            disabled={u.role === 'admin' && u.phone === '0945688090'}
+                            className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition-colors disabled:opacity-30 cursor-pointer"
+                            title="حذف الحساب نهائياً"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Audit Logs Section */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2 font-['Cairo']">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  سجل تدقيق نشاطات النظام (System Audit Trail)
+                </h3>
+                <p className="text-xs text-gray-400">
+                  سجل موثق لكافة الإجراءات والحركات مع إمكانية التصفية السريعة
+                </p>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: 'الكل', label: 'كافة الحركات' },
+                  { id: 'creation', label: 'إنشاء' },
+                  { id: 'deletion', label: 'حذف' },
+                  { id: 'booking', label: 'حجوزات' },
+                  { id: 'user_role', label: 'صلاحيات' },
+                  { id: 'security', label: 'أمان' }
+                ].map((flt) => (
+                  <button
+                    key={flt.id}
+                    onClick={() => setAuditFilter(flt.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      auditFilter === flt.id
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-white/5 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {flt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {auditLogs
+                .filter((log) => auditFilter === 'الكل' || log.type === auditFilter)
+                .map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-4 rounded-2xl bg-[#050707] border border-white/5 hover:border-white/15 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`p-2 rounded-xl mt-0.5 shrink-0 ${
+                          log.type === 'creation'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : log.type === 'deletion'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : log.type === 'booking'
+                            ? 'bg-[#00FFD2]/20 text-[#00FFD2] border border-[#00FFD2]/30'
+                            : log.type === 'user_role'
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}
+                      >
+                        {log.type === 'creation' ? (
+                          <Plus className="w-4 h-4" />
+                        ) : log.type === 'deletion' ? (
+                          <Trash2 className="w-4 h-4" />
+                        ) : log.type === 'booking' ? (
+                          <Calendar className="w-4 h-4" />
+                        ) : log.type === 'user_role' ? (
+                          <Users className="w-4 h-4" />
+                        ) : (
+                          <Shield className="w-4 h-4" />
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-white font-bold text-sm">{log.title}</strong>
+                          <span className="text-[10px] text-gray-400 font-mono">({log.performedBy})</span>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed">{log.description}</p>
+                      </div>
+                    </div>
+
+                    <span className="text-[11px] text-gray-500 font-mono shrink-0 self-end sm:self-center">
+                      {log.timestamp}
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
