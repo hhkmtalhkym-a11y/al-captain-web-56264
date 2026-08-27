@@ -1155,7 +1155,6 @@ function MainApp() {
             onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
             onOpenSupportModal={() => setIsLiveChatOpen(true)}
             onCancelBooking={handleCancelBooking}
-            onNavigateToAdmin={() => setActiveTab('admin')}
           />
         )}
 

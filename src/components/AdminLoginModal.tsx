@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Phone, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth, isAdminCredential } from '../context/AuthContext';
+import { ShieldCheck, Lock, Phone, X, AlertCircle, Sparkles } from 'lucide-react';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -9,10 +8,8 @@ interface AdminLoginModalProps {
 }
 
 export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalProps) {
-  const { loginAsAdminDirect } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,21 +21,24 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
     setError('');
 
     setTimeout(() => {
-      if (isAdminCredential(identifier, password)) {
-        loginAsAdminDirect();
+      const cleanId = identifier.trim().toLowerCase();
+      if (
+        (cleanId === 'family2016amer@gmail.com' || cleanId === '0945688090' || cleanId === '+963945688090' || cleanId === '963945688090') &&
+        password === 'A123@123A'
+      ) {
         onSuccess();
         onClose();
       } else {
-        setError('بيانات الدخول غير صحيحة. يرجى التحقق من الرقم أو البريد وكلمة المرور');
+        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
       }
       setIsLoading(false);
-    }, 300);
+    }, 400);
   };
 
   return (
     <div
       id="modal-admin-login"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn font-['Cairo']"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
     >
       <div
@@ -48,7 +48,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
         <button
           id="btn-close-admin-login"
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+          className="absolute top-4 left-4 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -58,7 +58,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
             <ShieldCheck className="w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">تسجيل دخول الإدارة العليا</h2>
+            <h2 className="text-xl font-bold text-white font-['Cairo']">تسجيل دخول الإدارة العليا</h2>
             <p className="text-xs text-gray-400">لوحة التحكم والسيطرة الشاملة لتطبيق الكابتن</p>
           </div>
         </div>
@@ -97,21 +97,13 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
               <Lock className="w-4 h-4 absolute right-3 top-3 text-gray-500" />
               <input
                 id="input-admin-password"
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#050707] border border-[#00FFD2]/20 rounded-xl py-2.5 pr-10 pl-11 text-sm text-white focus:outline-none focus:border-[#00FFD2] transition-colors font-sans"
+                className="w-full bg-[#050707] border border-[#00FFD2]/20 rounded-xl py-2.5 pr-10 pl-4 text-sm text-white focus:outline-none focus:border-[#00FFD2] transition-colors"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-2.5 top-2 text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                title={showPassword ? 'إخفاء' : 'إظهار'}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4 text-[#00FFD2]" /> : <Eye className="w-4 h-4" />}
-              </button>
             </div>
           </div>
 
@@ -120,7 +112,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
               id="btn-submit-admin-login"
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold py-3 px-4 rounded-xl transition-all glow-primary flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+              className="w-full bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold py-3 px-4 rounded-xl transition-all glow-primary flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
             >
               {isLoading ? 'جاري التحقق...' : 'دخول لوحة التحكم الإدارية'}
             </button>
@@ -130,4 +122,3 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
     </div>
   );
 }
-
