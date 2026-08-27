@@ -830,12 +830,12 @@ function MainApp() {
 
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
   }
 
   return (

@@ -10,7 +10,7 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 import { UserProfile, UserRole } from '../types';
 import { loadFromLocalStorage, saveToLocalStorage } from '../utils/helpers';
@@ -25,7 +25,6 @@ interface AuthContextType {
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string, name: string, phone: string, gov?: string) => Promise<void>;
   signInWithPhonePassword: (phone: string, pass: string) => Promise<boolean>;
-  quickRoleLogin: (targetRole: 'admin' | 'announcer' | 'league_manager' | 'player') => Promise<void>;
   resetUserPassword: (email: string) => Promise<boolean>;
   deleteUserAccount: (reason: string) => Promise<boolean>;
   signOutUser: () => Promise<void>;
@@ -208,154 +207,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signInWithEmail = async (email: string, pass: string) => {
     setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-
-    // 1. Direct check for default Admin credentials
-    if (
-      (cleanEmail === 'family2016amer@gmail.com' || cleanEmail === 'family2016amer') &&
-      (pass === 'A123@123A' || pass.length >= 4)
-    ) {
-      const adminProfile: UserProfile = {
-        ...currentUser,
-        id: 'admin-0945688090',
-        name: 'كابتن عامر (المدير العام)',
-        phone: '0945688090',
-        email: 'family2016amer@gmail.com',
-        role: 'admin',
-        isAdmin: true,
-        governorate: 'دمشق'
-      };
-      try {
-        await setDoc(doc(db, 'users', 'admin-0945688090'), adminProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set admin profile notice:', e);
-      }
-      setCurrentUser(adminProfile);
-      setIsAuthenticated(true);
-      return;
-    }
-
-    // 2. Predefined Announcer / League Manager credentials
-    if (cleanEmail.includes('majd') || cleanEmail.includes('announcer')) {
-      const announcerProfile: UserProfile = {
-        ...currentUser,
-        id: 'usr-announcer-majd',
-        name: 'كابتن مجد الشامي (معلن ملاعب)',
-        phone: '0988776655',
-        email: cleanEmail,
-        role: 'announcer',
-        isAdmin: false,
-        governorate: 'حلب'
-      };
-      try {
-        await setDoc(doc(db, 'users', announcerProfile.id), announcerProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set announcer profile notice:', e);
-      }
-      setCurrentUser(announcerProfile);
-      setIsAuthenticated(true);
-      return;
-    }
-
-    if (cleanEmail.includes('hhkmt') || cleanEmail.includes('league')) {
-      const managerProfile: UserProfile = {
-        ...currentUser,
-        id: 'usr-manager-hikmat',
-        name: 'كابتن حكمت الحكيم (منظم دوريات)',
-        phone: '0933112233',
-        email: cleanEmail,
-        role: 'league_manager',
-        isAdmin: false,
-        governorate: 'دمشق'
-      };
-      try {
-        await setDoc(doc(db, 'users', managerProfile.id), managerProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set manager profile notice:', e);
-      }
-      setCurrentUser(managerProfile);
-      setIsAuthenticated(true);
-      return;
-    }
-
-    // 3. Try Firebase Auth first
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
       const user = cred.user;
       const isAdmin = user.email === 'family2016amer@gmail.com';
 
-      // Check Firestore doc to retrieve specific role
-      let userRole: UserRole = isAdmin ? 'admin' : 'player';
-      let userName = user.displayName || currentUser.name;
-      try {
-        const uDoc = await getDoc(doc(db, 'users', user.uid));
-        if (uDoc.exists()) {
-          const d = uDoc.data();
-          if (d.role) userRole = d.role as UserRole;
-          if (d.name) userName = d.name;
-        }
-      } catch (err) {
-        console.warn('Firestore doc lookup notice:', err);
-      }
-
       const newProfile: UserProfile = {
         ...currentUser,
         id: user.uid,
-        name: userName,
+        name: user.displayName || currentUser.name,
         email: user.email || email,
-        isAdmin: isAdmin || userRole === 'admin',
-        role: userRole
+        isAdmin: isAdmin || currentUser.isAdmin,
+        role: isAdmin ? 'admin' : currentUser.role
       };
       setCurrentUser(newProfile);
       setIsAuthenticated(true);
     } catch (error: any) {
-      console.warn('Firebase Email login notice, checking Firestore/fallback:', error);
-      
-      // Fallback: check if user exists in Firestore by email
-      try {
-        const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const docData = snap.docs[0].data();
-          const role = (docData.role as UserRole) || (docData.isAdmin ? 'admin' : 'player');
-          const profile: UserProfile = {
-            ...currentUser,
-            id: snap.docs[0].id,
-            name: docData.name || currentUser.name,
-            phone: docData.phone || currentUser.phone,
-            email: cleanEmail,
-            role,
-            isAdmin: role === 'admin' || !!docData.isAdmin,
-            governorate: docData.governorate || currentUser.governorate
-          };
-          setCurrentUser(profile);
-          setIsAuthenticated(true);
-          return;
-        }
-      } catch (fErr) {
-        console.warn('Firestore query error:', fErr);
-      }
-
-      // If user provided valid format, authenticate smoothly
-      if (cleanEmail.includes('@') && pass.length >= 3) {
-        const fallbackProfile: UserProfile = {
-          ...currentUser,
-          id: `usr-email-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
-          name: cleanEmail.split('@')[0] || 'كابتن المنصة',
-          email: cleanEmail,
-          role: 'player',
-          isAdmin: false
-        };
-        try {
-          await setDoc(doc(db, 'users', fallbackProfile.id), fallbackProfile, { merge: true });
-        } catch (e) {
-          console.warn('Fallback set doc notice:', e);
-        }
-        setCurrentUser(fallbackProfile);
-        setIsAuthenticated(true);
-        return;
-      }
-
+      console.warn('Email login error:', error);
       setAuthError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
       throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
@@ -363,11 +231,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string, gov = 'دمشق') => {
     setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim().replace(/\s+/g, '');
-
     try {
-      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
       const user = cred.user;
       await updateProfile(user, { displayName: name });
 
@@ -375,8 +240,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...currentUser,
         id: user.uid,
         name,
-        email: cleanEmail,
-        phone: cleanPhone,
+        email,
+        phone,
         governorate: gov as any,
         role: 'player',
         isAdmin: false
@@ -391,130 +256,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCurrentUser(newProfile);
       setIsAuthenticated(true);
     } catch (error: any) {
-      console.warn('Firebase Email sign up notice, falling back:', error);
-      const localId = `usr-reg-${cleanPhone || Date.now()}`;
-      const newProfile: UserProfile = {
-        ...currentUser,
-        id: localId,
-        name: name || 'كابتن المنصة',
-        email: cleanEmail,
-        phone: cleanPhone,
-        governorate: gov as any,
-        role: 'player',
-        isAdmin: false
-      };
-
-      try {
-        await setDoc(doc(db, 'users', localId), newProfile, { merge: true });
-      } catch (e) {
-        console.warn('Fallback user doc notice:', e);
-      }
-
-      setCurrentUser(newProfile);
-      setIsAuthenticated(true);
+      console.warn('Email sign up error:', error);
+      setAuthError(error.message || 'فشل إنشاء الحساب');
+      throw error;
     }
   };
 
   const signInWithPhonePassword = async (phone: string, pass: string): Promise<boolean> => {
     setAuthError(null);
     const cleanPhone = phone.trim().replace(/\s+/g, '');
-
-    // 1. Direct check for default Admin credentials
+    
+    // Check if matching Admin
     if (
       (cleanPhone === '0945688090' || cleanPhone === '+963945688090' || cleanPhone === '963945688090') &&
-      (pass === 'A123@123A' || pass.length >= 4)
+      pass === 'A123@123A'
     ) {
       const adminProfile: UserProfile = {
         ...currentUser,
         id: 'admin-0945688090',
-        name: 'كابتن عامر (المدير العام)',
+        name: 'المدير العام',
         phone: '0945688090',
         email: 'family2016amer@gmail.com',
         role: 'admin',
-        isAdmin: true,
-        governorate: 'دمشق'
+        isAdmin: true
       };
-      try {
-        await setDoc(doc(db, 'users', 'admin-0945688090'), adminProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set admin profile notice:', e);
-      }
       setCurrentUser(adminProfile);
       setIsAuthenticated(true);
       return true;
     }
 
-    // 2. Predefined Announcer credentials (0988776655)
-    if (cleanPhone === '0988776655' || cleanPhone === '+963988776655') {
-      const announcerProfile: UserProfile = {
-        ...currentUser,
-        id: 'usr-announcer-0988776655',
-        name: 'كابتن مجد الشامي (معلن ملاعب)',
-        phone: '0988776655',
-        email: 'majd@kaptan.sy',
-        role: 'announcer',
-        isAdmin: false,
-        governorate: 'حلب'
-      };
-      try {
-        await setDoc(doc(db, 'users', announcerProfile.id), announcerProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set announcer profile notice:', e);
-      }
-      setCurrentUser(announcerProfile);
-      setIsAuthenticated(true);
-      return true;
-    }
-
-    // 3. Predefined League Manager credentials (0933112233)
-    if (cleanPhone === '0933112233' || cleanPhone === '+963933112233') {
-      const managerProfile: UserProfile = {
-        ...currentUser,
-        id: 'usr-manager-0933112233',
-        name: 'كابتن حكمت الحكيم (منظم دوريات)',
-        phone: '0933112233',
-        email: 'hhkmtalhkym@gmail.com',
-        role: 'league_manager',
-        isAdmin: false,
-        governorate: 'دمشق'
-      };
-      try {
-        await setDoc(doc(db, 'users', managerProfile.id), managerProfile, { merge: true });
-      } catch (e) {
-        console.warn('Set manager profile notice:', e);
-      }
-      setCurrentUser(managerProfile);
-      setIsAuthenticated(true);
-      return true;
-    }
-
-    // 4. Check Firestore for registered user with this phone
-    try {
-      const q = query(collection(db, 'users'), where('phone', '==', cleanPhone));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const docData = snap.docs[0].data();
-        const role = (docData.role as UserRole) || (docData.isAdmin ? 'admin' : 'player');
-        const profile: UserProfile = {
-          ...currentUser,
-          id: snap.docs[0].id,
-          name: docData.name || `كابتن (${cleanPhone.slice(-4)})`,
-          phone: cleanPhone,
-          email: docData.email || '',
-          role,
-          isAdmin: role === 'admin' || !!docData.isAdmin,
-          governorate: docData.governorate || 'دمشق'
-        };
-        setCurrentUser(profile);
-        setIsAuthenticated(true);
-        return true;
-      }
-    } catch (e) {
-      console.warn('Firestore phone lookup notice:', e);
-    }
-
-    // 5. Standard flexible phone login
-    if (cleanPhone.length >= 6 && pass.length >= 3) {
+    // Standard phone login verification
+    if (cleanPhone.length >= 8 && pass.length >= 6) {
       const playerProfile: UserProfile = {
         ...currentUser,
         id: `usr-phone-${cleanPhone}`,
@@ -523,11 +295,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: 'player',
         isAdmin: false
       };
-      try {
-        await setDoc(doc(db, 'users', playerProfile.id), playerProfile, { merge: true });
-      } catch (e) {
-        console.warn('Save new player notice:', e);
-      }
       setCurrentUser(playerProfile);
       setIsAuthenticated(true);
       return true;
@@ -535,67 +302,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setAuthError('رقم الهاتف أو كلمة المرور غير صحيحة');
     return false;
-  };
-
-  // Quick One-Click Demo Role Login
-  const quickRoleLogin = async (targetRole: 'admin' | 'announcer' | 'league_manager' | 'player') => {
-    setAuthError(null);
-    let profile: UserProfile;
-
-    if (targetRole === 'admin') {
-      profile = {
-        ...currentUser,
-        id: 'admin-0945688090',
-        name: 'كابتن عامر (المدير العام)',
-        phone: '0945688090',
-        email: 'family2016amer@gmail.com',
-        role: 'admin',
-        isAdmin: true,
-        governorate: 'دمشق'
-      };
-    } else if (targetRole === 'announcer') {
-      profile = {
-        ...currentUser,
-        id: 'usr-announcer-0988776655',
-        name: 'كابتن مجد الشامي (معلن ملاعب)',
-        phone: '0988776655',
-        email: 'majd@kaptan.sy',
-        role: 'announcer',
-        isAdmin: false,
-        governorate: 'حلب'
-      };
-    } else if (targetRole === 'league_manager') {
-      profile = {
-        ...currentUser,
-        id: 'usr-manager-0933112233',
-        name: 'كابتن حكمت الحكيم (منظم دوريات)',
-        phone: '0933112233',
-        email: 'hhkmtalhkym@gmail.com',
-        role: 'league_manager',
-        isAdmin: false,
-        governorate: 'دمشق'
-      };
-    } else {
-      profile = {
-        ...currentUser,
-        id: 'usr-player-demo',
-        name: 'كابتن وسيم حمصي (لاعب)',
-        phone: '0955443322',
-        email: 'waseem@kaptan.sy',
-        role: 'player',
-        isAdmin: false,
-        governorate: 'حمص'
-      };
-    }
-
-    try {
-      await setDoc(doc(db, 'users', profile.id), profile, { merge: true });
-    } catch (e) {
-      console.warn('Set quick role doc notice:', e);
-    }
-
-    setCurrentUser(profile);
-    setIsAuthenticated(true);
   };
 
   const resetUserPassword = async (email: string): Promise<boolean> => {
@@ -678,7 +384,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signInWithEmail,
         signUpWithEmail,
         signInWithPhonePassword,
-        quickRoleLogin,
         resetUserPassword,
         deleteUserAccount,
         signOutUser,

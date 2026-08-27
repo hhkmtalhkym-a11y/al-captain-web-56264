@@ -1,17 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  serverTimestamp
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import React, { useState } from 'react';
 import {
   Shield,
   BarChart3,
@@ -151,8 +138,55 @@ export default function AdminDashboard({
   const [registrationStatusFilter, setRegistrationStatusFilter] = useState<string>('الكل');
   const [matchStatusFilter, setMatchStatusFilter] = useState<string>('الكل');
 
-  // Live Firestore Users and Audit Logs State
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([
+    {
+      id: 'log-1',
+      type: 'security',
+      title: 'تهيئة النظام وقاعدة البيانات',
+      description: 'تم التحقق من تشغيل مجموعات Firestore وتثبيت حساب المدير العام المعتمد (0945688090).',
+      performedBy: 'نظام الكابتن الآلي',
+      timestamp: 'اليوم، 12:00 م'
+    },
+    {
+      id: 'log-2',
+      type: 'creation',
+      title: 'إنشاء ملعب جديد: الفيحاء الكروي',
+      description: 'إضافة ملعب بمحافظة دمشق مع تحديد الإحداثيات الجغرافية وساعات العمل.',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'pg-1',
+      timestamp: 'اليوم، 11:30 ص'
+    },
+    {
+      id: 'log-3',
+      type: 'booking',
+      title: 'حجز مؤكد: KAP-2026-94812',
+      description: 'تم تسجيل حجز جديد في ملعب الفيحاء الكروي بقيمة 165,000 ل.س نقداً.',
+      performedBy: 'كابتن وسيم الرفاعي',
+      targetId: 'book-seed-1',
+      timestamp: 'اليوم، 10:15 ص'
+    },
+    {
+      id: 'log-4',
+      type: 'creation',
+      title: 'إطلاق بطولة دمشق الكبرى للصالات 2026',
+      description: 'فتح باب التسجيل لـ 16 فريقاً برسم اشتراك 250,000 ل.س وجوائز مالية.',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'lg-1',
+      timestamp: 'أمس، 08:40 م'
+    },
+    {
+      id: 'log-5',
+      type: 'user_role',
+      title: 'ترقية صلاحيات مستخدم',
+      description: 'تم تعيين كابتن حكمت الحكيم (0933112233) كـ منظم دوريات معتمد (league_manager).',
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: 'u-2',
+      timestamp: 'منذ يومين'
+    }
+  ]);
+
+  // Users management list with roles
   const [usersList, setUsersList] = useState<Array<{
     id: string;
     name: string;
@@ -162,147 +196,60 @@ export default function AdminDashboard({
     role: AdminUserRole;
     isBanned: boolean;
     bookingsCount: number;
-  }>>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
-
-  // Sync Users from Firestore
-  useEffect(() => {
-    try {
-      const usersQuery = query(collection(db, 'users'), limit(50));
-      const unsubscribe = onSnapshot(
-        usersQuery,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const fetchedUsers = snapshot.docs.map((docSnap) => {
-              const data = docSnap.data();
-              return {
-                id: docSnap.id,
-                name: data.name || 'مستخدم غير مسمى',
-                phone: data.phone || '',
-                email: data.email || '',
-                governorate: data.governorate || 'دمشق',
-                role: (data.role as AdminUserRole) || (data.isAdmin ? 'admin' : 'user'),
-                isBanned: !!data.isBanned,
-                bookingsCount: data.bookingsCount || 0
-              };
-            });
-            setUsersList(fetchedUsers);
-          } else {
-            // Seed initial admin if collection returned empty
-            setUsersList([
-              {
-                id: 'admin-0945688090',
-                name: 'المدير العام',
-                phone: '0945688090',
-                email: 'family2016amer@gmail.com',
-                governorate: 'دمشق',
-                role: 'admin',
-                isBanned: false,
-                bookingsCount: 28
-              }
-            ]);
-          }
-          setIsLoadingUsers(false);
-        },
-        (error) => {
-          console.warn('Users onSnapshot error, falling back:', error);
-          setUsersList([
-            {
-              id: 'admin-0945688090',
-              name: 'المدير العام (كابتن عامر)',
-              phone: '0945688090',
-              email: 'family2016amer@gmail.com',
-              governorate: 'دمشق',
-              role: 'admin',
-              isBanned: false,
-              bookingsCount: 28
-            }
-          ]);
-          setIsLoadingUsers(false);
-        }
-      );
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn('Firestore users listener init error:', err);
-      setIsLoadingUsers(false);
+  }>>([
+    {
+      id: 'u-1',
+      name: 'كابتن عامر (المدير العام)',
+      phone: '0945688090',
+      email: 'family2016amer@gmail.com',
+      governorate: 'دمشق',
+      role: 'admin',
+      isBanned: false,
+      bookingsCount: 28
+    },
+    {
+      id: 'u-2',
+      name: 'كابتن حكمت الحكيم',
+      phone: '0933112233',
+      email: 'hhkmtalhkym@gmail.com',
+      governorate: 'دمشق',
+      role: 'league_manager',
+      isBanned: false,
+      bookingsCount: 14
+    },
+    {
+      id: 'u-3',
+      name: 'كابتن مجد الشامي',
+      phone: '0988776655',
+      email: 'majd@kaptan.sy',
+      governorate: 'حلب',
+      role: 'announcer',
+      isBanned: false,
+      bookingsCount: 9
+    },
+    {
+      id: 'u-4',
+      name: 'كابتن وسيم حمصي',
+      phone: '0955443322',
+      email: 'waseem@kaptan.sy',
+      governorate: 'حمص',
+      role: 'user',
+      isBanned: false,
+      bookingsCount: 6
+    },
+    {
+      id: 'u-5',
+      name: 'كابتن تيم اللاذقية',
+      phone: '0944118833',
+      email: 'taym@kaptan.sy',
+      governorate: 'اللاذقية',
+      role: 'user',
+      isBanned: false,
+      bookingsCount: 11
     }
-  }, []);
+  ]);
 
-  // Sync Audit Logs from Firestore
-  useEffect(() => {
-    try {
-      const logsQuery = query(
-        collection(db, 'activityLogs'),
-        orderBy('timestamp', 'desc'),
-        limit(50)
-      );
-      const unsubscribe = onSnapshot(
-        logsQuery,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const fetchedLogs = snapshot.docs.map((docSnap) => {
-              const data = docSnap.data();
-              let formattedTime = 'الآن';
-              if (data.timestamp?.toDate) {
-                formattedTime = data.timestamp.toDate().toLocaleTimeString('ar-SY', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                });
-              } else if (typeof data.timestamp === 'string') {
-                formattedTime = data.timestamp;
-              }
-
-              return {
-                id: docSnap.id,
-                type: data.type || 'security',
-                title: data.title || 'عملية إدارية',
-                description: data.description || '',
-                performedBy: data.performedBy || 'الإدارة المركزية',
-                targetId: data.targetId || '',
-                timestamp: formattedTime
-              } as AuditLogItem;
-            });
-            setAuditLogs(fetchedLogs);
-          } else {
-            setAuditLogs([
-              {
-                id: 'log-default-1',
-                type: 'security',
-                title: 'جاهزية سجل التدقيق المركزي (Audit Log)',
-                description: 'تم التحقق من ربط قاعدة بيانات Firestore وتوثيق جلسة المدير العام (0945688090).',
-                performedBy: 'نظام الكابتن الآلي',
-                timestamp: 'اليوم، 12:00 م'
-              }
-            ]);
-          }
-          setIsLoadingLogs(false);
-        },
-        (error) => {
-          console.warn('ActivityLogs onSnapshot error, falling back:', error);
-          setAuditLogs([
-            {
-              id: 'log-default-1',
-              type: 'security',
-              title: 'سجل التدقيق المحلي',
-              description: 'جلسة المدير العام نشطة بصلاحيات كاملة.',
-              performedBy: 'نظام الكابتن الآلي',
-              timestamp: 'الآن'
-            }
-          ]);
-          setIsLoadingLogs(false);
-        }
-      );
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn('Firestore logs listener init error:', err);
-      setIsLoadingLogs(false);
-    }
-  }, []);
-
-  // Live Firestore User Role Change
-  const handleChangeUserRole = async (userId: string, newRole: AdminUserRole) => {
+  const handleChangeUserRole = (userId: string, newRole: AdminUserRole) => {
     const targetUser = usersList.find((u) => u.id === userId);
     setUsersList((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
@@ -315,69 +262,42 @@ export default function AdminDashboard({
       admin: 'مدير نظام عام'
     };
 
-    const newLogEntry = {
+    // Log audit
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
       type: 'user_role',
       title: `تعديل رتبة المستخدم: ${targetUser?.name || userId}`,
-      description: `تم تغيير الصلاحية إلى [${roleNameMap[newRole]}] من قبل الإدارة المركزية.`,
-      performedBy: 'المدير العام (Admin)',
+      description: `تم تغيير الصلاحية إلى [${roleNameMap[newRole]}] بنجاح.`,
+      performedBy: 'كابتن عامر (Admin)',
       targetId: userId,
-      timestamp: serverTimestamp()
+      timestamp: 'الآن'
     };
-
-    try {
-      // Update in Firestore
-      await updateDoc(doc(db, 'users', userId), {
-        role: newRole,
-        isAdmin: newRole === 'admin'
-      });
-
-      // Write to activityLogs collection
-      await addDoc(collection(db, 'activityLogs'), newLogEntry);
-    } catch (error) {
-      console.warn('Firestore update role error, updated locally:', error);
-    }
+    setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  // Live Firestore User Account Deletion
-  const handleDeleteUserAccount = async (userId: string) => {
+  const handleDeleteUserAccount = (userId: string) => {
     const targetUser = usersList.find((u) => u.id === userId);
-    if (
-      (targetUser?.role === 'admin' && targetUser.phone === '0945688090') ||
-      targetUser?.email === 'family2016amer@gmail.com'
-    ) {
+    if (targetUser?.role === 'admin' && targetUser.phone === '0945688090') {
       alert('لا يمكن حذف حساب المدير العام الأساسي للنظام.');
       return;
     }
 
-    if (
-      !confirm(
-        `هل أنت متأكد من رغبتك في حذف حساب "${targetUser?.name || targetUser?.phone}" نهائياً من قاعدة البيانات؟`
-      )
-    ) {
+    if (!confirm(`هل أنت متأكد من رغبتك في حذف حساب "${targetUser?.name}" نهائياً من قاعدة البيانات؟`)) {
       return;
     }
 
-    // Update UI immediately
     setUsersList((prev) => prev.filter((u) => u.id !== userId));
 
-    const newLogEntry = {
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
       type: 'deletion',
-      title: `حذف حساب مستخدم: ${targetUser?.name || targetUser?.phone}`,
-      description: `تم حذف حساب ${targetUser?.phone || targetUser?.email} ومسح كافة بياناته من قبل الإدارة.`,
-      performedBy: 'المدير العام (Admin)',
+      title: `حذف حساب مستخدم: ${targetUser?.name}`,
+      description: `تم حذف حساب ${targetUser?.phone} ومسح كافة ارتباطاته من قبل الإدارة.`,
+      performedBy: 'كابتن عامر (Admin)',
       targetId: userId,
-      timestamp: serverTimestamp()
+      timestamp: 'الآن'
     };
-
-    try {
-      // Delete document from Firestore
-      await deleteDoc(doc(db, 'users', userId));
-
-      // Record in activityLogs
-      await addDoc(collection(db, 'activityLogs'), newLogEntry);
-    } catch (error) {
-      console.warn('Firestore delete user error, updated locally:', error);
-    }
+    setAuditLogs((prev) => [newLog, ...prev]);
   };
 
   // Mock Objections list

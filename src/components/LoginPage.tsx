@@ -24,7 +24,6 @@ export default function LoginPage() {
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
-    quickRoleLogin,
     authError,
     clearAuthError
   } = useAuth();
@@ -438,65 +437,6 @@ export default function LoginPage() {
           </svg>
           <span>المتابعة باستخدام حساب Google</span>
         </button>
-
-        {/* Quick Demo Role Selector */}
-        <div className="space-y-2 pt-1 border-t border-white/10">
-          <div className="text-[11px] font-bold text-gray-400 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#00FFD2]" />
-              <span>دخول تجريبي سريع حسب الدور:</span>
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => quickRoleLogin('admin')}
-              className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-right transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-black text-red-300 group-hover:text-white flex items-center justify-between">
-                <span>مدير النظام (أدمن)</span>
-                <span className="text-[9px] bg-red-500/20 px-1.5 py-0.5 rounded text-red-200">كامل الصلاحيات</span>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-0.5 font-mono">0945688090</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => quickRoleLogin('announcer')}
-              className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-right transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-black text-amber-300 group-hover:text-white flex items-center justify-between">
-                <span>معلن ملاعب</span>
-                <span className="text-[9px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200">إدارة الملعب</span>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-0.5 font-mono">0988776655</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => quickRoleLogin('league_manager')}
-              className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-right transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-black text-blue-300 group-hover:text-white flex items-center justify-between">
-                <span>منظم دوريات</span>
-                <span className="text-[9px] bg-blue-500/20 px-1.5 py-0.5 rounded text-blue-200">إدارة البطولات</span>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-0.5 font-mono">0933112233</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => quickRoleLogin('player')}
-              className="p-2 rounded-xl bg-[#00FFD2]/10 hover:bg-[#00FFD2]/20 border border-[#00FFD2]/30 text-right transition-colors cursor-pointer group"
-            >
-              <div className="text-[11px] font-black text-[#00FFD2] group-hover:text-white flex items-center justify-between">
-                <span>لاعب / كابتن</span>
-                <span className="text-[9px] bg-[#00FFD2]/20 px-1.5 py-0.5 rounded text-[#00FFD2]">حجز ومباريات</span>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-0.5 font-mono">0955443322</p>
-            </button>
-          </div>
-        </div>
 
         {/* Security & Zero Commission Guarantee Footer */}
         <div className="text-center pt-1 border-t border-white/5">
