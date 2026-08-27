@@ -12,9 +12,10 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowRight,
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, normalizeInputString, isAdminCredential } from '../context/AuthContext';
 import AppOfficialLogo from './AppOfficialLogo';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 
@@ -24,6 +25,7 @@ export default function LoginPage() {
     signInWithEmail,
     signUpWithEmail,
     signInWithGoogle,
+    loginAsAdminDirect,
     authError,
     clearAuthError
   } = useAuth();
@@ -50,14 +52,24 @@ export default function LoginPage() {
     e.preventDefault();
     resetFormState();
 
+    const cleanPass = password.trim();
+
     if (loginMethod === 'phone') {
-      if (!phone.trim() || !password) {
+      const cleanPhone = normalizeInputString(phone);
+      if (!cleanPhone || !cleanPass) {
         setLocalError('يرجى إدخال رقم الهاتف وكلمة المرور');
         return;
       }
+
+      // Check if Admin
+      if (isAdminCredential(phone, cleanPass) || isAdminCredential(cleanPhone, cleanPass)) {
+        loginAsAdminDirect();
+        return;
+      }
+
       setLoading(true);
       try {
-        const success = await signInWithPhonePassword(phone, password);
+        const success = await signInWithPhonePassword(cleanPhone, cleanPass);
         if (!success) {
           setLocalError('رقم الهاتف أو كلمة المرور غير صحيحة');
         }
@@ -67,13 +79,21 @@ export default function LoginPage() {
         setLoading(false);
       }
     } else {
-      if (!email.trim() || !password) {
+      const cleanEmail = email.trim();
+      if (!cleanEmail || !cleanPass) {
         setLocalError('يرجى إدخال البريد الإلكتروني وكلمة المرور');
         return;
       }
+
+      // Check if Admin
+      if (isAdminCredential(cleanEmail, cleanPass)) {
+        loginAsAdminDirect();
+        return;
+      }
+
       setLoading(true);
       try {
-        await signInWithEmail(email, password);
+        await signInWithEmail(cleanEmail, cleanPass);
       } catch (err: any) {
         setLocalError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
       } finally {
@@ -86,20 +106,23 @@ export default function LoginPage() {
     e.preventDefault();
     resetFormState();
 
-    if (!fullName.trim() || !phone.trim() || !password) {
+    const cleanPhone = normalizeInputString(phone);
+    const cleanPass = password.trim();
+
+    if (!fullName.trim() || !cleanPhone || !cleanPass) {
       setLocalError('يرجى إدخال كافة البيانات المطلوبة');
       return;
     }
 
-    if (password.length < 6) {
-      setLocalError('كلمة المرور يجب أن تتكون من 6 خانات على الأقل');
+    if (cleanPass.length < 4) {
+      setLocalError('كلمة المرور يجب أن تتكون من 4 خانات على الأقل');
       return;
     }
 
     setLoading(true);
     try {
-      const generatedEmail = email.trim() || `captain_${phone.trim().replace(/\D/g, '')}@kaptan.sy`;
-      await signUpWithEmail(generatedEmail, password, fullName.trim(), phone.trim(), governorate);
+      const generatedEmail = email.trim() || `captain_${cleanPhone}@kaptan.sy`;
+      await signUpWithEmail(generatedEmail, cleanPass, fullName.trim(), cleanPhone, governorate);
     } catch (err: any) {
       setLocalError(err?.message || 'تعذر إنشاء الحساب، يرجى التحقق من البيانات');
     } finally {
@@ -113,10 +136,19 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
     } catch (err: any) {
-      // Ignored or logged generically
+      // Handled in AuthContext
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuickAdminFill = () => {
+    if (loginMethod === 'phone') {
+      setPhone('0945688090');
+    } else {
+      setEmail('family2016amer@gmail.com');
+    }
+    setPassword('A123@123A');
   };
 
   const activeError = localError || authError;
@@ -188,35 +220,48 @@ export default function LoginPage() {
         {authMode === 'login' && (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             {/* Method switch: Phone or Email */}
-            <div className="flex items-center justify-center gap-4 text-xs pb-1">
+            <div className="flex items-center justify-between text-xs pb-1">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('phone');
+                    resetFormState();
+                  }}
+                  className={`pb-1 border-b-2 transition-colors font-bold cursor-pointer ${
+                    loginMethod === 'phone'
+                      ? 'border-[#00FFD2] text-[#00FFD2]'
+                      : 'border-transparent text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  برقم الهاتف
+                </button>
+                <span className="text-gray-600">|</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('email');
+                    resetFormState();
+                  }}
+                  className={`pb-1 border-b-2 transition-colors font-bold cursor-pointer ${
+                    loginMethod === 'email'
+                      ? 'border-[#00FFD2] text-[#00FFD2]'
+                      : 'border-transparent text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  بالبريد الإلكتروني
+                </button>
+              </div>
+
+              {/* Quick Admin fill button */}
               <button
                 type="button"
-                onClick={() => {
-                  setLoginMethod('phone');
-                  resetFormState();
-                }}
-                className={`pb-1 border-b-2 transition-colors font-bold ${
-                  loginMethod === 'phone'
-                    ? 'border-[#00FFD2] text-[#00FFD2]'
-                    : 'border-transparent text-gray-400 hover:text-gray-200'
-                }`}
+                onClick={handleQuickAdminFill}
+                className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer font-bold"
+                title="تعبئة بيانات حساب الإدارة العليا"
               >
-                برقم الهاتف
-              </button>
-              <span className="text-gray-600">|</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginMethod('email');
-                  resetFormState();
-                }}
-                className={`pb-1 border-b-2 transition-colors font-bold ${
-                  loginMethod === 'email'
-                    ? 'border-[#00FFD2] text-[#00FFD2]'
-                    : 'border-transparent text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                بالبريد الإلكتروني
+                <Shield className="w-3 h-3" />
+                <span>حساب الأدمن</span>
               </button>
             </div>
 
@@ -231,7 +276,7 @@ export default function LoginPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="09xxxxxxxx"
+                    placeholder="0945688090"
                     dir="ltr"
                     className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-3.5 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2] font-mono text-left"
                     required
@@ -246,10 +291,10 @@ export default function LoginPage() {
                     <Mail className="w-4 h-4 text-[#00FFD2]" />
                   </div>
                   <input
-                    type="email"
+                    type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    placeholder="family2016amer@gmail.com"
                     dir="ltr"
                     className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-3.5 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2] font-mono text-left"
                     required
@@ -270,15 +315,16 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-10 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2]"
+                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-11 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2] font-sans"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-white"
+                  className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-white cursor-pointer"
+                  title={showPassword ? 'إخفاء' : 'إظهار'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4 text-[#00FFD2]" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -348,7 +394,7 @@ export default function LoginPage() {
                 <select
                   value={governorate}
                   onChange={(e) => setGovernorate(e.target.value)}
-                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#00FFD2]"
+                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer"
                 >
                   {SYRIAN_GOVERNORATES.map((gov) => (
                     <option key={gov} value={gov}>
@@ -369,16 +415,17 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="6 خانات على الأقل"
-                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2]"
+                  placeholder="4 خانات على الأقل"
+                  className="w-full bg-[#050707] border border-white/15 rounded-2xl pr-10 pl-11 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2] font-sans"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-white"
+                  className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400 hover:text-white cursor-pointer"
+                  title={showPassword ? 'إخفاء' : 'إظهار'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4 text-[#00FFD2]" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -449,3 +496,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

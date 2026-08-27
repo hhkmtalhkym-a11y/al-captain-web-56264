@@ -42,6 +42,7 @@ interface ProfileViewProps {
   onOpenAdminLogin: () => void;
   onOpenSupportModal: () => void;
   onCancelBooking?: (bookingId: string) => void;
+  onNavigateToAdmin?: () => void;
 }
 
 export default function ProfileView({
@@ -50,7 +51,8 @@ export default function ProfileView({
   onUpdateProfile,
   onOpenAdminLogin,
   onOpenSupportModal,
-  onCancelBooking
+  onCancelBooking,
+  onNavigateToAdmin
 }: ProfileViewProps) {
   const {
     firebaseUser,
@@ -713,14 +715,23 @@ export default function ProfileView({
                 <h4 className="text-sm font-bold text-white">لوحة تحكم الإدارة العليا</h4>
               </div>
               <p className="text-xs text-gray-400">
-                تسجيل دخول الإدارة المركزية والمنظمين للتحكم في المنظومة بالكامل.
+                {currentUser.isAdmin
+                  ? 'أنت مسجل حالياً بصلاحيات المدير العام الكاملة للمنظومة.'
+                  : 'تسجيل دخول الإدارة المركزية والمنظمين للتحكم في المنظومة بالكامل.'}
               </p>
               <button
-                onClick={onOpenAdminLogin}
+                type="button"
+                onClick={() => {
+                  if (currentUser.isAdmin && onNavigateToAdmin) {
+                    onNavigateToAdmin();
+                  } else {
+                    onOpenAdminLogin();
+                  }
+                }}
                 className="w-full py-2.5 px-4 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 glow-pink cursor-pointer"
               >
-                <Lock className="w-4 h-4" />
-                <span>لوحة التحكم والدخول</span>
+                <Shield className="w-4 h-4" />
+                <span>{currentUser.isAdmin ? 'الانتقال للوحة التحكم' : 'دخول الإدارة'}</span>
               </button>
             </div>
 
