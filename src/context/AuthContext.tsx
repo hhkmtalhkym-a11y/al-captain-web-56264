@@ -18,6 +18,7 @@ import { loadFromLocalStorage, saveToLocalStorage } from '../utils/helpers';
 interface AuthContextType {
   firebaseUser: User | null;
   currentUser: UserProfile;
+  isAuthenticated: boolean;
   loading: boolean;
   authError: string | null;
   signInWithGoogle: () => Promise<void>;
@@ -34,10 +35,10 @@ interface AuthContextType {
 const DEFAULT_USER: UserProfile = {
   id: 'usr-default',
   name: 'كابتن المنصة',
-  phone: '0945688090',
-  email: 'hhkmtalhkym@gmail.com',
+  phone: '',
+  email: '',
   governorate: 'دمشق',
-  role: 'captain',
+  role: 'player',
   isAdmin: false,
   position: 'مهاجم صريح (ST)',
   favoritePlaygrounds: ['pg-1', 'pg-2']
@@ -49,27 +50,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const saved = localStorage.getItem('kaptan_is_authenticated');
+    return saved === 'true';
+  });
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(() =>
     loadFromLocalStorage('kaptan_current_user', DEFAULT_USER)
   );
 
   useEffect(() => {
-    saveToLocalStorage('kaptan_current_user', currentUser);
-    saveToLocalStorage('captain_auth_user', {
-      uid: currentUser.id,
-      name: currentUser.name,
-      email: currentUser.email,
-      phone: currentUser.phone,
-      role: currentUser.role,
-      isAdmin: currentUser.isAdmin
-    });
-  }, [currentUser]);
+    if (isAuthenticated) {
+      saveToLocalStorage('kaptan_current_user', currentUser);
+      saveToLocalStorage('captain_auth_user', {
+        uid: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        phone: currentUser.phone,
+        role: currentUser.role,
+        isAdmin: currentUser.isAdmin
+      });
+      localStorage.setItem('kaptan_is_authenticated', 'true');
+    } else {
+      localStorage.removeItem('kaptan_is_authenticated');
+    }
+  }, [currentUser, isAuthenticated]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
+        setIsAuthenticated(true);
         const isAdmin =
           user.email === 'family2016amer@gmail.com' ||
           currentUser.isAdmin ||
@@ -90,7 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               image: data.image || user.photoURL || prev.image,
               avatar: data.avatar || user.photoURL || prev.avatar,
               isAdmin: isAdmin || !!data.isAdmin,
-              role: isAdmin || data.role === 'admin' ? 'admin' : ((data.role as UserRole) || prev.role || 'captain')
+              role: isAdmin || data.role === 'admin' ? 'admin' : ((data.role as UserRole) || prev.role || 'player')
             }));
           } else {
             const initialProfile: UserProfile = {
@@ -101,7 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               image: user.photoURL || currentUser.image,
               avatar: user.photoURL || currentUser.avatar,
               isAdmin,
-              role: isAdmin ? 'admin' : (currentUser.role || 'captain')
+              role: isAdmin ? 'admin' : (currentUser.role || 'player')
             };
 
             await setDoc(userDocRef, initialProfile, { merge: true });
@@ -153,6 +164,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       setCurrentUser(newProfile);
+      setIsAuthenticated(true);
     } catch (error: any) {
       console.warn('Firebase Google Auth popup notice:', error);
       const isPopupBlocked =
@@ -173,7 +185,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           isAdmin: false
         };
         setCurrentUser(fallbackProfile);
-        setAuthError('تم تسجيل الدخول السريع (نظراً لقيام المتصفح أو بيئة العرض بحظر النوافذ المنبثقة).');
+        setIsAuthenticated(true);
+        setAuthError(null);
         return;
       }
 
@@ -208,10 +221,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: isAdmin ? 'admin' : currentUser.role
       };
       setCurrentUser(newProfile);
+      setIsAuthenticated(true);
     } catch (error: any) {
       console.warn('Email login error:', error);
-      setAuthError(error.message || 'فشل تسجيل الدخول بالبريد الإلكتروني');
-      throw error;
+      setAuthError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      throw new Error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
   };
 
@@ -240,6 +254,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       setCurrentUser(newProfile);
+      setIsAuthenticated(true);
     } catch (error: any) {
       console.warn('Email sign up error:', error);
       setAuthError(error.message || 'فشل إنشاء الحساب');
@@ -258,30 +273,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ) {
       const adminProfile: UserProfile = {
         ...currentUser,
-        id: 'admin-master',
-        name: 'المدير العام (الكابتن)',
+        id: 'admin-0945688090',
+        name: 'المدير العام',
         phone: '0945688090',
         email: 'family2016amer@gmail.com',
         role: 'admin',
         isAdmin: true
       };
       setCurrentUser(adminProfile);
+      setIsAuthenticated(true);
       return true;
     }
 
-    // Standard phone login fallback
-    if (pass.length >= 6) {
+    // Standard phone login verification
+    if (cleanPhone.length >= 8 && pass.length >= 6) {
       const playerProfile: UserProfile = {
         ...currentUser,
+        id: `usr-phone-${cleanPhone}`,
         phone: cleanPhone,
-        name: currentUser.name || `كابتن ${cleanPhone.slice(-4)}`,
-        role: currentUser.isAdmin ? 'admin' : (currentUser.role || 'player')
+        name: currentUser.name && currentUser.name !== 'كابتن المنصة' ? currentUser.name : `كابتن (${cleanPhone.slice(-4)})`,
+        role: 'player',
+        isAdmin: false
       };
       setCurrentUser(playerProfile);
+      setIsAuthenticated(true);
       return true;
     }
 
-    setAuthError('كلمة المرور يجب ألا تقل عن 6 خانات أو بيانات الدخول غير صحيحة');
+    setAuthError('رقم الهاتف أو كلمة المرور غير صحيحة');
     return false;
   };
 
@@ -312,8 +331,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       setCurrentUser(DEFAULT_USER);
       setFirebaseUser(null);
+      setIsAuthenticated(false);
       localStorage.removeItem('captain_auth_user');
       localStorage.removeItem('kaptan_current_user');
+      localStorage.removeItem('kaptan_is_authenticated');
       return true;
     } catch (error: any) {
       console.warn('Delete user account error:', error);
@@ -328,8 +349,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await signOut(auth);
       setFirebaseUser(null);
       setCurrentUser(DEFAULT_USER);
+      setIsAuthenticated(false);
       localStorage.removeItem('captain_auth_user');
       localStorage.removeItem('kaptan_current_user');
+      localStorage.removeItem('kaptan_is_authenticated');
     } catch (error: any) {
       console.error('Error signing out:', error);
       setAuthError(error.message || 'تعذر تسجيل الخروج');

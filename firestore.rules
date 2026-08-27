@@ -1,0 +1,205 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // HELPER FUNCTIONS (دوال التحقق والصلاحيات)
+    // ==========================================
+
+    // التحقق من تسجيل دخول المستخدم
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // التحقق مما إذا كان المستخدم هو صاحب السجل
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // التحقق من صلاحيات الإدارة العليا (المدير العام)
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'admin-0945688090' ||
+        request.auth.token.email == 'family2016amer@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // التحقق من رتبة المعلن أو منظم الدوري
+    function isLeagueManager() {
+      return isSignedIn() && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'league_manager'
+      );
+    }
+
+    // ==========================================
+    // 1. USERS COLLECTION (بيانات المستخدمين)
+    // ==========================================
+    match /users/{userId} {
+      // قراءة البيانات: فقط المستخدم نفسه أو المدير العام
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      
+      // إنشاء حساب جديد: المستخدم لنفسه أو المدير
+      allow create: if isSignedIn() && (isOwner(userId) || isAdmin());
+      
+      // تعديل الحساب: المستخدم لنفسه (دون تغيير رتبة الإدارة إلا للمدير) أو المدير
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (isOwner(userId) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'role', 'isBanned'])))
+      );
+      
+      // الحذف: فقط المستخدم لحسابه أو المدير العام
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // ==========================================
+    // 2. PLAYGROUNDS (الملاعب)
+    // ==========================================
+    match /playgrounds/{playgroundId} {
+      // القراءة متاحة للجميع (أو المسجلين)
+      allow read: if true;
+      
+      // الإضافة والتعديل والحذف: مقتصرة على المدير العام أو المعلن المعتمد
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 3. BOOKINGS (الحجوزات)
+    // ==========================================
+    match /bookings/{bookingId} {
+      // القراءة: المستخدم لحجوزاته الخاصة، أو المدير العام
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.captainPhone == request.auth.token.phone_number ||
+        isAdmin()
+      );
+      
+      // إنشاء حجز: أي مستخدم مسجل الدخول
+      allow create: if isSignedIn();
+      
+      // التعديل أو الإلغاء: صاحب الحجز أو المدير العام
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      // الحذف: فقط المدير العام
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 4. LEAGUES & TOURNAMENTS (الدوريات والبطولات)
+    // ==========================================
+    match /leagues/{leagueId} {
+      // القراءة متاحة لجميع مستخدمي المنصة
+      allow read: if true;
+      
+      // الإنشاء والتعديل والحذف: المدير العام أو منظم البطولات
+      allow create, update, delete: if isLeagueManager() || isAdmin();
+    }
+
+    // ==========================================
+    // 5. LEAGUE MATCHES (مباريات وجداول الدوريات)
+    // ==========================================
+    match /leagueMatches/{matchId} {
+      allow read: if true;
+      allow create, update, delete: if isLeagueManager() || isAdmin();
+    }
+
+    // ==========================================
+    // 6. ACADEMIES (الأكاديميات الرياضية)
+    // ==========================================
+    match /academies/{academyId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 7. ACADEMY REGISTRATIONS (تسجيلات الأكاديميات)
+    // ==========================================
+    match /academyRegistrations/{regId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 8. FRIENDLY MATCHES & CHALLENGES (الوديات والتحديات)
+    // ==========================================
+    match /friendlyMatches/{matchId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.hostCaptainId == request.auth.uid ||
+        isAdmin() ||
+        // السماح بالانضمام للتحدي وتحديث بيانات الفريق الخصم
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'opponentTeamName', 'opponentTeamImage', 'guestJerseyColor',
+          'notesAndChallengeRules', 'costSplitMethod', 'paymentMethod',
+          'shamCashAccountNumber', 'status'
+        ])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.hostCaptainId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // ==========================================
+    // 9. PLAYER CARDS & SCOUTING (بطاقات اللاعبين وكشاف المواهب)
+    // ==========================================
+    match /playerCards/{cardId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // ==========================================
+    // 10. NOTIFICATIONS (الإشعارات)
+    // ==========================================
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.type == 'system' ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 11. ADMIN REQUESTS (طلبات الإدارة والترقيات)
+    // ==========================================
+    match /adminRequests/{requestId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ==========================================
+    // 12. ACTIVITY LOGS (سجل التدقيق والنشاطات)
+    // ==========================================
+    match /activityLogs/{logId} {
+      // مقفل تماماً وحصري للمدير العام فقط
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // سجل التدقيق غير قابل للتعديل أو الحذف
+    }
+
+  }
+}

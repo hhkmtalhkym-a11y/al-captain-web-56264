@@ -97,6 +97,7 @@ import ChallengeBookingModal from './components/ChallengeBookingModal';
 import MyBookingsView from './components/MyBookingsView';
 import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
+import LoginPage from './components/LoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initializeDatabase } from './utils/db-initializer';
 
@@ -114,7 +115,7 @@ export type NavigationTab =
 
 function MainApp() {
   // Authentication & Current User from AuthContext
-  const { currentUser, updateCurrentUser } = useAuth();
+  const { currentUser, updateCurrentUser, isAuthenticated } = useAuth();
 
   // Splash Screen State
   const [showSplash, setShowSplash] = useState(true);
@@ -829,10 +830,16 @@ function MainApp() {
 
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="min-h-screen bg-[#050707] text-white flex flex-col font-['Cairo'] antialiased selection:bg-[#00FFD2] selection:text-black">
-      {/* Splash Screen */}
-      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
 
       {/* Top Navbar - Responsive Header: Right: Profile & Notifs | Center: Logo & Name | Left: Governorates & Google Maps */}
       <header className="sticky top-0 z-40 bg-[#050707]/95 backdrop-blur-md border-b border-[#00FFD2]/20">

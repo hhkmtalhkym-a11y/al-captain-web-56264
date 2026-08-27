@@ -8,8 +8,8 @@ interface AdminLoginModalProps {
 }
 
 export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalProps) {
-  const [identifier, setIdentifier] = useState('family2016amer@gmail.com');
-  const [password, setPassword] = useState('A123@123A');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,7 +21,6 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
     setError('');
 
     setTimeout(() => {
-      // Validate credentials specified: family2016amer@gmail.com or 0945688090 & password A123@123A
       const cleanId = identifier.trim().toLowerCase();
       if (
         (cleanId === 'family2016amer@gmail.com' || cleanId === '0945688090' || cleanId === '+963945688090' || cleanId === '963945688090') &&
@@ -30,15 +29,10 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
         onSuccess();
         onClose();
       } else {
-        setError('بيانات الدخول غير صحيحة! يرجى التحقق من البريد أو الجوال (family2016amer@gmail.com / 0945688090) وكلمة المرور.');
+        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
       }
       setIsLoading(false);
     }, 400);
-  };
-
-  const handleFillDemo = () => {
-    setIdentifier('family2016amer@gmail.com');
-    setPassword('A123@123A');
   };
 
   return (
@@ -97,7 +91,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
 
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-              كلمة المرور السرية
+              كلمة المرور
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 absolute right-3 top-3 text-gray-500" />
@@ -111,17 +105,6 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
                 required
               />
             </div>
-          </div>
-
-          <div className="bg-[#050707] p-2.5 rounded-lg border border-white/5 flex items-center justify-between text-[11px] text-gray-400">
-            <span>الحساب الإداري الثابت مهيأ:</span>
-            <button
-              type="button"
-              onClick={handleFillDemo}
-              className="text-[#00FFD2] hover:underline flex items-center gap-1 font-semibold"
-            >
-              <Sparkles className="w-3 h-3" /> تعبئة تلقائية
-            </button>
           </div>
 
           <div className="pt-2">
