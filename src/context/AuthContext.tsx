@@ -207,6 +207,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signInWithEmail = async (email: string, pass: string) => {
     setAuthError(null);
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Direct check for default Admin credentials
+    if (
+      (cleanEmail === 'family2016amer@gmail.com' || cleanEmail === 'family2016amer') &&
+      pass === 'A123@123A'
+    ) {
+      const adminProfile: UserProfile = {
+        ...currentUser,
+        id: 'admin-0945688090',
+        name: 'المدير العام',
+        phone: '0945688090',
+        email: 'family2016amer@gmail.com',
+        role: 'admin',
+        isAdmin: true
+      };
+      try {
+        await setDoc(doc(db, 'users', 'admin-0945688090'), adminProfile, { merge: true });
+      } catch (e) {
+        console.warn('Set admin profile notice:', e);
+      }
+      setCurrentUser(adminProfile);
+      setIsAuthenticated(true);
+      return;
+    }
+
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
       const user = cred.user;
