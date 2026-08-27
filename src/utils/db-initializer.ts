@@ -34,8 +34,8 @@ export const REQUIRED_COLLECTIONS = [
 export const DEFAULT_ADMIN_USER = {
   id: 'admin-0945688090',
   uid: 'admin-0945688090',
-  name: 'كابتن عامر (المدير العام)',
-  fullName: 'كابتن عامر (المدير العام)',
+  name: 'المدير العام',
+  fullName: 'المدير العام',
   phone: '0945688090',
   email: 'family2016amer@gmail.com',
   password: 'A123@123A',

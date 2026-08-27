@@ -23,7 +23,8 @@ import {
   Home,
   LogOut,
   Sliders,
-  DollarSign
+  DollarSign,
+  User
 } from 'lucide-react';
 import {
   collection,
@@ -1164,6 +1165,7 @@ function MainApp() {
             onUpdateAcademyRegistrationStatus={handleUpdateAcademyRegistrationStatus}
             onUpdateAcademyRegistrationPaymentStatus={handleUpdateAcademyRegistrationPaymentStatus}
             onUpdateFriendlyMatchStatus={handleUpdateFriendlyMatchStatus}
+            onAddBooking={handleCreateBooking}
             onDeletePlayground={handleDeletePlayground}
             onDeleteLeague={handleDeleteLeague}
             onDeleteMatch={handleDeleteMatch}
@@ -1176,14 +1178,13 @@ function MainApp() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050707]/95 backdrop-blur-lg border-t border-[#00FFD2]/20 py-2 px-1 flex items-center justify-around">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050707]/95 backdrop-blur-lg border-t border-[#00FFD2]/20 py-2 px-2 flex items-center justify-around">
         {[
           { id: 'home', label: 'الرئيسية', icon: Home },
           { id: 'playgrounds', label: 'الملاعب', icon: Compass },
           { id: 'leagues', label: 'الدوريات', icon: Trophy },
-          { id: 'matches', label: 'الوديات', icon: Swords },
           { id: 'academies', label: 'الأكاديميات', icon: Users },
-          { id: 'scouting', label: 'كشاف المواهب', icon: Sparkles }
+          { id: 'profile', label: 'الملف الشخصي', icon: User }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1191,12 +1192,12 @@ function MainApp() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as NavigationTab)}
-              className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 isActive ? 'text-[#00FFD2] scale-105 font-bold' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Icon className="w-4 h-4 mb-0.5" />
-              <span className="text-[9px] font-['Cairo'] whitespace-nowrap">{tab.label}</span>
+              <Icon className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] font-['Cairo'] whitespace-nowrap">{tab.label}</span>
             </button>
           );
         })}

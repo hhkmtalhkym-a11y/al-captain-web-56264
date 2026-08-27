@@ -46,6 +46,7 @@ import {
 } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { formatSYP, exportBookingsCsv, exportLeaguePdf, exportToExcel, openWhatsAppShare } from '../utils/helpers';
+import InteractiveCalendar from './InteractiveCalendar';
 
 interface AdminDashboardProps {
   playgrounds: Playground[];
@@ -59,6 +60,7 @@ interface AdminDashboardProps {
   onUpdateAcademyRegistrationStatus?: (regId: string, status: RegistrationStatus, rejectionReason?: string) => void;
   onUpdateAcademyRegistrationPaymentStatus?: (regId: string, paymentStatus: PaymentStatus) => void;
   onUpdateFriendlyMatchStatus?: (matchId: string, status: MatchStatus, rejectionReason?: string) => void;
+  onAddBooking?: (newBooking: Booking) => void;
   onDeletePlayground: (id: string) => void;
   onDeleteLeague: (id: string) => void;
   onDeleteMatch: (id: string) => void;
@@ -84,6 +86,7 @@ type AdminTab =
   | 'overview'
   | 'charts'
   | 'global_management'
+  | 'calendar'
   | 'bookings'
   | 'playgrounds'
   | 'leagues'
@@ -106,6 +109,7 @@ export default function AdminDashboard({
   onUpdateAcademyRegistrationStatus,
   onUpdateAcademyRegistrationPaymentStatus,
   onUpdateFriendlyMatchStatus,
+  onAddBooking,
   onDeletePlayground,
   onDeleteLeague,
   onDeleteMatch,
@@ -447,6 +451,7 @@ export default function AdminDashboard({
           { id: 'overview', label: 'نظرة عامة والتقارير', icon: BarChart3 },
           { id: 'global_management', label: `الإدارة الشاملة والتدقيق (${auditLogs.length})`, icon: Activity },
           { id: 'charts', label: 'الرسوم البيانية والإحصائيات', icon: PieChart },
+          { id: 'calendar', label: 'التقويم التفاعلي للحجوزات', icon: Calendar },
           { id: 'bookings', label: `إدارة الحجوزات (${bookings.length})`, icon: Calendar },
           { id: 'playgrounds', label: `الملاعب (${playgrounds.length})`, icon: Shield },
           { id: 'leagues', label: `الدوريات (${leagues.length})`, icon: Trophy },
@@ -887,6 +892,17 @@ export default function AdminDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tab: Interactive Calendar */}
+      {activeTab === 'calendar' && (
+        <InteractiveCalendar
+          bookings={bookings}
+          playgrounds={playgrounds}
+          currentUser={{ isAdmin: true, role: 'admin' }}
+          onAddBooking={onAddBooking}
+          onUpdateBookingStatus={onUpdateBookingStatus}
+        />
       )}
 
       {/* Tab 3: Bookings Management */}
