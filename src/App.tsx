@@ -1168,6 +1168,7 @@ function MainApp() {
             academyRegistrations={academyRegistrations}
             friendlyMatches={friendlyMatches}
             playerCvs={playerCvs}
+            onGoBack={() => setActiveTab('home')}
             onUpdateBookingStatus={handleUpdateBookingStatus}
             onUpdateAcademyRegistrationStatus={handleUpdateAcademyRegistrationStatus}
             onUpdateAcademyRegistrationPaymentStatus={handleUpdateAcademyRegistrationPaymentStatus}

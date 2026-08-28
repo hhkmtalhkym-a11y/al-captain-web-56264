@@ -40,7 +40,7 @@ interface HeroBannerSliderProps {
   isAdmin?: boolean;
 }
 
-const INITIAL_SLIDES: SlideItem[] = [
+export const INITIAL_SLIDES: SlideItem[] = [
   {
     id: 'slide-1',
     badge: '🏆 دوريات وبطولات كروية',
@@ -116,7 +116,7 @@ export default function HeroBannerSlider({
 }: HeroBannerSliderProps) {
   const [slides, setSlides] = useState<SlideItem[]>(() => {
     const saved = loadFromLocalStorage('kaptan_hero_slides', null);
-    if (saved && Array.isArray(saved) && saved.length >= 6) {
+    if (saved && Array.isArray(saved) && saved.length > 0) {
       return saved;
     }
     return INITIAL_SLIDES;
@@ -132,6 +132,17 @@ export default function HeroBannerSlider({
   useEffect(() => {
     saveToLocalStorage('kaptan_hero_slides', slides);
   }, [slides]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = loadFromLocalStorage('kaptan_hero_slides', null);
+      if (saved && Array.isArray(saved) && saved.length > 0) {
+        setSlides(saved);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     if (!isAutoPlaying || slides.length <= 1) return;
@@ -206,16 +217,16 @@ export default function HeroBannerSlider({
 
   return (
     <div className="space-y-2">
-      {/* Admin Slide Management Bar */}
+      {/* Admin Slide Management Bar - Strictly for Super Admin Only */}
       {isAdmin && (
-        <div className="flex items-center justify-between bg-[#0d1211] p-2.5 px-4 rounded-2xl border border-[#ff2a5f]/40 shadow-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0d1211] p-3 px-4 rounded-2xl border border-[#ff2a5f]/40 shadow-lg gap-2">
           <div className="flex items-center gap-2 text-xs text-[#ff2a5f] font-bold">
-            <Sparkles className="w-4 h-4" />
-            <span>لوحة تحكم السلايدر (أدمن): يمكنك إضافة وتعديل وحذف أي شريحة وصورة</span>
+            <Sparkles className="w-4 h-4 shrink-0 text-[#ff2a5f]" />
+            <span>لوحة تحكم السلايدر (أدمن): يمكنك إضافة وتعديل وحذف أي شريحة وصورة (خاص بالأدمن فقط ولا يمكن للمستخدمين أو منظمي الدوريات أو المعلنين التحكم بها)</span>
           </div>
           <button
             onClick={handleOpenAdd}
-            className="px-3 py-1.5 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs flex items-center gap-1 shadow-md cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs flex items-center gap-1 shadow-md cursor-pointer shrink-0 transition-transform active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>إضافة شريحة جديدة</span>

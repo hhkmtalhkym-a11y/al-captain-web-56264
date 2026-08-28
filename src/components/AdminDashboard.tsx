@@ -27,7 +27,16 @@ import {
   Eye,
   PieChart,
   TrendingUp,
-  Activity
+  Activity,
+  ArrowRight,
+  Edit2,
+  Sliders,
+  Sparkles,
+  MoveUp,
+  MoveDown,
+  Image as ImageIcon,
+  UserPlus,
+  X
 } from 'lucide-react';
 import {
   Playground,
@@ -45,8 +54,18 @@ import {
   ObjectionCase
 } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
-import { formatSYP, exportBookingsCsv, exportLeaguePdf, exportToExcel, openWhatsAppShare } from '../utils/helpers';
+import {
+  formatSYP,
+  exportBookingsCsv,
+  exportLeaguePdf,
+  exportToExcel,
+  openWhatsAppShare,
+  loadFromLocalStorage,
+  saveToLocalStorage,
+  readImageAsBase64
+} from '../utils/helpers';
 import InteractiveCalendar from './InteractiveCalendar';
+import { SlideItem, INITIAL_SLIDES } from './HeroBannerSlider';
 
 interface AdminDashboardProps {
   playgrounds: Playground[];
@@ -68,13 +87,20 @@ interface AdminDashboardProps {
   onOpenCreateLeague: () => void;
   onOpenCreateAcademy: () => void;
   onOpenCreateMatch: () => void;
+  onGoBack?: () => void;
 }
 
-export type AdminUserRole = 'user' | 'announcer' | 'league_manager' | 'admin';
+export type AdminUserRole =
+  | 'user'
+  | 'announcer'
+  | 'announcer_pitch'
+  | 'announcer_academy'
+  | 'league_manager'
+  | 'admin';
 
 export interface AuditLogItem {
   id: string;
-  type: 'creation' | 'deletion' | 'update' | 'booking' | 'user_role' | 'security';
+  type: 'creation' | 'deletion' | 'update' | 'booking' | 'user_role' | 'security' | 'slider';
   title: string;
   description: string;
   performedBy: string;
@@ -84,8 +110,10 @@ export interface AuditLogItem {
 
 type AdminTab =
   | 'overview'
-  | 'charts'
+  | 'slider'
   | 'global_management'
+  | 'users'
+  | 'charts'
   | 'calendar'
   | 'bookings'
   | 'playgrounds'
@@ -93,7 +121,6 @@ type AdminTab =
   | 'matches'
   | 'academies'
   | 'scouting'
-  | 'users'
   | 'objections'
   | 'settings';
 
@@ -116,7 +143,8 @@ export default function AdminDashboard({
   onOpenCreatePlayground,
   onOpenCreateLeague,
   onOpenCreateAcademy,
-  onOpenCreateMatch
+  onOpenCreateMatch,
+  onGoBack
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [selectedGov, setSelectedGov] = useState<string>('الكل');
@@ -249,6 +277,206 @@ export default function AdminDashboard({
     }
   ]);
 
+  // Role filter in users tab
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('الكل');
+
+  // New User Creation Modal State
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserGov, setNewUserGov] = useState('دمشق');
+  const [newUserRole, setNewUserRole] = useState<AdminUserRole>('user');
+
+  // Slider Management State
+  const [slidesList, setSlidesList] = useState<SlideItem[]>(() => {
+    const saved = loadFromLocalStorage('kaptan_hero_slides', null);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+    return INITIAL_SLIDES;
+  });
+
+  const [editingSlide, setEditingSlide] = useState<SlideItem | null>(null);
+  const [isSlideModalOpen, setIsSlideModalOpen] = useState(false);
+  const [isAddingNewSlide, setIsAddingNewSlide] = useState(false);
+  const [slideFormData, setSlideFormData] = useState<Partial<SlideItem>>({
+    badge: '🔥 عرض مميز',
+    badgeColor: 'bg-[#00FFD2] text-black border-[#00FFD2]',
+    title: '',
+    subtitle: '',
+    actionText: 'استكشف الآن',
+    image: '',
+    tabTarget: 'playgrounds',
+    highlightText: ''
+  });
+
+  const saveSlides = (updated: SlideItem[]) => {
+    setSlidesList(updated);
+    saveToLocalStorage('kaptan_hero_slides', updated);
+  };
+
+  const handleOpenAddSlide = () => {
+    setIsAddingNewSlide(true);
+    setEditingSlide(null);
+    setSlideFormData({
+      badge: '🔥 عرض مميز',
+      badgeColor: 'bg-[#00FFD2] text-black border-[#00FFD2]',
+      title: '',
+      subtitle: '',
+      actionText: 'استكشف الآن',
+      image: '',
+      tabTarget: 'playgrounds',
+      highlightText: ''
+    });
+    setIsSlideModalOpen(true);
+  };
+
+  const handleOpenEditSlide = (slide: SlideItem) => {
+    setIsAddingNewSlide(false);
+    setEditingSlide(slide);
+    setSlideFormData({ ...slide });
+    setIsSlideModalOpen(true);
+  };
+
+  const handleDeleteSlide = (slideId: string) => {
+    if (slidesList.length <= 1) {
+      alert('يجب أن يحتوي السلايدر على شريحة واحدة على الأقل.');
+      return;
+    }
+    if (confirm('هل أنت متأكد من حذف هذه الشريحة من السلايدر الإعلاني؟')) {
+      const updated = slidesList.filter((s) => s.id !== slideId);
+      saveSlides(updated);
+
+      const newLog: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        type: 'slider',
+        title: 'حذف شريحة من السلايدر الإعلاني',
+        description: `تم حذف الشريحة ID: ${slideId} بواسطة الأدمن.`,
+        performedBy: 'كابتن عامر (Admin)',
+        timestamp: 'الآن'
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
+  };
+
+  const handleMoveSlide = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= slidesList.length) return;
+    const updated = [...slidesList];
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    saveSlides(updated);
+  };
+
+  const handleSaveSlideForm = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!slideFormData.title || !slideFormData.image) {
+      alert('يرجى كتابة العنوان وإرفاق صورة أو رابط صورة.');
+      return;
+    }
+
+    if (isAddingNewSlide) {
+      const newSlide: SlideItem = {
+        id: `slide-${Date.now()}`,
+        badge: slideFormData.badge || '⭐ إعلان جديد',
+        badgeColor: slideFormData.badgeColor || 'bg-[#00FFD2] text-black border-[#00FFD2]',
+        title: slideFormData.title,
+        subtitle: slideFormData.subtitle || '',
+        actionText: slideFormData.actionText || 'استكشف الآن',
+        image: slideFormData.image,
+        tabTarget: slideFormData.tabTarget || 'playgrounds',
+        highlightText: slideFormData.highlightText || ''
+      };
+      const updated = [newSlide, ...slidesList];
+      saveSlides(updated);
+
+      const newLog: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        type: 'slider',
+        title: `إضافة شريحة جديدة للسلايدر: ${newSlide.title}`,
+        description: 'تمت إضافة شريحة إعلانية جديدة للسلايدر وحفظها بنجاح.',
+        performedBy: 'كابتن عامر (Admin)',
+        timestamp: 'الآن'
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    } else if (editingSlide) {
+      const updated = slidesList.map((s) =>
+        s.id === editingSlide.id
+          ? {
+              ...s,
+              badge: slideFormData.badge || s.badge,
+              badgeColor: slideFormData.badgeColor || s.badgeColor,
+              title: slideFormData.title || s.title,
+              subtitle: slideFormData.subtitle || s.subtitle,
+              actionText: slideFormData.actionText || s.actionText,
+              image: slideFormData.image || s.image,
+              tabTarget: slideFormData.tabTarget || s.tabTarget,
+              highlightText: slideFormData.highlightText
+            }
+          : s
+      );
+      saveSlides(updated);
+
+      const newLog: AuditLogItem = {
+        id: `log-${Date.now()}`,
+        type: 'slider',
+        title: `تعديل شريحة في السلايدر: ${slideFormData.title}`,
+        description: `تم تحديث بيانات وصورة الشريحة ID: ${editingSlide.id}`,
+        performedBy: 'كابتن عامر (Admin)',
+        timestamp: 'الآن'
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    }
+
+    setIsSlideModalOpen(false);
+  };
+
+  const handleResetSlides = () => {
+    if (confirm('هل أنت متأكد من استعادة الشرائح الافتراضية للسلايدر؟')) {
+      saveSlides(INITIAL_SLIDES);
+      alert('تمت استعادة الشرائح الافتراضية بنجاح.');
+    }
+  };
+
+  const handleCreateNewUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserPhone.trim()) {
+      alert('يرجى إدخال اسم المستخدم ورقم الجوال.');
+      return;
+    }
+
+    const newUser = {
+      id: `u-${Date.now()}`,
+      name: newUserName.trim(),
+      phone: newUserPhone.trim(),
+      email: newUserEmail.trim() || `${newUserPhone.trim()}@kaptan.sy`,
+      governorate: newUserGov,
+      role: newUserRole,
+      isBanned: false,
+      bookingsCount: 0
+    };
+
+    setUsersList((prev) => [newUser, ...prev]);
+    setIsAddUserModalOpen(false);
+    setNewUserName('');
+    setNewUserPhone('');
+    setNewUserEmail('');
+
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      type: 'user_role',
+      title: `إضافة مستخدم وتعيين رتبته: ${newUser.name}`,
+      description: `تم تسجيل المستخدم برقم ${newUser.phone} وتعيين دوره كـ [${newUser.role}].`,
+      performedBy: 'كابتن عامر (Admin)',
+      targetId: newUser.id,
+      timestamp: 'الآن'
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    alert(`تمت إضافة المستخدم "${newUser.name}" وتعيين دوره بنجاح.`);
+  };
+
   const handleChangeUserRole = (userId: string, newRole: AdminUserRole) => {
     const targetUser = usersList.find((u) => u.id === userId);
     setUsersList((prev) =>
@@ -256,10 +484,12 @@ export default function AdminDashboard({
     );
 
     const roleNameMap: Record<AdminUserRole, string> = {
-      user: 'مستخدم / كابتن',
-      announcer: 'معلن منشأة رياضية',
-      league_manager: 'منظم دوريات وبطولات',
-      admin: 'مدير نظام عام'
+      user: 'مستخدم عادي / لاعب (User)',
+      announcer: 'معلن ملاعب / منشآت رياضية (Announcer)',
+      announcer_pitch: 'معلن ملاعب كرة قدم (Pitch Advertiser)',
+      announcer_academy: 'معلن أكاديميات ومدربين (Academy Advertiser)',
+      league_manager: 'منظم دوريات وبطولات (League Manager)',
+      admin: 'مدير نظام عام (Super Admin)'
     };
 
     // Log audit
@@ -267,7 +497,7 @@ export default function AdminDashboard({
       id: `log-${Date.now()}`,
       type: 'user_role',
       title: `تعديل رتبة المستخدم: ${targetUser?.name || userId}`,
-      description: `تم تغيير الصلاحية إلى [${roleNameMap[newRole]}] بنجاح.`,
+      description: `تم تغيير الصلاحية إلى [${roleNameMap[newRole] || newRole}] بنجاح.`,
       performedBy: 'كابتن عامر (Admin)',
       targetId: userId,
       timestamp: 'الآن'
@@ -384,7 +614,18 @@ export default function AdminDashboard({
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {onGoBack && (
+                <button
+                  id="btn-admin-top-back"
+                  onClick={onGoBack}
+                  className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-[#00FFD2]/20 text-white hover:text-[#00FFD2] border border-white/20 hover:border-[#00FFD2]/40 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-sm"
+                  title="العودة للخلف"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 text-[#00FFD2]" />
+                  <span>رجوع</span>
+                </button>
+              )}
               <span className="px-3 py-1 rounded-full bg-[#ff2a5f] text-white font-black text-xs">
                 لوحة الإدارة المركزية
               </span>
@@ -396,7 +637,7 @@ export default function AdminDashboard({
               لوحة التحكم والسيطرة الشاملة - تطبيق الكابتن
             </h2>
             <p className="text-xs sm:text-sm text-gray-400 mt-1">
-              إدارة الملاعب والحجوزات والدوريات والاعتراضات والمستخدمين في المحافظات الـ 14 بدون أي عمولة (0%)
+              إدارة الملاعب والحجوزات والدوريات والسلايدر والاعتراضات وتعيين أدوار المستخدمين في كافة المحافظات (0% عمولة)
             </p>
           </div>
 
@@ -435,8 +676,8 @@ export default function AdminDashboard({
         </div>
 
         <div className="bg-[#0d1211] border border-white/10 p-4 rounded-2xl">
-          <span className="text-[11px] text-gray-400 block mb-1">المباريات الودية</span>
-          <strong className="text-xl font-bold text-[#ff2a5f] font-mono">{friendlyMatches.length}</strong>
+          <span className="text-[11px] text-gray-400 block mb-1">شرائح السلايدر</span>
+          <strong className="text-xl font-bold text-[#00FFD2] font-mono">{slidesList.length}</strong>
         </div>
 
         <div className="bg-[#0d1211] border border-white/10 p-4 rounded-2xl">
@@ -449,6 +690,8 @@ export default function AdminDashboard({
       <div className="bg-[#0d1211] p-2 rounded-2xl border border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
         {[
           { id: 'overview', label: 'نظرة عامة والتقارير', icon: BarChart3 },
+          { id: 'slider', label: `لوحة تحكم السلايدر (${slidesList.length})`, icon: Sliders },
+          { id: 'users', label: `إدارة وتعيين الأدوار (${usersList.length})`, icon: Users },
           { id: 'global_management', label: `الإدارة الشاملة والتدقيق (${auditLogs.length})`, icon: Activity },
           { id: 'charts', label: 'الرسوم البيانية والإحصائيات', icon: PieChart },
           { id: 'calendar', label: 'التقويم التفاعلي للحجوزات', icon: Calendar },
@@ -458,7 +701,6 @@ export default function AdminDashboard({
           { id: 'matches', label: `المباريات (${friendlyMatches.length})`, icon: Swords },
           { id: 'academies', label: `الأكاديميات (${academies.length})`, icon: Users },
           { id: 'scouting', label: `كشاف المواهب (${playerCvs.length})`, icon: Award },
-          { id: 'users', label: `المستخدمين (${usersList.length})`, icon: Users },
           { id: 'objections', label: `الاعتراضات (${objectionsList.length})`, icon: AlertTriangle },
           { id: 'settings', label: 'إعدادات النظام وشام كاش', icon: Settings }
         ].map((tab) => {
@@ -536,6 +778,155 @@ export default function AdminDashboard({
               >
                 <Plus className="w-3.5 h-3.5" /> إضافة مباراة ودية
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Slider Management (Super Admin Only) */}
+      {activeTab === 'slider' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Admin Slider Header Banner */}
+          <div className="bg-[#0d1211] border-2 border-[#00FFD2]/40 rounded-3xl p-6 glow-primary relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-3 py-1 rounded-full bg-[#00FFD2] text-black font-black text-xs">
+                    خاص بالأدمن فقط
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono">
+                    لوحة السلايدر الإعلاني الرئيسي
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-['Cairo'] flex items-center gap-2">
+                  <Sliders className="w-6 h-6 text-[#00FFD2]" />
+                  لوحة تحكم السلايدر (أدمن)
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1 max-w-2xl">
+                  يمكنك إضافة وتعديل وحذف أي شريحة وصورة. لا يمكن للمستخدمين أو منظمي الدوريات أو المعلنين عن ملاعب أو أكاديميات التحكم بها.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleResetSlides}
+                  className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  استعادة الافتراضي
+                </button>
+                <button
+                  onClick={handleOpenAddSlide}
+                  className="px-4 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-[#00FFD2]/20 cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  إضافة شريحة جديدة
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Slides List Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white font-['Cairo'] flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#00FFD2]" />
+                الشرائح الإعلانية الحالية في السلايدر ({slidesList.length}):
+              </h4>
+              <span className="text-xs text-gray-400">يمكنك ترتيب الشرائح بالأسهم أو التعديل والحذف مباشرة</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {slidesList.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  className="bg-[#0d1211] border border-white/10 hover:border-[#00FFD2]/30 rounded-3xl p-5 transition-all space-y-4 flex flex-col justify-between group"
+                >
+                  <div className="space-y-3">
+                    {/* Thumbnail & Badges */}
+                    <div className="relative h-44 rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                      <img
+                        src={slide.image}
+                        alt={slide.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+                      <div className="absolute top-3 right-3 flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-md ${slide.badgeColor || 'bg-[#00FFD2] text-black'}`}>
+                          {slide.badge}
+                        </span>
+                        {slide.highlightText && (
+                          <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-amber-300 border border-amber-400/40 text-[10px] font-bold">
+                            {slide.highlightText}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute bottom-3 right-3 left-3">
+                        <span className="text-[10px] text-gray-300 bg-black/60 px-2 py-0.5 rounded font-mono">
+                          القسم الهدف: {slide.tabTarget || 'playgrounds'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div>
+                      <h4 className="font-bold text-white text-base font-['Cairo'] line-clamp-1">
+                        {slide.title}
+                      </h4>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">
+                        {slide.subtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions & Reordering */}
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleMoveSlide(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 disabled:hover:bg-white/5 transition-colors cursor-pointer"
+                        title="تحريك لأعلى"
+                      >
+                        <MoveUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSlide(index, 'down')}
+                        disabled={index === slidesList.length - 1}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white disabled:opacity-30 disabled:hover:bg-white/5 transition-colors cursor-pointer"
+                        title="تحريك لأسفل"
+                      >
+                        <MoveDown className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[11px] text-gray-500 font-mono mr-1">
+                        #{index + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenEditSlide(slide)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>تعديل</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSlide(slide.id)}
+                        className="px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>حذف</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -625,8 +1016,10 @@ export default function AdminDashboard({
                               ? 'bg-[#ff2a5f]/20 text-[#ff2a5f] border border-[#ff2a5f]/40'
                               : u.role === 'league_manager'
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : u.role === 'announcer'
+                              : u.role === 'announcer_pitch' || u.role === 'announcer'
                               ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                              : u.role === 'announcer_academy'
+                              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                               : 'bg-[#00FFD2]/20 text-[#00FFD2] border border-[#00FFD2]/40'
                           }`}
                         >
@@ -634,8 +1027,10 @@ export default function AdminDashboard({
                             ? 'مدير عام (Admin)'
                             : u.role === 'league_manager'
                             ? 'منظم دوريات'
-                            : u.role === 'announcer'
-                            ? 'معلن منشأة'
+                            : u.role === 'announcer_pitch' || u.role === 'announcer'
+                            ? 'معلن ملاعب'
+                            : u.role === 'announcer_academy'
+                            ? 'معلن أكاديميات'
                             : 'لاعب / كابتن'}
                         </span>
                       </td>
@@ -646,10 +1041,11 @@ export default function AdminDashboard({
                           disabled={u.role === 'admin' && u.phone === '0945688090'}
                           className="bg-[#050707] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer disabled:opacity-50"
                         >
-                          <option value="user">لاعب / مستخدم (User)</option>
-                          <option value="announcer">معلن منشأة (Announcer)</option>
-                          <option value="league_manager">منظم بطولات (League Manager)</option>
-                          <option value="admin">مدير نظام (Admin)</option>
+                          <option value="user">لاعب / مستخدم عادي (User)</option>
+                          <option value="announcer_pitch">معلن ملاعب كرة قدم (Pitch Advertiser)</option>
+                          <option value="announcer_academy">معلن أكاديميات ومدربين (Academy Advertiser)</option>
+                          <option value="league_manager">منظم دوريات وبطولات (League Manager)</option>
+                          <option value="admin">مدير نظام عام (Admin)</option>
                         </select>
                       </td>
                       <td className="p-3 text-center">
@@ -1555,75 +1951,189 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Tab 9: User Management */}
+      {/* Tab: User Management & Role Assignment */}
       {activeTab === 'users' && (
         <div className="space-y-4 animate-fadeIn">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-white text-sm font-['Cairo']">
-              إدارة حسابات الكباتن والمستخدمين ({usersList.length}):
-            </h3>
+          {/* Top Bar for User Management */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1211] p-4 rounded-3xl border border-white/10">
+            <div>
+              <h3 className="font-bold text-white text-base font-['Cairo'] flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#00FFD2]" />
+                إدارة وتحديد أدوار المستخدمين والمعلنين والمنظمين ({usersList.length}):
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                تحديد رتبة كل مستخدم (لاعب، معلن ملعب، معلن أكاديمية، منظم دوري، مدير نظام) بدقة تامة
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsAddUserModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs flex items-center gap-1.5 shadow-lg shadow-[#00FFD2]/20 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>إضافة مستخدم وتحديد دوره</span>
+            </button>
           </div>
 
-          <div className="bg-[#0d1211] border border-white/10 rounded-3xl overflow-hidden">
+          {/* Role Filter Chips & Search */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'الكل', label: 'كافة الحسابات' },
+                { id: 'user', label: 'اللاعبين والمستخدمين' },
+                { id: 'announcer_pitch', label: 'معلني الملاعب' },
+                { id: 'announcer_academy', label: 'معلني الأكاديميات' },
+                { id: 'league_manager', label: 'منظمي الدوريات' },
+                { id: 'admin', label: 'الإدارة العليا' }
+              ].map((filter) => (
+                <button
+                  key={filter.id}
+                  onClick={() => setUserRoleFilter(filter.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                    userRoleFilter === filter.id
+                      ? 'bg-[#00FFD2] text-black font-black shadow-md'
+                      : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/10'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث بالاسم أو الهاتف..."
+                className="w-full bg-[#0d1211] border border-white/10 rounded-xl px-3 py-1.5 pl-8 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2]"
+              />
+              <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
                 <thead className="bg-[#050707] text-gray-400 border-b border-white/10">
                   <tr>
-                    <th className="p-3">الاسم</th>
+                    <th className="p-3">اسم المستخدم</th>
                     <th className="p-3">رقم الجوال / البريد</th>
                     <th className="p-3">المحافظة</th>
-                    <th className="p-3">الرتبة</th>
-                    <th className="p-3">عدد الحجوزات</th>
+                    <th className="p-3">الرتبة الحالية</th>
+                    <th className="p-3">تعديل الدور والصلاحية</th>
                     <th className="p-3">الحالة</th>
-                    <th className="p-3 text-center">الإجراء</th>
+                    <th className="p-3 text-center">الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-gray-300">
-                  {usersList.map((u) => (
-                    <tr key={u.id} className="hover:bg-white/5 transition-colors">
-                      <td className="p-3 font-bold text-white">{u.name}</td>
-                      <td className="p-3 font-mono">
-                        {u.phone}
-                        <span className="block text-[10px] text-gray-400">{u.email}</span>
-                      </td>
-                      <td className="p-3">{u.governorate}</td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            u.role === 'admin'
-                              ? 'bg-[#ff2a5f]/20 text-[#ff2a5f] border border-[#ff2a5f]/30'
-                              : 'bg-[#00FFD2]/20 text-[#00FFD2] border border-[#00FFD2]/30'
-                          }`}
-                        >
-                          {u.role === 'admin' ? 'مدير نظام' : 'كابتن'}
-                        </span>
-                      </td>
-                      <td className="p-3 font-mono font-bold text-white">{u.bookingsCount}</td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            u.isBanned
-                              ? 'bg-red-950 text-red-400 border border-red-500/30'
-                              : 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
-                          }`}
-                        >
-                          {u.isBanned ? 'محظور' : 'نشط'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => handleToggleBanUser(u.id)}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                            u.isBanned
-                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                              : 'bg-red-600 hover:bg-red-500 text-white'
-                          }`}
-                        >
-                          {u.isBanned ? 'إلغاء الحظر' : 'حظر الحساب'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {usersList
+                    .filter((u) => {
+                      if (userRoleFilter === 'user') return u.role === 'user';
+                      if (userRoleFilter === 'announcer_pitch') return u.role === 'announcer_pitch' || u.role === 'announcer';
+                      if (userRoleFilter === 'announcer_academy') return u.role === 'announcer_academy';
+                      if (userRoleFilter === 'league_manager') return u.role === 'league_manager';
+                      if (userRoleFilter === 'admin') return u.role === 'admin';
+                      return true;
+                    })
+                    .filter((u) => {
+                      if (!searchQuery.trim()) return true;
+                      const q = searchQuery.toLowerCase();
+                      return u.name.toLowerCase().includes(q) || u.phone.includes(q) || u.email.toLowerCase().includes(q);
+                    })
+                    .map((u) => (
+                      <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                        <td className="p-3 font-bold text-white">
+                          <div className="flex items-center gap-1.5">
+                            <span>{u.name}</span>
+                            {u.role === 'admin' && (
+                              <span className="px-2 py-0.5 rounded-full bg-[#ff2a5f]/20 text-[#ff2a5f] text-[10px] font-bold border border-[#ff2a5f]/30">
+                                مدير عام
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 font-mono">
+                          <span className="text-white font-bold">{u.phone}</span>
+                          <span className="block text-[10px] text-gray-400">{u.email}</span>
+                        </td>
+                        <td className="p-3">{u.governorate}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                              u.role === 'admin'
+                                ? 'bg-[#ff2a5f]/20 text-[#ff2a5f] border border-[#ff2a5f]/40'
+                                : u.role === 'league_manager'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                : u.role === 'announcer_pitch' || u.role === 'announcer'
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                : u.role === 'announcer_academy'
+                                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                : 'bg-[#00FFD2]/20 text-[#00FFD2] border border-[#00FFD2]/40'
+                            }`}
+                          >
+                            {u.role === 'admin'
+                              ? 'مدير عام (Admin)'
+                              : u.role === 'league_manager'
+                              ? 'منظم دوريات وبطولات'
+                              : u.role === 'announcer_pitch' || u.role === 'announcer'
+                              ? 'معلن ملاعب كرة قدم'
+                              : u.role === 'announcer_academy'
+                              ? 'معلن أكاديميات ومدربين'
+                              : 'لاعب / مستخدم عادي'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleChangeUserRole(u.id, e.target.value as AdminUserRole)}
+                            disabled={u.role === 'admin' && u.phone === '0945688090'}
+                            className="bg-[#050707] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer disabled:opacity-50"
+                          >
+                            <option value="user">لاعب / مستخدم عادي (User)</option>
+                            <option value="announcer_pitch">معلن ملاعب كرة قدم (Pitch Advertiser)</option>
+                            <option value="announcer_academy">معلن أكاديميات ومدربين (Academy Advertiser)</option>
+                            <option value="league_manager">منظم دوريات وبطولات (League Manager)</option>
+                            <option value="admin">مدير نظام عام (Admin)</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              u.isBanned
+                                ? 'bg-red-950 text-red-400 border border-red-500/30'
+                                : 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
+                            }`}
+                          >
+                            {u.isBanned ? 'محظور' : 'نشط'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleToggleBanUser(u.id)}
+                              disabled={u.role === 'admin' && u.phone === '0945688090'}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors disabled:opacity-30 cursor-pointer ${
+                                u.isBanned
+                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                  : 'bg-amber-600 hover:bg-amber-500 text-white'
+                              }`}
+                            >
+                              {u.isBanned ? 'إلغاء الحظر' : 'حظر'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUserAccount(u.id)}
+                              disabled={u.role === 'admin' && u.phone === '0945688090'}
+                              className="p-1 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition-colors disabled:opacity-30 cursor-pointer"
+                              title="حذف الحساب نهائياً"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -1897,6 +2407,287 @@ export default function AdminDashboard({
               >
                 <XCircle className="w-3.5 h-3.5" />
                 <span>تأكيد الرفض وإشعار واتساب</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Add / Edit Slide Modal (Super Admin Only) */}
+      {isSlideModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setIsSlideModalOpen(false)}
+        >
+          <div
+            className="bg-[#0d1211] border-2 border-[#00FFD2]/40 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto scrollbar-thin"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-[#00FFD2]" />
+                <h4 className="text-base font-bold text-white font-['Cairo']">
+                  {editingSlide ? 'تعديل شريحة السلايدر' : 'إضافة شريحة جديدة للسلايدر'}
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsSlideModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">
+                  عنوان الشريحة الرئيسي *
+                </label>
+                <input
+                  type="text"
+                  value={slideFormData.title}
+                  onChange={(e) => setSlideFormData({ ...slideFormData, title: e.target.value })}
+                  placeholder="مثال: بطولة دمشق الكبرى 2025"
+                  className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">
+                  الوصف الفرعي للشريحة *
+                </label>
+                <textarea
+                  rows={2}
+                  value={slideFormData.subtitle}
+                  onChange={(e) => setSlideFormData({ ...slideFormData, subtitle: e.target.value })}
+                  placeholder="مثال: سجّل فريقك الآن وتنافس على جوائز بقيمة 10 مليون ليرة سورية مع تغطية إعلامية كاملة"
+                  className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2] resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">
+                  رابط الصورة (Image URL) *
+                </label>
+                <input
+                  type="text"
+                  value={slideFormData.image}
+                  onChange={(e) => setSlideFormData({ ...slideFormData, image: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-[#00FFD2]"
+                />
+                {slideFormData.image && (
+                  <div className="mt-2 h-28 rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                    <img
+                      src={slideFormData.image}
+                      alt="معاينة الصورة"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    الشارة / البادج (Badge Text) *
+                  </label>
+                  <input
+                    type="text"
+                    value={slideFormData.badge}
+                    onChange={(e) => setSlideFormData({ ...slideFormData, badge: e.target.value })}
+                    placeholder="مثال: دوري مميز / عرض خاص"
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    نص الإبراز الذهبي (اختياري)
+                  </label>
+                  <input
+                    type="text"
+                    value={slideFormData.highlightText}
+                    onChange={(e) => setSlideFormData({ ...slideFormData, highlightText: e.target.value })}
+                    placeholder="مثال: خصم 20% / الجائزة 5 مليون"
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    نص زر الإجراء (Action Button Text)
+                  </label>
+                  <input
+                    type="text"
+                    value={slideFormData.actionText}
+                    onChange={(e) => setSlideFormData({ ...slideFormData, actionText: e.target.value })}
+                    placeholder="مثال: احجز الآن / استكشف البطولة"
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    القسم الهدف عند النقر
+                  </label>
+                  <select
+                    value={slideFormData.tabTarget}
+                    onChange={(e) => setSlideFormData({ ...slideFormData, tabTarget: e.target.value })}
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer"
+                  >
+                    <option value="playgrounds">الملاعب وحجز الساعات</option>
+                    <option value="leagues">البطولات والدوريات</option>
+                    <option value="academies">الأكاديميات والمدربين</option>
+                    <option value="matches">المباريات الودية والتحديات</option>
+                    <option value="scouting">كشاف المواهب وبطاقات اللاعبين</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsSlideModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSlideForm}
+                className="px-6 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs transition-all shadow-lg shadow-[#00FFD2]/20 cursor-pointer active:scale-95 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>حفظ الشريحة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New User Modal (Super Admin Only) */}
+      {isAddUserModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setIsAddUserModalOpen(false)}
+        >
+          <div
+            className="bg-[#0d1211] border-2 border-[#00FFD2]/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-[#00FFD2]" />
+                <h4 className="text-base font-bold text-white font-['Cairo']">
+                  إضافة مستخدم جديد وتحديد الصلاحية
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-gray-300 font-bold mb-1">
+                  الاسم الثلاثي *
+                </label>
+                <input
+                  type="text"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="مثال: أحمد خليل"
+                  className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    رقم الجوال *
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserPhone}
+                    onChange={(e) => setNewUserPhone(e.target.value)}
+                    placeholder="09XXXXXXXX"
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    البريد الإلكتروني (اختياري)
+                  </label>
+                  <input
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    المحافظة *
+                  </label>
+                  <select
+                    value={newUserGov}
+                    onChange={(e) => setNewUserGov(e.target.value)}
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer"
+                  >
+                    {[
+                      'دمشق', 'ريف دمشق', 'حلب', 'حمص', 'حماة', 'اللاذقية', 'طرطوس',
+                      'إدلب', 'درعا', 'السويداء', 'القنيطرة', 'دير الزور', 'الحسكة', 'الرقة'
+                    ].map((gov) => (
+                      <option key={gov} value={gov}>{gov}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 font-bold mb-1">
+                    الرتبة والصلاحية الممنوحة *
+                  </label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as AdminUserRole)}
+                    className="w-full bg-[#050707] border border-white/15 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer font-bold"
+                  >
+                    <option value="user">لاعب / مستخدم عادي (User)</option>
+                    <option value="announcer_pitch">معلن ملاعب كرة قدم (Pitch Advertiser)</option>
+                    <option value="announcer_academy">معلن أكاديميات ومدربين (Academy Advertiser)</option>
+                    <option value="league_manager">منظم دوريات وبطولات (League Manager)</option>
+                    <option value="admin">مدير نظام عام (Admin)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateNewUser}
+                className="px-6 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs transition-all shadow-lg shadow-[#00FFD2]/20 cursor-pointer active:scale-95 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>إضافة المستخدم فوراً</span>
               </button>
             </div>
           </div>
