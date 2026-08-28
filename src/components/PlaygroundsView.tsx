@@ -11,7 +11,8 @@ import {
   Layers,
   Sparkles,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import {
   Playground,
@@ -22,7 +23,9 @@ import {
 } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { formatSYP } from '../utils/helpers';
+import { canUserCreatePlayground, isUserAdmin } from '../utils/permissions';
 import PlaygroundCard from './PlaygroundCard';
+import PermissionDeniedModal from './PermissionDeniedModal';
 
 interface PlaygroundsViewProps {
   playgrounds: Playground[];
@@ -35,6 +38,7 @@ interface PlaygroundsViewProps {
   onOpenCreateModal: () => void;
   onEditPlayground?: (pg: Playground) => void;
   onDeletePlayground?: (id: string) => void;
+  onOpenProfile?: () => void;
 }
 
 export default function PlaygroundsView({
@@ -47,12 +51,24 @@ export default function PlaygroundsView({
   onBookPlayground,
   onOpenCreateModal,
   onEditPlayground,
-  onDeletePlayground
+  onDeletePlayground,
+  onOpenProfile
 }: PlaygroundsViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSurface, setSelectedSurface] = useState<string>('الكل');
   const [selectedCapacity, setSelectedCapacity] = useState<string>('الكل');
   const [maxPrice, setMaxPrice] = useState<number>(300000);
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+
+  const canCreate = canUserCreatePlayground(currentUser);
+
+  const handleAddClick = () => {
+    if (canCreate) {
+      onOpenCreateModal();
+    } else {
+      setIsPermissionModalOpen(true);
+    }
+  };
 
   // Filter playgrounds
   const filteredPlaygrounds = playgrounds.filter((pg) => {
@@ -93,10 +109,15 @@ export default function PlaygroundsView({
 
         <button
           id="btn-add-playground"
-          onClick={onOpenCreateModal}
-          className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs transition-all shadow-lg glow-primary flex items-center gap-2 shrink-0 cursor-pointer"
+          onClick={handleAddClick}
+          className={`px-5 py-2.5 rounded-2xl font-bold text-xs transition-all shadow-lg flex items-center gap-2 shrink-0 cursor-pointer ${
+            canCreate
+              ? 'bg-[#00FFD2] hover:bg-[#00e6bd] text-black glow-primary'
+              : 'bg-[#0d1211] text-amber-300 border border-amber-400/40 hover:border-amber-400'
+          }`}
+          title={canCreate ? 'إضافة ملعب جديد' : 'ميزة مخصصة للمعلنين وإدارة المنصة'}
         >
-          <Plus className="w-4 h-4" />
+          {canCreate ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4 text-amber-400" />}
           <span>إضافة ملعب جديد</span>
         </button>
       </div>
@@ -228,6 +249,17 @@ export default function PlaygroundsView({
           </div>
         )}
       </div>
+
+      {/* Permission Restriction Modal */}
+      <PermissionDeniedModal
+        isOpen={isPermissionModalOpen}
+        onClose={() => setIsPermissionModalOpen(false)}
+        actionType="playground"
+        currentUser={currentUser}
+        onOpenLogin={() => {
+          if (onOpenProfile) onOpenProfile();
+        }}
+      />
     </div>
   );
 }

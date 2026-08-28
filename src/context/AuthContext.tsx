@@ -34,8 +34,8 @@ interface AuthContextType {
 }
 
 const DEFAULT_USER: UserProfile = {
-  id: 'usr-default',
-  name: 'كابتن المنصة',
+  id: 'guest-user',
+  name: 'زائر / كابتن',
   phone: '',
   email: '',
   governorate: 'دمشق',
@@ -80,24 +80,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const saved = localStorage.getItem('kaptan_is_authenticated');
-    return saved !== 'false';
+    return saved === 'true';
   });
 
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
-    const savedUser = loadFromLocalStorage('kaptan_current_user', null);
-    if (savedUser) {
-      // Strictly enforce that admin privileges ONLY persist if user credentials match the official admin identifier
-      const hasAdminIdentifier = isAdminIdentifier(savedUser.email || '') || isAdminIdentifier(savedUser.phone || '');
-      if (!hasAdminIdentifier && (savedUser.isAdmin || savedUser.role === 'admin')) {
-        return {
-          ...savedUser,
-          isAdmin: false,
-          role: 'player'
-        };
+    const isAuth = localStorage.getItem('kaptan_is_authenticated') === 'true';
+    if (isAuth) {
+      const savedUser = loadFromLocalStorage('kaptan_current_user', null);
+      if (savedUser) {
+        // Strictly enforce that admin privileges ONLY persist if user credentials match the official admin identifier
+        const hasAdminIdentifier = isAdminIdentifier(savedUser.email || '') || isAdminIdentifier(savedUser.phone || '');
+        if (!hasAdminIdentifier && (savedUser.isAdmin || savedUser.role === 'admin')) {
+          return {
+            ...savedUser,
+            isAdmin: false,
+            role: 'player'
+          };
+        }
+        return savedUser;
       }
-      return savedUser;
     }
-    // Default to regular player / user - NO ADMIN PRIVILEGES
+    // Default to guest player / visitor
     return DEFAULT_USER;
   });
 

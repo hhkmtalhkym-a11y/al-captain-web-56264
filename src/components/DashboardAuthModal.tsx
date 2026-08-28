@@ -24,11 +24,19 @@ interface DashboardAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  promptTitle?: string;
+  promptMessage?: string;
 }
 
 type AuthMode = 'phone' | 'email' | 'register' | 'forgot' | 'whatsappOtp';
 
-export default function DashboardAuthModal({ isOpen, onClose, onSuccess }: DashboardAuthModalProps) {
+export default function DashboardAuthModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  promptTitle,
+  promptMessage
+}: DashboardAuthModalProps) {
   const {
     signInWithGoogle,
     signInWithEmail,
@@ -262,10 +270,20 @@ export default function DashboardAuthModal({ isOpen, onClose, onSuccess }: Dashb
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-black text-white">تسجيل الدخول وحساب الكابتن</h2>
+            <h2 className="text-base sm:text-lg font-black text-white">
+              {promptTitle || 'تسجيل الدخول وحساب الكابتن'}
+            </h2>
             <p className="text-[11px] text-gray-400">المنصة الكروية السورية الموحدة • 0% عمولة</p>
           </div>
         </div>
+
+        {/* Action Prompt Banner */}
+        {promptMessage && (
+          <div className="mb-4 p-3 rounded-2xl bg-[#00FFD2]/10 border border-[#00FFD2]/30 text-white text-xs flex items-center gap-2.5 animate-fadeIn">
+            <Sparkles className="w-5 h-5 text-[#00FFD2] shrink-0" />
+            <span className="font-semibold leading-relaxed text-[#00FFD2]">{promptMessage}</span>
+          </div>
+        )}
 
         {/* Secret Admin Prompt (Only visible if 5 clicks triggered) */}
         {showSecretAdminPrompt && (

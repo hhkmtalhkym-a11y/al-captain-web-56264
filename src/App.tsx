@@ -24,7 +24,8 @@ import {
   LogOut,
   Sliders,
   DollarSign,
-  User
+  User,
+  LogIn
 } from 'lucide-react';
 import {
   collection,
@@ -98,6 +99,8 @@ import MyBookingsView from './components/MyBookingsView';
 import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
 import LoginPage from './components/LoginPage';
+import PermissionDeniedModal from './components/PermissionDeniedModal';
+import { canUserCreatePlayground, canUserCreateLeague, canUserCreateAcademy } from './utils/permissions';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initializeDatabase } from './utils/db-initializer';
 
@@ -320,6 +323,106 @@ function MainApp() {
   const [isCreateAcademyOpen, setIsCreateAcademyOpen] = useState(false);
   const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
   const [isCreatePlayerCvOpen, setIsCreatePlayerCvOpen] = useState(false);
+
+  // Authentication Guard Modal for Guests
+  const [authModal, setAuthModal] = useState<{
+    isOpen: boolean;
+    promptTitle?: string;
+    promptMessage?: string;
+    onSuccess?: () => void;
+  }>({
+    isOpen: false
+  });
+
+  const isGuest = !isAuthenticated || !currentUser || currentUser.id === 'guest-user';
+
+  // Guarded action runner: requires login before executing interactive actions
+  const requireAuth = (actionDescription: string, callback: () => void) => {
+    if (!isGuest) {
+      callback();
+    } else {
+      setAuthModal({
+        isOpen: true,
+        promptTitle: 'تسجيل الدخول مطلوب',
+        promptMessage: `يرجى تسجيل الدخول أو إنشاء حساب كابتن لمتابعة ${actionDescription} والاستفادة من كافة الخدمات بدون عمولة.`,
+        onSuccess: () => {
+          setAuthModal({ isOpen: false });
+          callback();
+        }
+      });
+    }
+  };
+
+  // Role Restriction & Permission Modal
+  const [permissionModal, setPermissionModal] = useState<{
+    isOpen: boolean;
+    actionType: 'playground' | 'league' | 'academy' | 'edit_delete' | 'general';
+  }>({
+    isOpen: false,
+    actionType: 'general'
+  });
+
+  const handleTriggerCreatePlayground = () => {
+    requireAuth('إضافة ملعب جديد', () => {
+      if (canUserCreatePlayground(currentUser)) {
+        setIsCreatePlaygroundOpen(true);
+      } else {
+        setPermissionModal({ isOpen: true, actionType: 'playground' });
+      }
+    });
+  };
+
+  const handleTriggerCreateLeague = () => {
+    requireAuth('تنظيم بطولة ودوري جديد', () => {
+      if (canUserCreateLeague(currentUser)) {
+        setIsCreateLeagueOpen(true);
+      } else {
+        setPermissionModal({ isOpen: true, actionType: 'league' });
+      }
+    });
+  };
+
+  const handleTriggerCreateAcademy = () => {
+    requireAuth('تسجيل وإضافة أكاديمية كروية', () => {
+      if (canUserCreateAcademy(currentUser)) {
+        setIsCreateAcademyOpen(true);
+      } else {
+        setPermissionModal({ isOpen: true, actionType: 'academy' });
+      }
+    });
+  };
+
+  const handleTriggerCreateMatch = () => {
+    requireAuth('إنشاء مباراة وتحدي جديد', () => {
+      setIsCreateMatchOpen(true);
+    });
+  };
+
+  const handleTriggerCreatePlayerCv = () => {
+    requireAuth('إنشاء ونشر بطاقة لاعب (CV)', () => {
+      setIsCreatePlayerCvOpen(true);
+    });
+  };
+
+  const handleTriggerBookPlayground = (pg: Playground, initialDate?: string, initialSlot?: string) => {
+    requireAuth(`حجز ملعب "${pg.name}"`, () => {
+      setBookingWizardInitialDate(initialDate);
+      setBookingWizardInitialSlot(initialSlot);
+      setBookingWizardPlayground(pg);
+    });
+  };
+
+  const handleTriggerJoinChallenge = (match: FriendlyMatch) => {
+    requireAuth(`الانضمام لمباراة وتحدي "${match.hostTeamName}"`, () => {
+      setJoiningMatch(match);
+    });
+  };
+
+  const handleTriggerRegisterAcademy = (academy: Academy) => {
+    requireAuth(`التسجيل في أكاديمية "${academy.name}"`, () => {
+      setRegisteringAcademy(academy);
+    });
+  };
 
   // Detail Modals
   const [selectedPlayground, setSelectedPlayground] = useState<Playground | null>(null);
@@ -834,49 +937,64 @@ function MainApp() {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
   return (
     <div className="min-h-screen bg-[#050707] text-white flex flex-col font-['Cairo'] antialiased selection:bg-[#00FFD2] selection:text-black">
 
       {/* Top Navbar - Responsive Header: Right: Profile & Notifs | Center: Logo & Name | Left: Governorates & Google Maps */}
       <header className="sticky top-0 z-40 bg-[#050707]/95 backdrop-blur-md border-b border-[#00FFD2]/20">
         <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-4">
-          {/* RIGHT SIDE (الطرف اليميني): Profile Button & Notifications Bell */}
+          {/* RIGHT SIDE (الطرف اليميني): Profile / Login Button & Notifications Bell */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* User Profile / Account Button */}
-            <button
-              id="header-btn-profile"
-              onClick={() => setActiveTab('profile')}
-              className={`p-1 sm:pl-2.5 rounded-xl border flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
-                activeTab === 'profile'
-                  ? 'border-[#00FFD2] bg-[#00FFD2]/15 shadow-sm'
-                  : 'border-white/10 bg-[#0d1211] hover:border-white/20'
-              }`}
-              title="الملف الشخصي والحجوزات"
-            >
-              <img
-                src={currentUser.image || currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
-                alt={currentUser.name}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border border-[#00FFD2]"
-              />
-              <div className="text-right hidden sm:block">
-                <span className="text-xs font-bold text-white block leading-none">
-                  {currentUser.name}
-                </span>
-                <span className="text-[10px] text-[#00FFD2] flex items-center gap-0.5 mt-0.5">
-                  {currentUser.isAdmin ? (
-                    <span className="text-[#ff2a5f] font-bold flex items-center gap-0.5">
-                      <Shield className="w-2.5 h-2.5" /> المدير العام
-                    </span>
-                  ) : (
-                    'كابتن'
-                  )}
-                </span>
-              </div>
-            </button>
+            {/* User Profile or Guest Login Button */}
+            {isGuest ? (
+              <button
+                id="header-btn-login"
+                onClick={() =>
+                  setAuthModal({
+                    isOpen: true,
+                    promptTitle: 'أهلاً بك في تطبيق الكابتن!',
+                    promptMessage: 'سجل دخولك الآن لحجز الملاعب بدون عمولة والمشاركة في البطولات والتحديات الكروية.'
+                  })
+                }
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#00FFD2] to-[#00b293] text-black font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#00FFD2]/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                title="تسجيل الدخول / إنشاء حساب"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">تسجيل الدخول</span>
+                <span className="sm:hidden text-[11px]">دخول</span>
+              </button>
+            ) : (
+              <button
+                id="header-btn-profile"
+                onClick={() => setActiveTab('profile')}
+                className={`p-1 sm:pl-2.5 rounded-xl border flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
+                  activeTab === 'profile'
+                    ? 'border-[#00FFD2] bg-[#00FFD2]/15 shadow-sm'
+                    : 'border-white/10 bg-[#0d1211] hover:border-white/20'
+                }`}
+                title="الملف الشخصي والحجوزات"
+              >
+                <img
+                  src={currentUser.image || currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                  alt={currentUser.name}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border border-[#00FFD2]"
+                />
+                <div className="text-right hidden sm:block">
+                  <span className="text-xs font-bold text-white block leading-none">
+                    {currentUser.name}
+                  </span>
+                  <span className="text-[10px] text-[#00FFD2] flex items-center gap-0.5 mt-0.5">
+                    {currentUser.isAdmin ? (
+                      <span className="text-[#ff2a5f] font-bold flex items-center gap-0.5">
+                        <Shield className="w-2.5 h-2.5" /> المدير العام
+                      </span>
+                    ) : (
+                      'كابتن'
+                    )}
+                  </span>
+                </div>
+              </button>
+            )}
 
             {/* Notifications Bell */}
             <button
@@ -903,7 +1021,7 @@ function MainApp() {
             <AppOfficialLogo size="md" className="group-hover:scale-105 transition-transform" />
             <div className="text-center sm:text-right">
               <div className="flex items-center gap-1">
-                <h1 className="text-sm sm:text-lg font-black tracking-tight text-white font-['Cairo']">
+                <h1 className="text-sm sm:lg font-black tracking-tight text-white font-['Cairo']">
                   الكابتن <span className="text-[#00FFD2] text-[10px] sm:text-[11px] font-mono font-bold">AL-CAPTAIN</span>
                 </h1>
                 <span className="hidden lg:inline px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold">
@@ -948,13 +1066,13 @@ function MainApp() {
             onSelectGovernorate={setSelectedGovernorate}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onViewPlayground={(pg) => setSelectedPlayground(pg)}
-            onBookPlayground={(pg) => setBookingWizardPlayground(pg)}
+            onBookPlayground={handleTriggerBookPlayground}
             onViewLeague={(lg) => setSelectedLeague(lg)}
-            onJoinChallenge={handleJoinChallenge}
-            onOpenCreatePlayground={() => setIsCreatePlaygroundOpen(true)}
-            onOpenCreateMatch={() => setIsCreateMatchOpen(true)}
-            onOpenCreateLeague={() => setIsCreateLeagueOpen(true)}
-            onOpenCreatePlayerCv={() => setIsCreatePlayerCvOpen(true)}
+            onJoinChallenge={handleTriggerJoinChallenge}
+            onOpenCreatePlayground={handleTriggerCreatePlayground}
+            onOpenCreateMatch={handleTriggerCreateMatch}
+            onOpenCreateLeague={handleTriggerCreateLeague}
+            onOpenCreatePlayerCv={handleTriggerCreatePlayerCv}
           />
         )}
 
@@ -967,9 +1085,10 @@ function MainApp() {
             isAdmin={currentUser.isAdmin}
             onSelectGovernorate={setSelectedGovernorate}
             onViewPlayground={(pg) => setSelectedPlayground(pg)}
-            onBookPlayground={(pg) => setBookingWizardPlayground(pg)}
-            onOpenCreateModal={() => setIsCreatePlaygroundOpen(true)}
+            onBookPlayground={handleTriggerBookPlayground}
+            onOpenCreateModal={handleTriggerCreatePlayground}
             onDeletePlayground={handleDeletePlayground}
+            onOpenProfile={() => setActiveTab('profile')}
           />
         )}
 
@@ -987,7 +1106,7 @@ function MainApp() {
                 </p>
               </div>
               <button
-                onClick={() => setIsCreateLeagueOpen(true)}
+                onClick={handleTriggerCreateLeague}
                 className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs flex items-center gap-2 shadow-lg glow-primary cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
@@ -1025,8 +1144,8 @@ function MainApp() {
             currentUser={currentUser}
             selectedGovernorate={selectedGovernorate}
             onSelectGovernorate={setSelectedGovernorate}
-            onJoinChallenge={handleJoinChallenge}
-            onOpenCreateMatch={() => setIsCreateMatchOpen(true)}
+            onJoinChallenge={handleTriggerJoinChallenge}
+            onOpenCreateMatch={handleTriggerCreateMatch}
             onDeleteMatch={handleDeleteMatch}
           />
         )}
@@ -1045,7 +1164,7 @@ function MainApp() {
                 </p>
               </div>
               <button
-                onClick={() => setIsCreateAcademyOpen(true)}
+                onClick={handleTriggerCreateAcademy}
                 className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs flex items-center gap-2 shadow-lg glow-primary cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
@@ -1068,7 +1187,7 @@ function MainApp() {
                     currentUser={currentUser}
                     isAdmin={currentUser.isAdmin}
                     onViewDetails={(a) => setSelectedAcademy(a)}
-                    onRegister={(a) => setRegisteringAcademy(a)}
+                    onRegister={handleTriggerRegisterAcademy}
                     onDeleteAcademy={handleDeleteAcademy}
                   />
                 ))}
@@ -1091,7 +1210,7 @@ function MainApp() {
                 </p>
               </div>
               <button
-                onClick={() => setIsCreatePlayerCvOpen(true)}
+                onClick={handleTriggerCreatePlayerCv}
                 className="px-5 py-2.5 rounded-2xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs flex items-center gap-2 shadow-lg glow-primary cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
@@ -1132,7 +1251,7 @@ function MainApp() {
               selectedGovernorate={selectedGovernorate}
               onSelectPlayground={(p) => setSelectedPlayground(p)}
               onSelectAcademy={(a) => setSelectedAcademy(a)}
-              onSelectMatch={(m) => handleJoinChallenge(m)}
+              onSelectMatch={(m) => handleTriggerJoinChallenge(m)}
             />
           </div>
         )}
@@ -1177,10 +1296,10 @@ function MainApp() {
             onDeletePlayground={handleDeletePlayground}
             onDeleteLeague={handleDeleteLeague}
             onDeleteMatch={handleDeleteMatch}
-            onOpenCreatePlayground={() => setIsCreatePlaygroundOpen(true)}
-            onOpenCreateLeague={() => setIsCreateLeagueOpen(true)}
-            onOpenCreateAcademy={() => setIsCreateAcademyOpen(true)}
-            onOpenCreateMatch={() => setIsCreateMatchOpen(true)}
+            onOpenCreatePlayground={handleTriggerCreatePlayground}
+            onOpenCreateLeague={handleTriggerCreateLeague}
+            onOpenCreateAcademy={handleTriggerCreateAcademy}
+            onOpenCreateMatch={handleTriggerCreateMatch}
           />
         )}
       </main>
@@ -1215,10 +1334,21 @@ function MainApp() {
 
       {/* Comprehensive Dashboard & Multi-Role Auth Modal */}
       <DashboardAuthModal
-        isOpen={isAdminLoginOpen}
-        onClose={() => setIsAdminLoginOpen(false)}
+        isOpen={authModal.isOpen || isAdminLoginOpen}
+        promptTitle={authModal.promptTitle}
+        promptMessage={authModal.promptMessage}
+        onClose={() => {
+          setAuthModal({ isOpen: false });
+          setIsAdminLoginOpen(false);
+        }}
         onSuccess={() => {
-          handleAdminLoginSuccess();
+          if (authModal.onSuccess) {
+            authModal.onSuccess();
+          }
+          if (isAdminLoginOpen) {
+            handleAdminLoginSuccess();
+          }
+          setAuthModal({ isOpen: false });
           setIsAdminLoginOpen(false);
         }}
       />
@@ -1246,15 +1376,11 @@ function MainApp() {
         onClose={() => setSelectedPlayground(null)}
         onProceedToBooking={(pg, date, slot) => {
           setSelectedPlayground(null);
-          setBookingWizardInitialDate(date);
-          setBookingWizardInitialSlot(slot);
-          setBookingWizardPlayground(pg);
+          handleTriggerBookPlayground(pg, date, slot);
         }}
         onBookNow={(pg) => {
           setSelectedPlayground(null);
-          setBookingWizardInitialDate(undefined);
-          setBookingWizardInitialSlot(undefined);
-          setBookingWizardPlayground(pg);
+          handleTriggerBookPlayground(pg);
         }}
       />
 
@@ -1317,7 +1443,7 @@ function MainApp() {
         onClose={() => setSelectedAcademy(null)}
         onRegister={(aca) => {
           setSelectedAcademy(null);
-          setRegisteringAcademy(aca);
+          handleTriggerRegisterAcademy(aca);
         }}
       />
 
@@ -1373,6 +1499,18 @@ function MainApp() {
         isOpen={isCreatePlayerCvOpen}
         onClose={() => setIsCreatePlayerCvOpen(false)}
         onSave={handleCreatePlayerCv}
+      />
+
+      {/* Role-Based Access Control Modal */}
+      <PermissionDeniedModal
+        isOpen={permissionModal.isOpen}
+        onClose={() => setPermissionModal({ ...permissionModal, isOpen: false })}
+        actionType={permissionModal.actionType}
+        currentUser={currentUser}
+        onOpenLogin={() => {
+          setPermissionModal({ ...permissionModal, isOpen: false });
+          setActiveTab('profile');
+        }}
       />
     </div>
   );
