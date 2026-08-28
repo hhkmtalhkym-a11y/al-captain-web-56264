@@ -50,35 +50,44 @@ export default function LoginPage() {
     e.preventDefault();
     resetFormState();
 
-    if (loginMethod === 'phone') {
-      if (!phone.trim() || !password) {
-        setLocalError('يرجى إدخال رقم الهاتف وكلمة المرور');
-        return;
-      }
-      setLoading(true);
-      try {
-        const success = await signInWithPhonePassword(phone, password);
+    const inputVal = loginMethod === 'phone' ? phone.trim() : email.trim();
+    if (!inputVal || !password) {
+      setLocalError(loginMethod === 'phone' ? 'يرجى إدخال رقم الهاتف وكلمة المرور' : 'يرجى إدخال البريد الإلكتروني وكلمة المرور');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (loginMethod === 'phone') {
+        const success = await signInWithPhonePassword(inputVal, password);
         if (!success) {
-          setLocalError('رقم الهاتف أو كلمة المرور غير صحيحة');
+          // If input is an email entered in phone box or vice versa
+          if (inputVal.includes('@')) {
+            await signInWithEmail(inputVal, password);
+          } else {
+            setLocalError('رقم الهاتف أو كلمة المرور غير صحيحة');
+          }
         }
-      } catch (err: any) {
-        setLocalError('رقم الهاتف أو كلمة المرور غير صحيحة');
-      } finally {
-        setLoading(false);
+      } else {
+        await signInWithEmail(inputVal, password);
       }
-    } else {
-      if (!email.trim() || !password) {
-        setLocalError('يرجى إدخال البريد الإلكتروني وكلمة المرور');
-        return;
+    } catch (err: any) {
+      console.warn('Login attempt notice:', err);
+      // If user typed phone in email box or email in phone box, try phone fallback
+      if (inputVal.replace(/\D/g, '').length >= 8) {
+        try {
+          const fallbackSuccess = await signInWithPhonePassword(inputVal, password);
+          if (fallbackSuccess) {
+            setLoading(false);
+            return;
+          }
+        } catch (fErr) {
+          // ignore
+        }
       }
-      setLoading(true);
-      try {
-        await signInWithEmail(email, password);
-      } catch (err: any) {
-        setLocalError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
-      } finally {
-        setLoading(false);
-      }
+      setLocalError(err?.message || 'البيانات المدخلة غير صحيحة، يرجى التحقق من كلمة المرور');
+    } finally {
+      setLoading(false);
     }
   };
 
