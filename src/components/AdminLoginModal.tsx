@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Phone, X, AlertCircle, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface AdminLoginModalProps {
 }
 
 export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLoginModalProps) {
+  const { signInWithEmail, signInWithPhonePassword } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,24 +17,25 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
 
   if (!isOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    setTimeout(() => {
+    try {
       const cleanId = identifier.trim().toLowerCase();
-      if (
-        (cleanId === 'family2016amer@gmail.com' || cleanId === '0945688090' || cleanId === '+963945688090' || cleanId === '963945688090') &&
-        password === 'A123@123A'
-      ) {
-        onSuccess();
-        onClose();
+      if (cleanId.includes('@')) {
+        await signInWithEmail(cleanId, password);
       } else {
-        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
+        await signInWithPhonePassword(cleanId, password);
       }
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || 'بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى');
+    } finally {
       setIsLoading(false);
-    }, 400);
+    }
   };
 
   return (

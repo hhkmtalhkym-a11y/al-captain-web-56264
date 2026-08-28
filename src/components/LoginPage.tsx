@@ -25,7 +25,8 @@ export default function LoginPage() {
     signUpWithEmail,
     signInWithGoogle,
     authError,
-    clearAuthError
+    clearAuthError,
+    bypassAuth
   } = useAuth();
 
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -410,8 +411,20 @@ export default function LoginPage() {
           </form>
         )}
 
+        {/* Direct One-Click Bypass for Regular Users / Players */}
+        <div className="pt-2 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => bypassAuth()}
+            className="w-full py-3 rounded-2xl bg-[#00FFD2]/15 hover:bg-[#00FFD2]/25 border border-[#00FFD2]/40 text-[#00FFD2] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow-[#00FFD2]/10"
+          >
+            <Sparkles className="w-4 h-4 text-[#00FFD2]" />
+            <span>تخطي والدخول المباشر للتطبيق فوراً (كلاعب / كابتن) ⚡</span>
+          </button>
+        </div>
+
         {/* Divider and Google One-Click Option */}
-        <div className="relative pt-2">
+        <div className="relative pt-1">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-white/10" />
           </div>

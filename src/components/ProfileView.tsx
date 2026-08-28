@@ -703,26 +703,28 @@ export default function ProfileView({
             )}
           </div>
 
-          {/* Quick Admin Access & Support */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-[#0d1211] border border-[#ff2a5f]/20 rounded-3xl p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#ff2a5f]/20 flex items-center justify-center text-[#ff2a5f]">
-                  <Shield className="w-5 h-5" />
+          {/* Admin Management Section - Strictly shown only for authorized Super Admin */}
+          <div className={`grid grid-cols-1 ${currentUser.isAdmin ? 'sm:grid-cols-2' : ''} gap-4`}>
+            {currentUser.isAdmin && (
+              <div className="bg-[#0d1211] border border-[#ff2a5f]/30 rounded-3xl p-5 space-y-3 shadow-lg shadow-[#ff2a5f]/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[#ff2a5f]/20 flex items-center justify-center text-[#ff2a5f]">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-bold text-white">لوحة تحكم الإدارة العليا (مجلس الإدارة)</h4>
                 </div>
-                <h4 className="text-sm font-bold text-white">لوحة تحكم الإدارة العليا</h4>
+                <p className="text-xs text-gray-400">
+                  لوحة الإدارة المركزية والتحكم في كافة الملاعب، الدوريات، الحجوزات والمستخدمين.
+                </p>
+                <button
+                  onClick={onOpenAdminLogin}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#ff2a5f] to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 glow-pink cursor-pointer shadow-md"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>فتح لوحة الإدارة العليا</span>
+                </button>
               </div>
-              <p className="text-xs text-gray-400">
-                تسجيل دخول الإدارة المركزية والمنظمين للتحكم في المنظومة بالكامل.
-              </p>
-              <button
-                onClick={onOpenAdminLogin}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 glow-pink cursor-pointer"
-              >
-                <Lock className="w-4 h-4" />
-                <span>لوحة التحكم والدخول</span>
-              </button>
-            </div>
+            )}
 
             <div className="bg-[#0d1211] border border-red-500/20 rounded-3xl p-5 space-y-3">
               <div className="flex items-center gap-2">

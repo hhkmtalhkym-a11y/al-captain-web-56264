@@ -14,8 +14,15 @@ import {
 } from '../types';
 
 // Format Syrian Pounds currency
-export function formatSYP(amount: number): string {
-  return `${amount.toLocaleString('ar-SY')} ل.س`;
+export function formatSYP(amount?: number | null | string): string {
+  if (amount === undefined || amount === null) {
+    return '0 ل.س';
+  }
+  const numericAmount = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(numericAmount)) {
+    return '0 ل.س';
+  }
+  return `${numericAmount.toLocaleString('ar-SY')} ل.س`;
 }
 
 // Convert image file from user device to Base64 Data URL
@@ -852,7 +859,8 @@ export function exportPaymentReceiptPdf(booking: Booking) {
     doc.rect(25, 180, 160, 18, 'F');
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(13);
-    doc.text(`TOTAL AMOUNT PAID: ${booking.totalPrice.toLocaleString('ar-SY')} SYP`, 105, 191, { align: 'center' });
+    const formattedPrice = (typeof booking?.totalPrice === 'number' ? booking.totalPrice : (Number(booking?.totalPrice) || 0)).toLocaleString('ar-SY');
+    doc.text(`TOTAL AMOUNT PAID: ${formattedPrice} SYP`, 105, 191, { align: 'center' });
 
     // Terms & Verification
     doc.setFontSize(9);
