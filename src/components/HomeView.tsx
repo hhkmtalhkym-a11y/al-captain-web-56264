@@ -319,29 +319,29 @@ export default function HomeView({
             </div>
           </div>
 
-          {/* Card 8: Padel & Multi-sports */}
+          {/* Card 8: Playground Owners & Advertiser Dashboard */}
           <div
-            onClick={() => onNavigateTab('playgrounds')}
-            className="bg-[#0d1211] border border-yellow-400/30 hover:border-yellow-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
+            onClick={() => onNavigateTab('profile')}
+            className="bg-[#0d1211] border border-amber-400/30 hover:border-amber-400 rounded-xl sm:rounded-2xl p-2 sm:p-4 transition-all duration-300 hover:scale-[1.02] shadow-lg group cursor-pointer flex flex-col justify-between relative overflow-hidden text-center sm:text-right"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between mb-1.5 sm:mb-2 gap-1">
-              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-400/10 text-amber-400 border border-amber-400/20 shrink-0">
                 <Flame className="w-4 h-4 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-yellow-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-yellow-400/30 whitespace-nowrap">
-                صالات وبادل
+              <span className="text-[8px] sm:text-[10px] font-bold bg-black/60 text-amber-400 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/30 whitespace-nowrap">
+                لوحة المعلن
               </span>
             </div>
             <div>
-              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-yellow-400 transition-colors leading-tight break-words">
-                صالات وبادل وتنس
+              <h3 className="font-bold text-white text-[10px] sm:text-sm group-hover:text-amber-400 transition-colors leading-tight break-words">
+                إدارة ملعبي وحجوزاتي
               </h3>
               <p className="hidden sm:block text-[11px] text-gray-400 mt-1 line-clamp-2">
-                حجز ملاعب البادل الحديثة، الصالات المغلقة، وملاعب التنس في مختلف المدن.
+                لوحة تحكم خاصة لأصحاب الملاعب والمعلنين لإدارة الحجوزات اليدوية، تأكيد الدفع، وطباعة تقارير PDF.
               </p>
             </div>
-            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-yellow-400 font-bold">
-              <span>استكشاف الملاعب المتنوعة</span>
+            <div className="hidden sm:flex mt-3 pt-2.5 border-t border-white/5 items-center justify-between text-[11px] text-amber-400 font-bold">
+              <span>إدارة الملاعب والحجوزات</span>
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
             </div>
           </div>

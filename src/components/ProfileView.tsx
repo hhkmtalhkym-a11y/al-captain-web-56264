@@ -34,32 +34,49 @@ import {
   Mail,
   Zap,
   Award,
-  Crown
+  Crown,
+  Building
 } from 'lucide-react';
-import { UserProfile, SyrianGovernorate, Booking, UserRole } from '../types';
+import { UserProfile, SyrianGovernorate, Booking, UserRole, Playground, BookingStatus } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { openWhatsAppShare, readImageAsBase64, formatSYP, loadFromLocalStorage, saveToLocalStorage } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { isUserAdmin, isUserAdvertiser, getUserRoleBadge } from '../utils/permissions';
 import AppOfficialLogo from './AppOfficialLogo';
 import LegalDocumentsModal from './LegalDocumentsModal';
+import BookingAnalytics from './BookingAnalytics';
+import OwnerDashboard from './OwnerDashboard';
 
 interface ProfileViewProps {
   currentUser: UserProfile;
   bookings?: Booking[];
+  playgrounds?: Playground[];
   onUpdateProfile: (updated: UserProfile) => void;
   onOpenAdminLogin: () => void;
   onOpenSupportModal: () => void;
   onCancelBooking?: (bookingId: string) => void;
+  onAddBooking?: (newBooking: Booking) => void;
+  onUpdateBookingStatus?: (
+    bookingId: string,
+    status: BookingStatus,
+    paymentStatus?: 'مدفوع' | 'غير مدفوع' | 'قيد الانتظار'
+  ) => void;
+  onDeleteBooking?: (bookingId: string) => void;
+  onEditBooking?: (booking: Booking) => void;
 }
 
 export default function ProfileView({
   currentUser,
   bookings = [],
+  playgrounds = [],
   onUpdateProfile,
   onOpenAdminLogin,
   onOpenSupportModal,
-  onCancelBooking
+  onCancelBooking,
+  onAddBooking = () => {},
+  onUpdateBookingStatus = () => {},
+  onDeleteBooking,
+  onEditBooking
 }: ProfileViewProps) {
   const {
     firebaseUser,
@@ -74,7 +91,9 @@ export default function ProfileView({
     updateCurrentUser
   } = useAuth();
 
-  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'bookings' | 'auth_panel' | 'security'>('profile');
+  const isOwnerOrAdmin = isUserAdmin(currentUser) || isUserAdvertiser(currentUser);
+
+  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'bookings' | 'owner_dashboard' | 'auth_panel' | 'security'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(currentUser.name);
   const [phone, setPhone] = useState(currentUser.phone);
@@ -323,7 +342,7 @@ export default function ProfileView({
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>حجوزاتي</span>
+          <span>حجوزاتي وتحليلاتي</span>
           {bookings.length > 0 && (
             <span
               className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
@@ -334,6 +353,20 @@ export default function ProfileView({
             </span>
           )}
         </button>
+
+        {isOwnerOrAdmin && (
+          <button
+            onClick={() => setActiveSubTab('owner_dashboard')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer ${
+              activeSubTab === 'owner_dashboard'
+                ? 'bg-amber-400 text-black shadow-lg font-black'
+                : 'text-amber-300 hover:text-white'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            <span>لوحة المعلن والملاعب</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveSubTab('security')}
@@ -437,6 +470,14 @@ export default function ProfileView({
                   <span className="bg-[#050707] px-3 py-1 rounded-xl border border-white/5 text-emerald-400">
                     ✨ عمولة المنصة: 0% مجاني
                   </span>
+                  {/* Direct "إدارة ملعبي" button leading directly to OwnerDashboard */}
+                  <button
+                    onClick={() => setActiveSubTab('owner_dashboard')}
+                    className="bg-amber-400 text-black hover:bg-amber-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md glow-amber cursor-pointer"
+                  >
+                    <Building className="w-3.5 h-3.5" />
+                    <span>إدارة ملعبي 🏟️</span>
+                  </button>
                   <button
                     onClick={() => setActiveSubTab('auth_panel')}
                     className="bg-amber-400/20 text-amber-300 hover:bg-amber-400 hover:text-black px-3 py-1 rounded-xl border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
@@ -1102,10 +1143,18 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* SUBTAB 3: My Bookings */}
+      {/* SUBTAB 3: My Bookings & Analytics */}
       {activeSubTab === 'bookings' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6">
+          {/* Visual Analytics Chart */}
+          <BookingAnalytics
+            bookings={bookings}
+            isOwnerView={false}
+            title="تحليلات وإحصائيات حجوزاتي 📊"
+            subtitle="مخطط بياني لتوزيع عدد الحجوزات شهرياً، وتوزيع الحالات والمبالغ المدفوعة"
+          />
+
+          <div className="flex items-center justify-between pt-2">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[#00FFD2]" />
               حجوزاتي المباشرة في ملاعب سوريا
@@ -1183,6 +1232,20 @@ export default function ProfileView({
             </div>
           )}
         </div>
+      )}
+
+      {/* SUBTAB: OWNER / ADVERTISER DASHBOARD */}
+      {activeSubTab === 'owner_dashboard' && (
+        <OwnerDashboard
+          currentUser={currentUser}
+          playgrounds={playgrounds}
+          bookings={bookings}
+          onGoBack={() => setActiveSubTab('profile')}
+          onAddBooking={onAddBooking}
+          onUpdateBookingStatus={onUpdateBookingStatus}
+          onDeleteBooking={onDeleteBooking}
+          onEditBooking={onEditBooking}
+        />
       )}
 
       {/* SUBTAB 4: Security, Google Auth & Admin Controls */}

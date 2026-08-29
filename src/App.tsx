@@ -519,15 +519,93 @@ function MainApp() {
     }
   };
 
-  const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
+  const handleDeleteBooking = async (bookingId: string) => {
+    setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    try {
+      await deleteDoc(doc(db, 'bookings', bookingId));
+    } catch (e) {
+      console.warn('Firestore delete booking error:', e);
+    }
+  };
+
+  const handleEditBooking = async (updatedBooking: Booking) => {
+    setBookings((prev) => prev.map((b) => (b.id === updatedBooking.id ? updatedBooking : b)));
+    try {
+      await setDoc(doc(db, 'bookings', updatedBooking.id), updatedBooking, { merge: true });
+    } catch (e) {
+      console.warn('Firestore edit booking error:', e);
+    }
+  };
+
+  const handleUpdateBookingStatus = async (
+    bookingId: string,
+    status: BookingStatus,
+    paymentStatus?: 'مدفوع' | 'غير مدفوع' | 'قيد الانتظار'
+  ) => {
     setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
+      prev.map((b) =>
+        b.id === bookingId
+          ? { ...b, status, ...(paymentStatus ? { paymentStatus } : {}) }
+          : b
+      )
     );
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), { status });
+      const updateData: any = { status };
+      if (paymentStatus) {
+        updateData.paymentStatus = paymentStatus;
+      }
+      await updateDoc(doc(db, 'bookings', bookingId), updateData);
     } catch (e) {
       console.warn('Firestore update booking status error:', e);
     }
+  };
+
+  const handleRebook = (booking: Booking) => {
+    const pg = playgrounds.find((p) => p.id === booking.playgroundId) || {
+      id: booking.playgroundId,
+      name: booking.playgroundName,
+      governorate: booking.governorate,
+      detailedArea: booking.detailedArea,
+      pricePerHour: booking.totalPrice,
+      images: [
+        'https://images.unsplash.com/photo-1529900245534-5e69eef62360?auto=format&fit=crop&w=600&q=80'
+      ],
+      capacity: (booking.playerCount as any) || '6v6',
+      surface: 'عشب صناعي',
+      lighting: 'موجودة',
+      specs: {
+        lengthMeters: 40,
+        widthMeters: 20,
+        standsCapacity: 50,
+        coveredStands: 20,
+        openStands: 30,
+        changingRoomsCount: 2,
+        parkingSpotsCount: 15
+      },
+      amenities: {
+        changingRooms: true,
+        cafeteria: true,
+        parking: true,
+        water: true,
+        ballsEquipment: true,
+        buffet: true,
+        spectatorSeats: true,
+        publicTransportNearby: true,
+        nightLighting: true
+      },
+      schedules: [],
+      rating: 4.9,
+      reviewsCount: 15,
+      reviews: [],
+      managerName: 'الكابتن',
+      managerPhone: booking.managerPhone || '0988000111',
+      paymentOptions: { allowCash: true, allowShamCash: true },
+      extraServices: [],
+      status: 'نشط',
+      createdAt: new Date().toISOString()
+    } as Playground;
+
+    handleTriggerBookPlayground(pg, booking.selectedDates[0], booking.timeSlot);
   };
 
   // Firestore CRUD Handlers for Leagues
@@ -1262,6 +1340,7 @@ function MainApp() {
             bookings={bookings}
             onCancelBooking={handleCancelBooking}
             onExplorePlaygrounds={() => setActiveTab('playgrounds')}
+            onRebook={handleRebook}
           />
         )}
 
@@ -1270,10 +1349,15 @@ function MainApp() {
           <ProfileView
             currentUser={currentUser}
             bookings={bookings}
+            playgrounds={playgrounds}
             onUpdateProfile={(u) => updateCurrentUser(u)}
             onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
             onOpenSupportModal={() => setIsLiveChatOpen(true)}
             onCancelBooking={handleCancelBooking}
+            onAddBooking={handleCreateBooking}
+            onUpdateBookingStatus={handleUpdateBookingStatus}
+            onDeleteBooking={handleDeleteBooking}
+            onEditBooking={handleEditBooking}
           />
         )}
 

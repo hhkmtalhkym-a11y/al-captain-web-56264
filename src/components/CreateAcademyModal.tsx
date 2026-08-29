@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Plus, Bus, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Plus, Bus, Image as ImageIcon, Calendar, Check, DollarSign, Users, Award } from 'lucide-react';
 import { Academy, SyrianGovernorate, TransportStatus } from '../types';
 import { SYRIAN_GOVERNORATES, GOVERNORATE_COORDINATES } from '../constants/syrianData';
 import { readImageAsBase64 } from '../utils/helpers';
@@ -11,6 +11,25 @@ interface CreateAcademyModalProps {
   onClose: () => void;
   onSave: (newAcademy: Academy) => void;
 }
+
+const WEEKDAYS = [
+  { id: 'السبت', label: 'السبت' },
+  { id: 'الأحد', label: 'الأحد' },
+  { id: 'الإثنين', label: 'الإثنين' },
+  { id: 'الثلاثاء', label: 'الثلاثاء' },
+  { id: 'الأربعاء', label: 'الأربعاء' },
+  { id: 'الخميس', label: 'الخميس' },
+  { id: 'الجمعة', label: 'الجمعة' }
+];
+
+const PRESET_AGE_GROUPS = [
+  { label: 'براعم صغار (من 5 إلى 8 سنوات)', min: 5, max: 8 },
+  { label: 'أشبال (من 8 إلى 12 سنة)', min: 8, max: 12 },
+  { label: 'ناشئين (من 12 إلى 15 سنة)', min: 12, max: 15 },
+  { label: 'شباب (من 15 إلى 18 سنة)', min: 15, max: 18 },
+  { label: 'شامل الفئات الأساسية (من 6 إلى 16 سنة)', min: 6, max: 16 },
+  { label: 'متقدم وكبار (من 16 إلى 22 سنة)', min: 16, max: 22 }
+];
 
 export default function CreateAcademyModal({
   isOpen,
@@ -25,7 +44,21 @@ export default function CreateAcademyModal({
   const [mainCoach, setMainCoach] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [monthlyFee, setMonthlyFee] = useState<number>(150000);
-  const [targetAgeGroups, setTargetAgeGroups] = useState('من سن 6 إلى 16 سنة');
+
+  // Age group dropdowns (From age - To age)
+  const [ageMin, setAgeMin] = useState<number>(6);
+  const [ageMax, setAgeMax] = useState<number>(16);
+
+  // Training Days (multi-select buttons)
+  const [selectedDays, setSelectedDays] = useState<string[]>(['السبت', 'الإثنين', 'الأربعاء']);
+
+  // Payment Methods
+  const [allowCash, setAllowCash] = useState(true);
+  const [allowShamCash, setAllowShamCash] = useState(true);
+  const [shamCashAccount, setShamCashAccount] = useState('SHAM-7729-1940');
+  const [allowSyriatelCash, setAllowSyriatelCash] = useState(true);
+  const [allowBankTransfer, setAllowBankTransfer] = useState(false);
+
   const [description, setDescription] = useState('');
   const [transportStatus, setTransportStatus] = useState<TransportStatus>('مؤمنة');
 
@@ -35,6 +68,18 @@ export default function CreateAcademyModal({
 
   if (!isOpen) return null;
 
+  // Toggle training day
+  const toggleDay = (dayId: string) => {
+    setSelectedDays((prev) =>
+      prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId]
+    );
+  };
+
+  const handleApplyPresetAge = (min: number, max: number) => {
+    setAgeMin(min);
+    setAgeMax(max);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!image) {
@@ -42,8 +87,23 @@ export default function CreateAcademyModal({
       return;
     }
 
+    if (selectedDays.length === 0) {
+      alert('يرجى اختيار يوم تدريب واحد على الأقل من أزرار أيام الأسبوع');
+      return;
+    }
+
     setIsSubmitting(true);
     const coords = GOVERNORATE_COORDINATES[governorate] || { lat: 33.5138, lng: 36.2765 };
+
+    const targetAgeGroups = `من سن ${ageMin} إلى سن ${ageMax} سنة`;
+    const daysScheduleText = `${selectedDays.length} أيام أسبوعياً (${selectedDays.join(' - ')})`;
+
+    // Compile payment methods list
+    const paymentMethodsList: string[] = [];
+    if (allowCash) paymentMethodsList.push('نقداً عند الحضور (كاش)');
+    if (allowShamCash) paymentMethodsList.push(`شام كاش (${shamCashAccount})`);
+    if (allowSyriatelCash) paymentMethodsList.push('سيريتل / إم تي إن كاش');
+    if (allowBankTransfer) paymentMethodsList.push('تحويل بنكي / محفظة');
 
     const newAca: Academy = {
       id: `aca-${Date.now()}`,
@@ -58,9 +118,13 @@ export default function CreateAcademyModal({
       contactPhone,
       monthlyFee: Number(monthlyFee),
       targetAgeGroups,
-      description: description.trim() || 'أكاديمية رياضية متخصصة في تدريب وتطوير الناشئين في سوريا.',
+      ageGroupMin: ageMin,
+      ageGroupMax: ageMax,
+      trainingDays: selectedDays,
+      paymentMethodsList,
+      description: description.trim() || `أكاديمية رياضية متخصصة في تدريب وتطوير الناشئين في سوريا (${targetAgeGroups}).`,
       transportStatus,
-      facilities: ['ملاعب معشبة', 'معدات تدريب حديثة', 'غرف تبديل ملابس ومواقف'],
+      facilities: ['ملاعب معشبة', 'معدات تدريب حديثة', 'غرف تبديل ملابس ومواقف', 'كادر تدريبي معتمد'],
       trainers: [
         {
           id: 'tr-new',
@@ -73,19 +137,19 @@ export default function CreateAcademyModal({
       programs: [
         {
           id: 'pr-new',
-          title: 'برنامج التطوير الكروي المتكامل',
+          title: 'برنامج التطوير الكروي والمهاري الشامل',
           durationMonths: 6,
-          daysSchedule: 'السبت والإثنين والأربعاء (4:30 عصراً)',
+          daysSchedule: daysScheduleText,
           targetAge: targetAgeGroups,
-          objectives: 'تطوير الأساسيات التكتيكية والمهارية واللياقة البدنية.'
+          objectives: 'تطوير الأساسيات التكتيكية والمهارية والبدنية تحت إشراف مدربين مؤهلين.'
         }
       ],
       reviews: [],
       rating: 5.0,
       paymentOptions: {
-        allowCash: true,
-        allowShamCash: true,
-        shamCashAccount: 'SHAM-7729-1940'
+        allowCash,
+        allowShamCash,
+        shamCashAccount: allowShamCash ? shamCashAccount : undefined
       },
       status: 'نشط',
       createdAt: new Date().toISOString()
@@ -117,7 +181,9 @@ export default function CreateAcademyModal({
               <h2 className="text-base sm:text-lg font-bold text-white">
                 إضافة وإدراج أكاديمية رياضية جديدة
               </h2>
-              <p className="text-[11px] text-gray-400">حدد الموقع على الخريطة والمدربين والبرامج التدريبية</p>
+              <p className="text-[11px] text-gray-400">
+                حدد الفئة السنية، أيام التدريب الأسبوعية، وطرق الدفع المعتمدة
+              </p>
             </div>
           </div>
           <button
@@ -136,8 +202,8 @@ export default function CreateAcademyModal({
               setImage(url);
               setUploadError('');
             }}
-            label="شعار أو صورة الأكاديمية"
-            helperText="اختر شعاراً رياضياً من المكتبة أو ارفع صورة الأكاديمية من الاستوديو"
+            label="شعار أو صورة الأكاديمية *"
+            helperText="اختر شعاراً رياضياً من المكتبة أو ارفع صورة الأكاديمية"
             accentColor="purple"
           />
           {uploadError && <p className="text-xs text-[#ff2a5f] mt-1">{uploadError}</p>}
@@ -148,7 +214,7 @@ export default function CreateAcademyModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: أكاديمية الأبطال للناشئين"
+              placeholder="مثال: أكاديمية النجوم السورية لكرة القدم"
               className="w-full bg-[#050707] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-400"
               required
             />
@@ -170,6 +236,183 @@ export default function CreateAcademyModal({
             accentColor="purple"
           />
 
+          {/* SECTION 1: الفئة السنية (Age Group dropdowns & presets) */}
+          <div className="bg-[#050707] p-4 rounded-2xl border border-purple-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>الفئة السنية المستهدفة (من عمر إلى عمر) *</span>
+              </label>
+              <span className="text-[11px] font-mono text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20">
+                من سن {ageMin} إلى {ageMax} سنة
+              </span>
+            </div>
+
+            {/* From Age - To Age Dropdowns */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-gray-400 mb-1">من عمر (الحد الأدنى)</label>
+                <select
+                  value={ageMin}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setAgeMin(val);
+                    if (val > ageMax) setAgeMax(val + 2);
+                  }}
+                  className="w-full bg-[#0d1211] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-400 focus:outline-none"
+                >
+                  {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((age) => (
+                    <option key={`min-${age}`} value={age}>
+                      {age} سنوات
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-gray-400 mb-1">إلى عمر (الحد الأقصى)</label>
+                <select
+                  value={ageMax}
+                  onChange={(e) => setAgeMax(Number(e.target.value))}
+                  className="w-full bg-[#0d1211] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-400 focus:outline-none"
+                >
+                  {[6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25].map((age) => (
+                    <option key={`max-${age}`} value={age} disabled={age < ageMin}>
+                      {age} سنة
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Presets Pills */}
+            <div>
+              <span className="text-[10px] text-gray-400 block mb-1.5">أو اختر فئة محددة مسبقاً:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_AGE_GROUPS.map((preset) => {
+                  const isSelected = ageMin === preset.min && ageMax === preset.max;
+                  return (
+                    <button
+                      type="button"
+                      key={preset.label}
+                      onClick={() => handleApplyPresetAge(preset.min, preset.max)}
+                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-purple-500 text-white shadow-md'
+                          : 'bg-[#0d1211] text-gray-400 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: أيام التدريب الأسبوعية (Training Days Buttons) */}
+          <div className="bg-[#050707] p-4 rounded-2xl border border-purple-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-purple-400" />
+                <span>أيام التدريب الأسبوعية (يمكن اختيار عدة أيام) *</span>
+              </label>
+              <span className="text-[11px] font-mono text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded-lg">
+                {selectedDays.length} أيام أسبوعياً
+              </span>
+            </div>
+
+            {/* Weekday toggle buttons */}
+            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+              {WEEKDAYS.map((day) => {
+                const isSelected = selectedDays.includes(day.id);
+                return (
+                  <button
+                    type="button"
+                    key={day.id}
+                    onClick={() => toggleDay(day.id)}
+                    className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 border cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-500 border-purple-400 text-white shadow-lg scale-102'
+                        : 'bg-[#0d1211] border-white/10 text-gray-400 hover:text-white hover:border-purple-500/40'
+                    }`}
+                  >
+                    <span>{day.label}</span>
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION 3: طرق الدفع (Payment Methods) */}
+          <div className="bg-[#050707] p-4 rounded-2xl border border-purple-500/20 space-y-3">
+            <label className="text-xs font-bold text-white flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-purple-400" />
+              <span>طرق الدفع المعتمدة للاشتراك</span>
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Cash */}
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#0d1211] border border-white/5 cursor-pointer hover:border-purple-500/30">
+                <input
+                  type="checkbox"
+                  checked={allowCash}
+                  onChange={(e) => setAllowCash(e.target.checked)}
+                  className="rounded text-purple-500 focus:ring-purple-400"
+                />
+                <span className="text-xs text-gray-200">💵 نقداً عند الحضور (كاش)</span>
+              </label>
+
+              {/* Sham Cash */}
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#0d1211] border border-white/5 cursor-pointer hover:border-purple-500/30">
+                <input
+                  type="checkbox"
+                  checked={allowShamCash}
+                  onChange={(e) => setAllowShamCash(e.target.checked)}
+                  className="rounded text-purple-500 focus:ring-purple-400"
+                />
+                <span className="text-xs text-gray-200">💳 شام كاش (Sham Cash)</span>
+              </label>
+
+              {/* Syriatel / MTN Cash */}
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#0d1211] border border-white/5 cursor-pointer hover:border-purple-500/30">
+                <input
+                  type="checkbox"
+                  checked={allowSyriatelCash}
+                  onChange={(e) => setAllowSyriatelCash(e.target.checked)}
+                  className="rounded text-purple-500 focus:ring-purple-400"
+                />
+                <span className="text-xs text-gray-200">📱 سيريتل كاش / إم تي إن كاش</span>
+              </label>
+
+              {/* Bank Transfer */}
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#0d1211] border border-white/5 cursor-pointer hover:border-purple-500/30">
+                <input
+                  type="checkbox"
+                  checked={allowBankTransfer}
+                  onChange={(e) => setAllowBankTransfer(e.target.checked)}
+                  className="rounded text-purple-500 focus:ring-purple-400"
+                />
+                <span className="text-xs text-gray-200">🏦 تحويل بنكي / محفظة إلكترونية</span>
+              </label>
+            </div>
+
+            {allowShamCash && (
+              <div className="pt-1">
+                <label className="block text-[11px] text-gray-400 mb-1">رقم حساب شام كاش للأكاديمية</label>
+                <input
+                  type="text"
+                  value={shamCashAccount}
+                  onChange={(e) => setShamCashAccount(e.target.value)}
+                  placeholder="مثال: SHAM-7729-1940"
+                  className="w-full bg-[#0d1211] border border-white/10 rounded-xl px-3 py-2 text-xs text-purple-300 font-mono focus:outline-none focus:border-purple-400"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Coach, Fees, Transport, Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#050707] p-3 rounded-2xl border border-white/5">
             <div>
               <label className="block text-[11px] text-gray-400 mb-1">المدرب الرئيسي *</label>
@@ -205,36 +448,25 @@ export default function CreateAcademyModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">رقم هاتف التسجيل *</label>
-              <input
-                type="text"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="09XXXXXXXX"
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400 font-mono"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-300 mb-1">الفئات العمرية المستهدفة</label>
-              <input
-                type="text"
-                value={targetAgeGroups}
-                onChange={(e) => setTargetAgeGroups(e.target.value)}
-                className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
-              />
-            </div>
+          <div>
+            <label className="block text-xs text-gray-300 mb-1">رقم هاتف التسجيل والتواصل *</label>
+            <input
+              type="text"
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              placeholder="09XXXXXXXX"
+              className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400 font-mono"
+              required
+            />
           </div>
 
           <div>
-            <label className="block text-xs text-gray-300 mb-1">نبذة عن الأكاديمية</label>
+            <label className="block text-xs text-gray-300 mb-1">نبذة عن الأكاديمية وأهداف التدريب</label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="وصف البرامج والتدريب..."
+              placeholder="وصف البرامج والتدريب والملاعب المعتمدة..."
               className="w-full bg-[#050707] border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-400"
             />
           </div>

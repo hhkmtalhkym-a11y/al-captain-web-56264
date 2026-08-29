@@ -176,6 +176,9 @@ export interface Booking {
   paymentMethod: PaymentMethodType | string;
   shamCashAccountNumber?: string;
   status: BookingStatus;
+  paymentStatus?: 'مدفوع' | 'غير مدفوع' | 'قيد الانتظار';
+  source?: 'online' | 'offline'; // من البرنامج أو خارج البرنامج
+  notes?: string;
   rejectionReason?: string;
   createdAt: string;
   managerPhone: string;
@@ -500,6 +503,10 @@ export interface Academy {
   contactPhone: string;
   monthlyFee: number;
   targetAgeGroups: string;
+  ageGroupMin?: number;
+  ageGroupMax?: number;
+  trainingDays?: string[];
+  paymentMethodsList?: string[];
   description: string;
   transportStatus: TransportStatus;
   facilities: string[];
