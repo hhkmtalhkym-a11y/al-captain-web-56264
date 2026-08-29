@@ -33,6 +33,7 @@ import {
   SyrianGovernorate
 } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
+import { isUserAdmin, isUserAdvertiser } from '../utils/permissions';
 import AddManualBookingModal from './AddManualBookingModal';
 import BookingAnalytics from './BookingAnalytics';
 import jsPDF from 'jspdf';
@@ -62,6 +63,9 @@ export default function OwnerDashboard({
   onDeleteBooking,
   onEditBooking
 }: OwnerDashboardProps) {
+  // Strictly check if user is authorized to access the Owner Dashboard
+  const isAuthorized = isUserAdmin(currentUser) || isUserAdvertiser(currentUser);
+
   // Filter playgrounds owned or managed by this user (or all if admin)
   const myPlaygrounds = useMemo(() => {
     if (currentUser.isAdmin || currentUser.role === 'admin') {
@@ -81,7 +85,7 @@ export default function OwnerDashboard({
       );
     });
 
-    return matched.length > 0 ? matched : playgrounds;
+    return matched;
   }, [currentUser, playgrounds]);
 
   const [selectedPlaygroundId, setSelectedPlaygroundId] = useState<string>('الكل');
@@ -209,6 +213,26 @@ export default function OwnerDashboard({
       window.print();
     }
   };
+
+  if (!isAuthorized) {
+    return (
+      <div className="text-center py-16 bg-[#0d1211] rounded-3xl border border-amber-400/20 p-8 space-y-4 font-['Cairo']">
+        <div className="w-14 h-14 rounded-2xl bg-amber-400/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-400/20">
+          <Building className="w-7 h-7" />
+        </div>
+        <h3 className="text-lg font-black text-white">لوحة خاصة بالمعلنين وأصحاب الملاعب</h3>
+        <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
+          هذه اللوحة مخصصة فقط للمعلنين المعتمدين وأصحاب الملاعب الرياضية وإدارة المنصة لإدارة الحجوزات والملاعب.
+        </p>
+        <button
+          onClick={onGoBack}
+          className="px-6 py-2.5 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-bold text-xs transition-all shadow-md cursor-pointer"
+        >
+          العودة للملف الشخصي
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div id="owner-dashboard" className="space-y-6 animate-fadeIn pb-16 font-['Cairo']">

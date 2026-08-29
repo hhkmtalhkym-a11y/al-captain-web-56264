@@ -150,7 +150,7 @@ export default function AdminDashboard({
   const [selectedGov, setSelectedGov] = useState<string>('الكل');
   const [searchQuery, setSearchQuery] = useState('');
   const [auditFilter, setAuditFilter] = useState<string>('الكل');
-  const [shamCashAdminAccount, setShamCashAdminAccount] = useState('SHAM-9456-8809');
+  const [shamCashAdminAccount, setShamCashAdminAccount] = useState('SHAM-8800-0111');
   const [isSavedSettings, setIsSavedSettings] = useState(false);
   const [selectedReceiptImage, setSelectedReceiptImage] = useState<string | null>(null);
   const [rejectionModalData, setRejectionModalData] = useState<{
@@ -172,7 +172,7 @@ export default function AdminDashboard({
       id: 'log-1',
       type: 'security',
       title: 'تهيئة النظام وقاعدة البيانات',
-      description: 'تم التحقق من تشغيل مجموعات Firestore وتثبيت حساب المدير العام المعتمد (0945688090).',
+      description: 'تم التحقق من تشغيل مجموعات Firestore وتثبيت حساب المدير العام المعتمد.',
       performedBy: 'نظام الكابتن الآلي',
       timestamp: 'اليوم، 12:00 م'
     },
@@ -207,7 +207,7 @@ export default function AdminDashboard({
       id: 'log-5',
       type: 'user_role',
       title: 'ترقية صلاحيات مستخدم',
-      description: 'تم تعيين كابتن حكمت الحكيم (0933112233) كـ منظم دوريات معتمد (league_manager).',
+      description: 'تم تعيين كابتن المنظم كـ منظم دوريات معتمد (league_manager).',
       performedBy: 'كابتن عامر (Admin)',
       targetId: 'u-2',
       timestamp: 'منذ يومين'
@@ -228,8 +228,8 @@ export default function AdminDashboard({
     {
       id: 'u-1',
       name: 'كابتن عامر (المدير العام)',
-      phone: '0945688090',
-      email: 'family2016amer@gmail.com',
+      phone: '0988000111',
+      email: 'admin@kaptan-app.sy',
       governorate: 'دمشق',
       role: 'admin',
       isBanned: false,
@@ -237,9 +237,9 @@ export default function AdminDashboard({
     },
     {
       id: 'u-2',
-      name: 'كابتن حكمت الحكيم',
+      name: 'كابتن حسام (منظم بطولات)',
       phone: '0933112233',
-      email: 'hhkmtalhkym@gmail.com',
+      email: 'organizer@kaptan.sy',
       governorate: 'دمشق',
       role: 'league_manager',
       isBanned: false,
@@ -507,7 +507,7 @@ export default function AdminDashboard({
 
   const handleDeleteUserAccount = (userId: string) => {
     const targetUser = usersList.find((u) => u.id === userId);
-    if (targetUser?.role === 'admin' && targetUser.phone === '0945688090') {
+    if (targetUser?.role === 'admin' && (targetUser.id === 'u-1' || targetUser.role === 'admin')) {
       alert('لا يمكن حذف حساب المدير العام الأساسي للنظام.');
       return;
     }
@@ -630,7 +630,7 @@ export default function AdminDashboard({
                 لوحة الإدارة المركزية
               </span>
               <span className="text-xs text-gray-400 font-mono">
-                حساب الأدمن المعتمد: family2016amer@gmail.com (0945688090)
+                صلاحيات الإدارة العليا والتحكم الشامل
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white font-['Cairo']">
@@ -745,7 +745,7 @@ export default function AdminDashboard({
                 <span className="px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
                   {shamCashAdminAccount}
                 </span>
-                <span className="text-[10px] text-gray-400">0945688090</span>
+                <span className="text-[10px] text-gray-400 font-mono">0988000111</span>
               </div>
             </div>
           </div>
@@ -1038,7 +1038,7 @@ export default function AdminDashboard({
                         <select
                           value={u.role}
                           onChange={(e) => handleChangeUserRole(u.id, e.target.value as AdminUserRole)}
-                          disabled={u.role === 'admin' && u.phone === '0945688090'}
+                          disabled={u.role === 'admin' && (u.id === 'u-1' || u.role === 'admin')}
                           className="bg-[#050707] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer disabled:opacity-50"
                         >
                           <option value="user">لاعب / مستخدم عادي (User)</option>
@@ -1052,7 +1052,7 @@ export default function AdminDashboard({
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleDeleteUserAccount(u.id)}
-                            disabled={u.role === 'admin' && u.phone === '0945688090'}
+                            disabled={u.role === 'admin' && (u.id === 'u-1' || u.role === 'admin')}
                             className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition-colors disabled:opacity-30 cursor-pointer"
                             title="حذف الحساب نهائياً"
                           >
@@ -1530,10 +1530,12 @@ export default function AdminDashboard({
                       <strong className="text-white text-sm font-bold">{m.hostTeamName}</strong>
                       <span
                         className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          m.status === 'مؤكد'
+                          m.status === 'مؤكد' || m.status === 'مقبولة'
                             ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40'
+                            : m.status === 'قيد الانتظار'
+                            ? 'bg-amber-950 text-amber-400 border border-amber-500/40 animate-pulse'
                             : m.status === 'مفتوح'
-                            ? 'bg-amber-950 text-amber-400 border border-amber-500/40'
+                            ? 'bg-blue-950 text-blue-400 border border-blue-500/40'
                             : m.status === 'ملغي'
                             ? 'bg-red-950 text-red-400 border border-red-500/40'
                             : 'bg-gray-800 text-gray-400'
@@ -1555,21 +1557,21 @@ export default function AdminDashboard({
 
                   <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-1.5 text-xs">
                     <div className="flex items-center gap-1">
-                      {m.status !== 'مؤكد' && (
+                      {m.status !== 'مؤكد' && m.status !== 'مقبولة' && (
                         <button
                           onClick={() => {
                             if (onUpdateFriendlyMatchStatus) {
-                              onUpdateFriendlyMatchStatus(m.id, 'مؤكد');
+                              onUpdateFriendlyMatchStatus(m.id, 'مقبولة');
                             }
                             openWhatsAppShare(
-                              `⚽ *تم تأكيد مباراتكم عبر تطبيق الكابتن!*\n📌 المباراة: ${m.hostTeamName} ضد ${m.opponentTeamName || 'المتحدي'}\n📍 الملعب: ${m.venueName}\n📅 الموعد: ${m.date} (${m.time})\nنتمنى لكم مباراة ممتعة!`,
+                              `⚽ *تم قبول وتأكيد مباراتكم عبر تطبيق الكابتن!*\n📌 المباراة: ${m.hostTeamName} ضد ${m.opponentTeamName || 'المتحدي'}\n📍 الملعب: ${m.venueName}\n📅 الموعد: ${m.date} (${m.time})\nنتمنى لكم مباراة ممتعة!`,
                               m.organizerPhone
                             );
                           }}
-                          className="px-2 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 text-[11px] font-bold flex items-center gap-1 border border-emerald-500/30"
-                          title="تأكيد التحدي"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-[11px] font-bold flex items-center gap-1 border border-emerald-500/40 shadow-sm cursor-pointer"
+                          title="قبول وتأكيد المباراة وإرسال إشعار فوري"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> تأكيد
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> قبول المباراة
                         </button>
                       )}
 
@@ -2088,7 +2090,7 @@ export default function AdminDashboard({
                           <select
                             value={u.role}
                             onChange={(e) => handleChangeUserRole(u.id, e.target.value as AdminUserRole)}
-                            disabled={u.role === 'admin' && u.phone === '0945688090'}
+                            disabled={u.role === 'admin' && (u.id === 'u-1' || u.role === 'admin')}
                             className="bg-[#050707] border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00FFD2] cursor-pointer disabled:opacity-50"
                           >
                             <option value="user">لاعب / مستخدم عادي (User)</option>
@@ -2113,7 +2115,7 @@ export default function AdminDashboard({
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => handleToggleBanUser(u.id)}
-                              disabled={u.role === 'admin' && u.phone === '0945688090'}
+                              disabled={u.role === 'admin' && (u.id === 'u-1' || u.role === 'admin')}
                               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors disabled:opacity-30 cursor-pointer ${
                                 u.isBanned
                                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -2124,7 +2126,7 @@ export default function AdminDashboard({
                             </button>
                             <button
                               onClick={() => handleDeleteUserAccount(u.id)}
-                              disabled={u.role === 'admin' && u.phone === '0945688090'}
+                              disabled={u.role === 'admin' && (u.id === 'u-1' || u.role === 'admin')}
                               className="p-1 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition-colors disabled:opacity-30 cursor-pointer"
                               title="حذف الحساب نهائياً"
                             >

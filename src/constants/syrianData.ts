@@ -968,7 +968,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 export const INITIAL_USER: UserProfile = {
   id: 'usr-current',
   name: 'الكابتن وسيم النوري',
-  phone: '0945688090',
+  phone: '0988000111',
   role: 'أدمن',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
   governorate: 'دمشق',

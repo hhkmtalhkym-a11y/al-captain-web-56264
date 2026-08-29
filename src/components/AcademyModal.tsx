@@ -10,24 +10,63 @@ import {
   Calendar,
   Sparkles,
   ShieldCheck,
-  Send
+  Send,
+  MessageSquare
 } from 'lucide-react';
-import { Academy } from '../types';
+import { Academy, Review } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
 
 interface AcademyModalProps {
   academy: Academy | null;
   isOpen: boolean;
+  currentUser?: any;
   onClose: () => void;
   onRegister?: (academy: Academy) => void;
+  onRateAcademy?: (academyId: string, rating: number, comment?: string) => void;
 }
 
-export default function AcademyModal({ academy, isOpen, onClose, onRegister }: AcademyModalProps) {
+export default function AcademyModal({
+  academy,
+  isOpen,
+  currentUser,
+  onClose,
+  onRegister,
+  onRateAcademy
+}: AcademyModalProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState('');
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   if (!isOpen || !academy) return null;
 
   const imagesList = academy.images?.length > 0 ? academy.images : [academy.image];
+  const reviewsList = academy.reviews && academy.reviews.length > 0
+    ? academy.reviews
+    : [
+        {
+          id: 'rev-1',
+          userName: 'أبو أحمد (ولي أمر)',
+          rating: 5,
+          comment: 'أكاديمية ممتازة ومدربون مخلصون، ابني تطور مستواه البدني والمهاري بشكل ملحوظ خلال 3 أشهر.',
+          date: '2026-08-15'
+        },
+        {
+          id: 'rev-2',
+          userName: 'كابتن وسيم (ولي أمر)',
+          rating: 5,
+          comment: 'التزام بالمواعيد، ملاعب نظيفة ومجهزة، وخدمة باصات آمنة جداً.',
+          date: '2026-08-20'
+        }
+      ];
+
+  const handleRatingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onRateAcademy) {
+      onRateAcademy(academy.id, userRating, userComment);
+    }
+    setRatingSubmitted(true);
+  };
 
   return (
     <div
@@ -36,7 +75,7 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
       onClick={onClose}
     >
       <div
-        className="bg-[#0d1211] border-2 border-purple-500/40 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto"
+        className="bg-[#0d1211] border-2 border-purple-500/40 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto font-['Cairo']"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Banner & Gallery */}
@@ -78,10 +117,17 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
             <span className="bg-purple-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full mb-1 inline-block">
               {academy.governorate} • {academy.locationDetails}
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white font-['Cairo']">
+            <h2 className="text-xl sm:text-2xl font-black text-white">
               {academy.name}
             </h2>
-            <p className="text-xs text-purple-200">المدرب: {academy.mainCoach}</p>
+            <div className="flex items-center gap-2 text-xs text-purple-200 mt-0.5">
+              <span>المدرب: {academy.mainCoach}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-amber-400 font-bold">
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                {academy.rating?.toFixed(1) || '4.9'} ({reviewsList.length} تقييم)
+              </span>
+            </div>
           </div>
         </div>
 
@@ -105,13 +151,95 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
 
           {/* Description */}
           <div className="bg-[#050707] p-4 rounded-2xl border border-white/5 space-y-2">
-            <h3 className="font-bold text-white text-sm font-['Cairo']">عن الأكاديمية ورؤيتها:</h3>
+            <h3 className="font-bold text-white text-sm">عن الأكاديمية ورؤيتها:</h3>
             <p className="text-xs text-gray-300 leading-relaxed">{academy.description}</p>
+          </div>
+
+          {/* Star Ratings & Reviews Section */}
+          <div className="bg-[#050707] p-4 sm:p-5 rounded-2xl border border-purple-500/20 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                تقييمات أولياء الأمور والطلاب
+              </h3>
+              <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/30 px-3 py-1 rounded-xl text-amber-400 text-xs font-bold font-mono">
+                <Star className="w-4 h-4 fill-amber-400" />
+                <span>{academy.rating?.toFixed(1) || '4.9'} / 5.0</span>
+              </div>
+            </div>
+
+            {/* Submit Rating Form */}
+            {ratingSubmitted ? (
+              <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-center text-xs text-emerald-300 font-bold">
+                ✓ شكراً لك! تم حفظ تقييمك للأكاديمية بنجاح.
+              </div>
+            ) : (
+              <form onSubmit={handleRatingSubmit} className="bg-[#0d1211] p-3.5 rounded-xl border border-white/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="text-xs text-gray-300 font-bold">تقييمك كـ ولي أمر / مسجل:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setUserRating(star)}
+                        className="p-1 hover:scale-125 transition-transform"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            userRating >= star
+                              ? 'text-amber-400 fill-amber-400'
+                              : 'text-gray-600'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-amber-400 mr-2 font-mono">({userRating} نجوم)</span>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={userComment}
+                  onChange={(e) => setUserComment(e.target.value)}
+                  placeholder="أضف رأيك في التدريب، المعاملة، أو الانضباط..."
+                  className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                />
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-white" />
+                    <span>إرسال التقييم</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List of Reviews */}
+            <div className="space-y-2.5 pt-2">
+              {reviewsList.map((rev) => (
+                <div key={rev.id} className="p-3 rounded-xl bg-[#0d1211] border border-white/5 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">{rev.userName}</span>
+                    <div className="flex items-center gap-0.5 text-amber-400">
+                      {Array.from({ length: rev.rating }).map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-gray-300 leading-relaxed text-[11px]">{rev.comment}</p>
+                  <span className="text-[10px] text-gray-500 font-mono block">{rev.date}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Training Programs */}
           <div className="bg-[#050707] p-4 sm:p-5 rounded-2xl border border-white/5 space-y-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2 font-['Cairo']">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
               <Calendar className="w-4 h-4 text-purple-400" />
               البرامج التدريبية المعتمدة
             </h3>
@@ -132,7 +260,7 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
 
           {/* Trainers */}
           <div className="bg-[#050707] p-4 sm:p-5 rounded-2xl border border-white/5 space-y-3">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2 font-['Cairo']">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
               <Users className="w-4 h-4 text-purple-400" />
               الكادر التدريبي المعتمد
             </h3>
@@ -157,7 +285,7 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
 
           {/* Facilities */}
           <div className="bg-[#050707] p-4 rounded-2xl border border-white/5">
-            <h3 className="font-bold text-white text-sm mb-3 font-['Cairo']">المرافق والتجهيزات المتوفرة:</h3>
+            <h3 className="font-bold text-white text-sm mb-3">المرافق والتجهيزات المتوفرة:</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
               {academy.facilities?.map((f, idx) => (
                 <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-[#0d1211] border border-white/5">
@@ -208,3 +336,4 @@ export default function AcademyModal({ academy, isOpen, onClose, onRegister }: A
     </div>
   );
 }
+

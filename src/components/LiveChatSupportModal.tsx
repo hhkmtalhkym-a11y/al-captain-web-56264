@@ -88,7 +88,7 @@ export default function LiveChatSupportModal({ isOpen, onClose }: LiveChatSuppor
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => openWhatsAppShare('مرحباً، أحتاج مساعدة بخصوص تطبيق الكابتن الرياضي', '0945688090')}
+              onClick={() => openWhatsAppShare('مرحباً، أحتاج مساعدة بخصوص تطبيق الكابتن الرياضي', '0988000111')}
               className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-xs flex items-center gap-1 border border-emerald-500/30 transition-colors"
               title="محادثة واتساب مباشرة"
             >

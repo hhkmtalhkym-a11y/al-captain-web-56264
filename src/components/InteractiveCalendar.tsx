@@ -153,7 +153,7 @@ export default function InteractiveCalendar({
       detailedArea: targetPg.detailedArea,
       userId: currentUser?.id || 'admin-direct',
       userName: newUserName.trim() || 'كابتن معتمد',
-      userPhone: newUserPhone.trim() || '0945688090',
+      userPhone: newUserPhone.trim() || '0988000111',
       selectedDates: [selectedDate],
       timeSlot: newTimeSlot,
       duration: newDuration,

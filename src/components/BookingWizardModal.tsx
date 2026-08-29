@@ -58,7 +58,7 @@ export default function BookingWizardModal({
   // Step 2: Players & Details
   const [playerCount, setPlayerCount] = useState('7v7');
   const [userName, setUserName] = useState(currentUser.name || 'الكابتن');
-  const [userPhone, setUserPhone] = useState(currentUser.phone || '0945688090');
+  const [userPhone, setUserPhone] = useState(currentUser.phone || '');
   const [specialRequests, setSpecialRequests] = useState('');
 
   // Step 3: Extra services

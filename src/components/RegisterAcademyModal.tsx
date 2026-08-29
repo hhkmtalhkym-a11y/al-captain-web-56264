@@ -172,7 +172,7 @@ export default function RegisterAcademyModal({
   const handleShareWhatsApp = () => {
     if (!successRegistration) return;
     const msg = `🌟 *طلب تسجيل جديد في الأكاديمية*\n⚽ *الأكاديمية:* ${academy.name}\n👤 *اسم الطالب:* ${successRegistration.studentName} (العمر: ${successRegistration.age} سنة - ${successRegistration.ageGroup})\n🎯 *المركز المفضل:* ${successRegistration.preferredPosition}\n📍 *الموقع:* ${successRegistration.governorate} - ${successRegistration.city}\n👨‍👦 *ولي الأمر:* ${successRegistration.parentName} (${successRegistration.parentPhone})\n🚌 *المواصلات:* ${successRegistration.transportOption}\n💳 *طريقة الدفع:* ${successRegistration.paymentMethod}\n⏳ *حالة الطلب:* قيد الانتظار والمراجعة من إدارة الأكاديمية`;
-    openWhatsAppShare(msg, academy.contactPhone || '0945688090');
+    openWhatsAppShare(msg, academy.contactPhone || '0988000111');
   };
 
   return (
@@ -405,7 +405,7 @@ export default function RegisterAcademyModal({
                 <input
                   type="tel"
                   required
-                  placeholder="0945688090"
+                  placeholder="09XXXXXXXX"
                   value={parentPhone}
                   onChange={(e) => setParentPhone(e.target.value)}
                   className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-purple-400"

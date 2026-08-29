@@ -85,7 +85,7 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }: AdminLog
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="family2016amer@gmail.com أو 0945688090"
+                placeholder="admin@kaptan-app.sy أو 09XXXXXXXX"
                 className="w-full bg-[#050707] border border-[#00FFD2]/20 rounded-xl py-2.5 pr-10 pl-4 text-sm text-white focus:outline-none focus:border-[#00FFD2] transition-colors"
                 required
               />

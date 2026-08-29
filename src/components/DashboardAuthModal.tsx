@@ -223,8 +223,8 @@ export default function DashboardAuthModal({
       updateCurrentUser({
         id: 'usr-admin-sy',
         name: 'المدير العام (الإدارة العليا)',
-        email: 'family2016amer@gmail.com',
-        phone: '0945688090',
+        email: 'admin@kaptan-app.sy',
+        phone: '0988000111',
         governorate: 'دمشق',
         role: 'admin',
         isAdmin: true,

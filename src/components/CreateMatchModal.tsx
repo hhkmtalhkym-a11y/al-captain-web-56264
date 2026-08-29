@@ -387,7 +387,7 @@ export default function CreateMatchModal({
               <input
                 type="tel"
                 required
-                placeholder="0945688090"
+                placeholder="09XXXXXXXX"
                 value={organizerPhone}
                 onChange={(e) => setOrganizerPhone(e.target.value)}
                 className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"

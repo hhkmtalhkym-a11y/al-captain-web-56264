@@ -220,11 +220,11 @@ export default function LegalDocumentsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
                   <span className="text-gray-400 block text-[11px]">المدير العام المعتمد:</span>
-                  <strong className="text-white font-bold">كابتن عامر (0945688090)</strong>
+                  <strong className="text-white font-bold">كابتن عامر (الإدارة المركزية)</strong>
                 </div>
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
                   <span className="text-gray-400 block text-[11px]">البريد الإلكتروني للإدارة:</span>
-                  <strong className="text-[#00FFD2] font-mono">family2016amer@gmail.com</strong>
+                  <strong className="text-[#00FFD2] font-mono">support@kaptan-app.sy</strong>
                 </div>
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
                   <span className="text-gray-400 block text-[11px]">المحافظات المشمولة:</span>

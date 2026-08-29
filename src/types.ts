@@ -27,7 +27,7 @@ export type LeagueSystem = 'دوري نقاط' | 'خروج المغلوب' | 'م
 
 export type AgeGroup = 'رجال' | 'شباب' | 'ناشئين' | 'أشبال';
 export type CostSplitMethod = 'مناصفة بين الفريقين (50-50)' | 'الخاسر يدفع بالكامل' | 'المستضيف يدفع بالكامل';
-export type MatchStatus = 'مفتوح' | 'مؤكد' | 'ملغي' | 'منتهي' | 'مكتمل';
+export type MatchStatus = 'مفتوح' | 'قيد الانتظار' | 'مقبولة' | 'مؤكد' | 'ملغي' | 'منتهي' | 'مكتمل';
 
 export type PlayerSeekingStatus = 'باحث عن نادي' | 'باحث عن أكاديمية' | 'باحث عن مستكشف لاعبين';
 export type SeekingStatus = PlayerSeekingStatus;

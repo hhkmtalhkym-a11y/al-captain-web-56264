@@ -324,7 +324,7 @@ export default function ChallengeBookingModal({
                       required
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="مثال: 0945688090 أو 0933123456"
+                      placeholder="مثال: 0988112233 أو 0933123456"
                       className="w-full bg-[#050707] border border-white/10 focus:border-[#ff2a5f] rounded-xl px-3 py-2 text-xs text-white focus:outline-none transition-colors font-mono"
                     />
                   </div>

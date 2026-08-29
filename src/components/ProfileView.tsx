@@ -435,9 +435,9 @@ export default function ProfileView({
                     <h2 className="text-xl sm:text-2xl font-black text-white">{currentUser.name}</h2>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {currentUser.phone} • محافظة {currentUser.governorate}
-                      {currentUser.email && (
-                        <span className="block text-[11px] text-blue-400 font-mono mt-0.5">
-                          {currentUser.email}
+                      {currentUser.isAdmin && (
+                        <span className="block text-[11px] text-[#00FFD2] font-mono mt-0.5">
+                          حساب الإدارة والتحكم المركزي
                         </span>
                       )}
                     </p>
@@ -470,14 +470,16 @@ export default function ProfileView({
                   <span className="bg-[#050707] px-3 py-1 rounded-xl border border-white/5 text-emerald-400">
                     ✨ عمولة المنصة: 0% مجاني
                   </span>
-                  {/* Direct "إدارة ملعبي" button leading directly to OwnerDashboard */}
-                  <button
-                    onClick={() => setActiveSubTab('owner_dashboard')}
-                    className="bg-amber-400 text-black hover:bg-amber-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md glow-amber cursor-pointer"
-                  >
-                    <Building className="w-3.5 h-3.5" />
-                    <span>إدارة ملعبي 🏟️</span>
-                  </button>
+                  {/* Direct "إدارة ملعبي" button leading directly to OwnerDashboard - Only for Owners & Admin */}
+                  {isOwnerOrAdmin && (
+                    <button
+                      onClick={() => setActiveSubTab('owner_dashboard')}
+                      className="bg-amber-400 text-black hover:bg-amber-300 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md glow-amber cursor-pointer"
+                    >
+                      <Building className="w-3.5 h-3.5" />
+                      <span>إدارة ملعبي 🏟️</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setActiveSubTab('auth_panel')}
                     className="bg-amber-400/20 text-amber-300 hover:bg-amber-400 hover:text-black px-3 py-1 rounded-xl border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
@@ -863,7 +865,7 @@ export default function ProfileView({
                       type={loginMethod === 'phone' ? 'tel' : 'email'}
                       value={inputIdentifier}
                       onChange={(e) => setInputIdentifier(e.target.value)}
-                      placeholder={loginMethod === 'phone' ? 'مثال: 0945688090' : 'name@example.com'}
+                      placeholder={loginMethod === 'phone' ? 'مثال: 09XXXXXXXX' : 'name@example.com'}
                       className="w-full bg-[#050707] border border-white/15 rounded-xl py-2.5 pr-10 pl-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00FFD2] font-mono text-left direction-ltr"
                       required
                     />
@@ -999,7 +1001,7 @@ export default function ProfileView({
                         type="email"
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
-                        placeholder="name@gmail.com"
+                        placeholder="name@example.com"
                         className="w-full bg-[#050707] border border-white/15 rounded-xl py-2.5 pr-10 pl-4 text-xs text-white focus:outline-none focus:border-[#00FFD2]"
                       />
                     </div>
@@ -1234,8 +1236,8 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* SUBTAB: OWNER / ADVERTISER DASHBOARD */}
-      {activeSubTab === 'owner_dashboard' && (
+      {/* SUBTAB: OWNER / ADVERTISER DASHBOARD - Only for Authorized Owners and Admins */}
+      {activeSubTab === 'owner_dashboard' && isOwnerOrAdmin && (
         <OwnerDashboard
           currentUser={currentUser}
           playgrounds={playgrounds}

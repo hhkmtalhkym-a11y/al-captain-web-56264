@@ -106,7 +106,7 @@ export default function JoinMatchModal({
 
   const handleShareWhatsApp = () => {
     const msg = `⚽ *تأكيد انضمام لمباراة ودية*\n🏟️ *الملعب:* ${match.venueName} (${match.governorate})\n📅 *الموعد:* ${match.date} - ${match.time}\n👤 *الطرف المنضم:* ${joinerName} (${joinerPhone})\n🎽 *لون اللباس:* ${guestJerseyColor}\n🎯 *المركز:* ${preferredPosition}\n💳 *طريقة الدفع:* ${paymentMethod}\n📝 *ملاحظات:* ${additionalNotes || 'جاهزون للمباراة والتحدي'}`;
-    openWhatsAppShare(msg, match.organizerPhone || '0945688090');
+    openWhatsAppShare(msg, match.organizerPhone || '0988000111');
   };
 
   return (
@@ -234,7 +234,7 @@ export default function JoinMatchModal({
                 <input
                   type="tel"
                   required
-                  placeholder="0945688090"
+                  placeholder="09XXXXXXXX"
                   value={joinerPhone}
                   onChange={(e) => setJoinerPhone(e.target.value)}
                   className="w-full bg-[#050707] border border-white/10 rounded-xl py-2 px-3 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-[#ff2a5f]"

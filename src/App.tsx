@@ -51,7 +51,8 @@ import {
   AppNotification,
   SyrianGovernorate,
   BookingStatus,
-  Objection
+  Objection,
+  Review
 } from './types';
 
 import {
@@ -153,7 +154,7 @@ function MainApp() {
         detailedArea: 'الفيحاء - مجمع الملاعب الأولمبية',
         userId: 'usr-1',
         userName: 'كابتن وسيم الرفاعي',
-        userPhone: '0945688090',
+        userPhone: '0988000111',
         selectedDates: ['2026-06-25'],
         timeSlot: '20:00 - 21:30',
         duration: 'ساعة ونصف',
@@ -162,7 +163,7 @@ function MainApp() {
         paymentMethod: 'نقداً عند الحضور (كاش)',
         status: 'مؤكد',
         createdAt: '2026-06-20T12:00:00Z',
-        managerPhone: '0945688090'
+        managerPhone: '0988000111'
       }
     ])
   );
@@ -789,6 +790,9 @@ function MainApp() {
     status: MatchStatus,
     rejectionReason?: string
   ) => {
+    const targetMatch = friendlyMatches.find((m) => m.id === matchId);
+    const oldStatus = targetMatch?.status;
+
     setFriendlyMatches((prev) =>
       prev.map((m) =>
         m.id === matchId
@@ -796,6 +800,39 @@ function MainApp() {
           : m
       )
     );
+
+    // If status changed to 'مقبولة' or 'مؤكد' (e.g. from 'قيد الانتظار'), trigger a notification!
+    if (
+      (status === 'مقبولة' || status === 'مؤكد') &&
+      oldStatus !== 'مقبولة' &&
+      oldStatus !== 'مؤكد'
+    ) {
+      const targetTitle = targetMatch
+        ? `تم قبول وتأكيد المباراة: ${targetMatch.hostTeamName} ضد ${targetMatch.opponentTeamName || 'المتحدي'} ⚽`
+        : `تم قبول المباراة وتأكيد موعدها بنجاح! ⚽`;
+
+      const targetMessage = targetMatch
+        ? `قام المدير بقبول المباراة وتأكيد الموعد على ${targetMatch.venueName} (${targetMatch.governorate}) بتاريخ ${targetMatch.date} الساعة ${targetMatch.time}.`
+        : `قام المدير بتغيير حالة المباراة من 'قيد الانتظار' إلى 'مقبولة'.`;
+
+      const newNotif: AppNotification = {
+        id: `notif-match-accepted-${Date.now()}`,
+        title: targetTitle,
+        message: targetMessage,
+        date: 'الآن',
+        isRead: false,
+        type: 'match'
+      };
+
+      setNotifications((prev) => [newNotif, ...prev]);
+
+      try {
+        await setDoc(doc(db, 'notifications', newNotif.id), newNotif, { merge: true });
+      } catch (e) {
+        console.warn('Firestore notification error:', e);
+      }
+    }
+
     try {
       await updateDoc(doc(db, 'friendly_matches', matchId), {
         status,
@@ -803,6 +840,68 @@ function MainApp() {
       });
     } catch (e) {
       console.warn('Firestore update friendly match status error:', e);
+    }
+  };
+
+  const handleRateAcademy = async (academyId: string, rating: number, comment?: string) => {
+    const targetAcademy = academies.find((a) => a.id === academyId);
+    if (!targetAcademy) return;
+
+    const newReview: Review = {
+      id: `rev-${Date.now()}`,
+      userName: currentUser.name ? `${currentUser.name} (ولي أمر)` : 'ولي أمر طالب',
+      rating,
+      comment: comment || 'تقييم ممتاز للأكاديمية وتطور ملحوظ في مستوى التدريب.',
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    const currentReviews = targetAcademy.reviews || [];
+    const updatedReviews = [newReview, ...currentReviews];
+    const totalRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+    const newAverageRating = parseFloat((totalRating / updatedReviews.length).toFixed(1));
+
+    setAcademies((prev) =>
+      prev.map((a) =>
+        a.id === academyId
+          ? {
+              ...a,
+              rating: newAverageRating,
+              reviews: updatedReviews
+            }
+          : a
+      )
+    );
+
+    if (selectedAcademy && selectedAcademy.id === academyId) {
+      setSelectedAcademy((prev) =>
+        prev
+          ? {
+              ...prev,
+              rating: newAverageRating,
+              reviews: updatedReviews
+            }
+          : null
+      );
+    }
+
+    const newNotif: AppNotification = {
+      id: `notif-academy-rated-${Date.now()}`,
+      title: `تقييم جديد لأكاديمية ${targetAcademy.name} ⭐`,
+      message: `قام ${newReview.userName} بتقييم الأكاديمية بـ ${rating} نجوم: "${newReview.comment}"`,
+      date: 'الآن',
+      isRead: false,
+      type: 'academy'
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+
+    try {
+      await updateDoc(doc(db, 'academies', academyId), {
+        rating: newAverageRating,
+        reviews: updatedReviews
+      });
+      await setDoc(doc(db, 'notifications', newNotif.id), newNotif, { merge: true });
+    } catch (e) {
+      console.warn('Firestore update academy rating error:', e);
     }
   };
 
@@ -985,7 +1084,7 @@ function MainApp() {
     const newNotif: AppNotification = {
       id: `notif-${Date.now()}`,
       title: 'تم تسجيل دخول المدير العام بنجاح 🛡️',
-      message: 'تم تفعيل صلاحيات الإدارة الكاملة لـ family2016amer@gmail.com',
+      message: 'تم تفعيل كافة صلاحيات الإدارة المركزية والتحكم الشامل بنجاح.',
       date: 'الآن',
       isRead: false,
       type: 'system'
@@ -1264,9 +1363,11 @@ function MainApp() {
                     academy={aca}
                     currentUser={currentUser}
                     isAdmin={currentUser.isAdmin}
+                    academyRegistrations={academyRegistrations}
                     onViewDetails={(a) => setSelectedAcademy(a)}
                     onRegister={handleTriggerRegisterAcademy}
                     onDeleteAcademy={handleDeleteAcademy}
+                    onRateAcademy={handleRateAcademy}
                   />
                 ))}
               </div>
@@ -1524,11 +1625,13 @@ function MainApp() {
       <AcademyModal
         academy={selectedAcademy}
         isOpen={!!selectedAcademy}
+        currentUser={currentUser}
         onClose={() => setSelectedAcademy(null)}
         onRegister={(aca) => {
           setSelectedAcademy(null);
           handleTriggerRegisterAcademy(aca);
         }}
+        onRateAcademy={handleRateAcademy}
       />
 
       {/* Register Student in Academy Modal */}

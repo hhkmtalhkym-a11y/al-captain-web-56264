@@ -36,8 +36,8 @@ export const DEFAULT_ADMIN_USER = {
   uid: 'admin-0945688090',
   name: 'المدير العام',
   fullName: 'المدير العام',
-  phone: '0945688090',
-  email: 'family2016amer@gmail.com',
+  phone: '0988000111',
+  email: 'admin@kaptan-app.sy',
   password: 'A123@123A',
   role: 'admin',
   isAdmin: true,
@@ -64,7 +64,7 @@ export async function initializeDatabase(): Promise<{ success: boolean; message:
 
       if (!adminSnap.exists()) {
         await setDoc(adminDocRef, DEFAULT_ADMIN_USER, { merge: true });
-        console.log('✅ [DB-Initializer] Default Admin user created (phone: 0945688090)');
+        console.log('✅ [DB-Initializer] Default Admin user created');
         seededCount++;
       }
     } catch (adminErr: any) {
@@ -113,7 +113,7 @@ export async function initializeDatabase(): Promise<{ success: boolean; message:
               targetType: 'system',
               actorName: 'نظام الكابتن السحابي',
               actorRole: 'admin',
-              actorPhone: '0945688090',
+              actorPhone: '0988000111',
               description: 'تهيئة وتدقيق قواعد بيانات تطبيق الكابتن في كافة المحافظات السورية بنجاح.',
               timestamp: new Date().toISOString()
             };

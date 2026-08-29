@@ -867,7 +867,7 @@ export function exportPaymentReceiptPdf(booking: Booking) {
     doc.setTextColor(150, 150, 150);
     doc.text('1. Please arrive 15 minutes before your scheduled slot.', 25, 220);
     doc.text('2. Present this receipt or reference code to the pitch supervisor upon arrival.', 25, 227);
-    doc.text('3. Support Hotline & WhatsApp: +963 945688090 | family2016amer@gmail.com', 25, 234);
+    doc.text('3. Support Hotline & Live Chat: In-App Support | support@kaptan-app.sy', 25, 234);
 
     // Footer
     doc.setTextColor(0, 255, 210);
