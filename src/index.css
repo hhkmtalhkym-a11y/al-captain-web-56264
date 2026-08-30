@@ -4,6 +4,34 @@
   body {
     font-family: 'Tajawal', 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+
+  html.light-theme body {
+    background-color: #f3f6f5 !important;
+    color: #111827 !important;
+  }
+
+  html.light-theme .bg-\[\#050707\] {
+    background-color: #f0f4f3 !important;
+  }
+
+  html.light-theme .bg-\[\#0d1211\] {
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  html.light-theme .text-white {
+    color: #0f172a !important;
+  }
+
+  html.light-theme .text-gray-400 {
+    color: #4b5563 !important;
+  }
+
+  html.light-theme .border-white\/10,
+  html.light-theme .border-white\/5,
+  html.light-theme .border-white\/15 {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
 }
 
 /* Custom Scrollbars */

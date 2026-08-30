@@ -121,15 +121,34 @@ export default function NotificationsDrawer({
           )}
         </div>
 
-        {/* WhatsApp simulation banner */}
-        <div className="mt-4 p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>الإشعارات الفورية عبر واتساب نشطة 📲</span>
+        {/* WhatsApp & FCM Push Notification Banner */}
+        <div className="mt-4 p-3 rounded-xl bg-[#00FFD2]/10 border border-[#00FFD2]/30 flex flex-col gap-2 text-xs">
+          <div className="flex items-center justify-between text-[#00FFD2]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#00FFD2] animate-ping"></span>
+              <span className="font-bold">إشعارات المتصفح والهاتف (FCM)</span>
+            </div>
+            <button
+              onClick={async () => {
+                const { requestNotificationPermission } = await import('../lib/firebase');
+                const token = await requestNotificationPermission();
+                if (token) {
+                  alert('تم تفعيل استقبال الإشعارات الفورية على هذا الجهاز بنجاح! 🔔');
+                } else {
+                  alert('يرجى السماح بصلاحية الإشعارات من إعدادات المتصفح.');
+                }
+              }}
+              className="px-2.5 py-1 rounded-lg bg-[#00FFD2] text-black text-[11px] font-bold hover:bg-[#00e6bd] transition-colors cursor-pointer"
+            >
+              تفعيل التنبيهات
+            </button>
           </div>
-          <span className="text-[10px] text-gray-400 font-mono">WhatsApp API</span>
+          <p className="text-[11px] text-gray-300">
+            احصل على تنبيه فوري عند تأكيد حجوزاتك أو بدء المباريات والبطولات.
+          </p>
         </div>
       </div>
     </div>
   );
 }
+

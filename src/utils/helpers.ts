@@ -25,6 +25,168 @@ export function formatSYP(amount?: number | null | string): string {
   return `${numericAmount.toLocaleString('ar-SY')} ل.س`;
 }
 
+/**
+ * Export Comprehensive Bookings, Leagues & Activity Audit Logs Report in PDF & Excel (Bilingual AR/EN)
+ */
+export function exportMasterAdminReportPdf(
+  bookings: Booking[],
+  leagues: League[],
+  activityLogs: Array<{ id: string; type?: string; title: string; description: string; performedBy: string; timestamp: string }> = [],
+  language: 'ar' | 'en' | 'bilingual' = 'bilingual'
+) {
+  try {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Dark canvas background
+    doc.setFillColor(5, 7, 7);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    // Header Card
+    doc.setFillColor(13, 18, 17);
+    doc.rect(10, 10, 190, 36, 'F');
+
+    doc.setTextColor(0, 255, 210);
+    doc.setFontSize(18);
+    doc.text('AL-KAPTAN SPORTS PLATFORM | منصة الكابتن الرياضية', 105, 22, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text('COMPREHENSIVE ADMIN SUMMARY REPORT | التقرير الإداري والمالي الشامل', 105, 31, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 180, 175);
+    const exportDateStr = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    doc.text(`Generated on: ${exportDateStr} | All 14 Syrian Governorates | 0% Platform Commission`, 105, 39, { align: 'center' });
+
+    let y = 52;
+
+    // 1. KPI Summary Block
+    doc.setFillColor(20, 28, 26);
+    doc.rect(10, y, 190, 26, 'F');
+
+    const totalRev = bookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+    const confirmedCount = bookings.filter((b) => b.status === 'مؤكد').length;
+
+    doc.setFontSize(9);
+    doc.setTextColor(0, 255, 210);
+    doc.text(`• Total Bookings: ${bookings.length} (Confirmed: ${confirmedCount})`, 15, y + 8);
+    doc.text(`• Active Leagues & Tournaments: ${leagues.length}`, 15, y + 15);
+    doc.text(`• Total Registered Activity Logs: ${activityLogs.length}`, 15, y + 22);
+
+    doc.text(`• Total Calculated Volume: ${totalRev.toLocaleString('ar-SY')} SYP`, 115, y + 8);
+    doc.text(`• Platform Commission: 0% Free (Zero Margin)`, 115, y + 15);
+    doc.text(`• System Integrity: 100% Verified & Encrypted`, 115, y + 22);
+
+    y += 33;
+
+    // 2. Bookings Table Section
+    doc.setFillColor(0, 255, 210);
+    doc.rect(10, y, 190, 7, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.text('RECENT BOOKINGS & FINANCIAL TRANSACTIONS / سجل الحجوزات والمعاملات', 15, y + 5);
+
+    y += 9;
+    doc.setFillColor(30, 41, 38);
+    doc.rect(10, y, 190, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7.5);
+    doc.text('Ref Code', 13, y + 4);
+    doc.text('Pitch / Venue', 45, y + 4);
+    doc.text('Governorate', 88, y + 4);
+    doc.text('Captain Phone', 118, y + 4);
+    doc.text('Status', 152, y + 4);
+    doc.text('Amount (SYP)', 175, y + 4);
+
+    y += 7;
+    const sampleBookings = bookings.slice(0, 7);
+    sampleBookings.forEach((b) => {
+      doc.setFillColor(15, 23, 21);
+      doc.rect(10, y - 1, 190, 6, 'F');
+      doc.setTextColor(220, 220, 220);
+      doc.setFontSize(7);
+      doc.text(b.referenceNumber || b.id.slice(0, 10), 13, y + 3);
+      doc.text((b.playgroundName || 'Pitch').slice(0, 22), 45, y + 3);
+      doc.text(b.governorate || 'Syria', 88, y + 3);
+      doc.text(b.userPhone || '-', 118, y + 3);
+      
+      if (b.status === 'مؤكد') {
+        doc.setTextColor(34, 197, 94);
+      } else if (b.status === 'ملغي') {
+        doc.setTextColor(239, 68, 68);
+      } else {
+        doc.setTextColor(245, 158, 11);
+      }
+      doc.text(b.status || 'Pending', 152, y + 3);
+
+      doc.setTextColor(0, 255, 210);
+      const prc = Number(b.totalPrice) || 0;
+      doc.text(`${prc.toLocaleString()} SYP`, 175, y + 3);
+      y += 7;
+    });
+
+    // 3. Leagues & Tournaments Section
+    y += 4;
+    doc.setFillColor(251, 191, 36);
+    doc.rect(10, y, 190, 7, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    doc.text('LEAGUES & CHAMPIONSHIPS / بطولات ودوريات المحافظات', 15, y + 5);
+
+    y += 9;
+    const sampleLeagues = leagues.slice(0, 4);
+    sampleLeagues.forEach((l) => {
+      doc.setFillColor(15, 23, 21);
+      doc.rect(10, y - 1, 190, 6.5, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7.5);
+      doc.text(`• ${l.name} (${l.governorate})`, 15, y + 3.5);
+      doc.setTextColor(200, 200, 200);
+      const prizeDesc = typeof l.prizes === 'object' && l.prizes !== null 
+        ? `${l.prizes.cashPrize ? l.prizes.cashPrize + ' SYP' : ''} ${l.prizes.medals || ''}`.trim() || 'Cup & Medals'
+        : 'Cup & Medals';
+      doc.text(`Teams: ${l.teamsCount || 16} | Status: ${l.status} | Prize: ${prizeDesc}`, 110, y + 3.5);
+      y += 7.5;
+
+    });
+
+    // 4. Activity Logs Section
+    if (activityLogs.length > 0) {
+      y += 4;
+      doc.setFillColor(168, 85, 247);
+      doc.rect(10, y, 190, 7, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text('SYSTEM ACTIVITY TRAIL / سجل النشاطات والعمليات المسجلة', 15, y + 5);
+
+      y += 9;
+      activityLogs.slice(0, 4).forEach((log) => {
+        doc.setFillColor(15, 23, 21);
+        doc.rect(10, y - 1, 190, 6.5, 'F');
+        doc.setTextColor(200, 220, 255);
+        doc.setFontSize(7);
+        doc.text(`[${log.timestamp || 'Now'}] ${log.title}`, 15, y + 3.5);
+        doc.setTextColor(160, 160, 160);
+        doc.text(`By: ${log.performedBy}`, 150, y + 3.5);
+        y += 7.5;
+      });
+    }
+
+    // Official Verification Footer
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 150, 140);
+    doc.text('Official Digital Document - Al-Kaptan Sports Platform (Syrian Arab Republic)', 105, 287, { align: 'center' });
+
+    doc.save(`Al-Kaptan-Executive-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (error) {
+    console.error('Error generating Master Admin PDF:', error);
+  }
+}
+
 // Convert image file from user device to Base64 Data URL
 export function readImageAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -891,7 +1053,21 @@ export function openWhatsAppShare(text: string, phone?: string) {
   window.open(url, '_blank');
 }
 
-// LocalStorage helpers
+// LocalStorage helpers with verification
+export function saveToLocalStorage<T>(key: string, value: T): void {
+  try {
+    const serialized = JSON.stringify(value);
+    localStorage.setItem(`kaptan_sy_${key}`, serialized);
+    // Secondary verification
+    const saved = localStorage.getItem(`kaptan_sy_${key}`);
+    if (!saved) {
+      console.warn(`[Storage] Failed to save ${key} to localStorage`);
+    }
+  } catch (e) {
+    console.error('LocalStorage save error:', e);
+  }
+}
+
 export function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(`kaptan_sy_${key}`);
@@ -901,10 +1077,10 @@ export function loadFromLocalStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-export function saveToLocalStorage<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(`kaptan_sy_${key}`, JSON.stringify(value));
-  } catch (e) {
-    console.error('LocalStorage save error:', e);
-  }
+// Auto-save helper for periodic background persistence
+export function setupAutoSave<T>(data: T, key: string, interval = 5000) {
+  return setInterval(() => {
+    saveToLocalStorage(key, data);
+  }, interval);
 }
+

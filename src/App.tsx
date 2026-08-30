@@ -52,8 +52,10 @@ import {
   SyrianGovernorate,
   BookingStatus,
   Objection,
-  Review
+  Review,
+  UserProfile
 } from './types';
+
 
 import {
   INITIAL_PLAYGROUNDS,
@@ -120,6 +122,18 @@ export type NavigationTab =
 function MainApp() {
   // Authentication & Current User from AuthContext
   const { currentUser, updateCurrentUser, isAuthenticated } = useAuth();
+
+  // Initialize theme from LocalStorage
+  useEffect(() => {
+    const isDark = loadFromLocalStorage('kaptan_display_mode_dark', true);
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light-theme');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light-theme');
+    }
+  }, []);
 
   // Splash Screen State
   const [showSplash, setShowSplash] = useState(true);
@@ -189,6 +203,11 @@ function MainApp() {
     ])
   );
 
+  // Users State with LocalStorage & Firestore sync
+  const [users, setUsers] = useState<UserProfile[]>(() =>
+    loadFromLocalStorage('kaptan_users', [])
+  );
+
   // Initialize Database Collections & Default Admin on App Boot
   useEffect(() => {
     initializeDatabase().catch((err) => {
@@ -196,121 +215,115 @@ function MainApp() {
     });
   }, []);
 
-  // Firestore Real-time Subscriptions with Fallback
+  // Robust Firestore Listener with Exponential Backoff Retry
+  const setupFirestoreSubscription = <T extends { id?: string }>(
+    collectionName: string,
+    setData: React.Dispatch<React.SetStateAction<T[]>>,
+    storageKey: string,
+    maxRetries = 5
+  ) => {
+    let unsubscribe: (() => void) | undefined;
+    let retryCount = 0;
+
+    const connect = () => {
+      try {
+        unsubscribe = onSnapshot(
+          collection(db, collectionName),
+          (snapshot) => {
+            if (!snapshot.empty) {
+              const items: T[] = [];
+              snapshot.forEach((d) => {
+                items.push({ ...d.data(), id: d.id } as T);
+              });
+              setData(items);
+              saveToLocalStorage(storageKey, items);
+              retryCount = 0;
+            }
+          },
+          (err) => {
+            console.warn(`Firestore [${collectionName}] listener notice:`, err);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              const delay = Math.min(1000 * Math.pow(2, retryCount), 20000);
+              setTimeout(connect, delay);
+            }
+          }
+        );
+      } catch (e) {
+        console.warn(`Firestore [${collectionName}] subscription error:`, e);
+      }
+    };
+
+    connect();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  };
+
+  // Firestore Real-time Subscriptions with Retry
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'playgrounds'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: Playground[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as Playground));
-          setPlaygrounds(items);
-          saveToLocalStorage('kaptan_playgrounds', items);
-        }
-      }, (err) => console.warn('Firestore playgrounds listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore playgrounds subscription error:', e);
-    }
+    return setupFirestoreSubscription<Playground>('playgrounds', setPlaygrounds, 'kaptan_playgrounds');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'bookings'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: Booking[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as Booking));
-          setBookings(items);
-          saveToLocalStorage('kaptan_bookings', items);
-        }
-      }, (err) => console.warn('Firestore bookings listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore bookings subscription error:', e);
-    }
+    return setupFirestoreSubscription<Booking>('bookings', setBookings, 'kaptan_bookings');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'leagues'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: League[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as League));
-          setLeagues(items);
-          saveToLocalStorage('kaptan_leagues', items);
-        }
-      }, (err) => console.warn('Firestore leagues listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore leagues subscription error:', e);
-    }
+    return setupFirestoreSubscription<League>('leagues', setLeagues, 'kaptan_leagues');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'academies'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: Academy[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as Academy));
-          setAcademies(items);
-          saveToLocalStorage('kaptan_academies', items);
-        }
-      }, (err) => console.warn('Firestore academies listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore academies subscription error:', e);
-    }
+    return setupFirestoreSubscription<Academy>('academies', setAcademies, 'kaptan_academies');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'friendly_matches'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: FriendlyMatch[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as FriendlyMatch));
-          setFriendlyMatches(items);
-          saveToLocalStorage('kaptan_matches', items);
-        }
-      }, (err) => console.warn('Firestore friendly_matches listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore friendly_matches subscription error:', e);
-    }
+    return setupFirestoreSubscription<FriendlyMatch>('friendly_matches', setFriendlyMatches, 'kaptan_matches');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'player_cards'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: PlayerCv[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as PlayerCv));
-          setPlayerCvs(items);
-          saveToLocalStorage('kaptan_player_cvs', items);
-        }
-      }, (err) => console.warn('Firestore player_cards listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore player_cards subscription error:', e);
-    }
+    return setupFirestoreSubscription<PlayerCv>('player_cards', setPlayerCvs, 'kaptan_player_cvs');
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, 'academy_registrations'), (snapshot) => {
-        if (!snapshot.empty) {
-          const items: AcademyRegistration[] = [];
-          snapshot.forEach((d) => items.push({ ...d.data(), id: d.id } as AcademyRegistration));
-          setAcademyRegistrations(items);
-          saveToLocalStorage('kaptan_academy_registrations', items);
-        }
-      }, (err) => console.warn('Firestore academy_registrations listener notice:', err));
-      return () => unsub();
-    } catch (e) {
-      console.warn('Firestore academy_registrations subscription error:', e);
-    }
+    return setupFirestoreSubscription<AcademyRegistration>('academy_registrations', setAcademyRegistrations, 'kaptan_academy_registrations');
   }, []);
 
-  // Navigation State
-  const [activeTab, setActiveTab] = useState<NavigationTab>('home');
+  useEffect(() => {
+    return setupFirestoreSubscription<UserProfile>('users', setUsers, 'kaptan_users');
+  }, []);
+
+
+  // Navigation State with URL Hash Synchronization
+  const [activeTab, setActiveTab] = useState<NavigationTab>(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.replace('#', '') as NavigationTab;
+      const validTabs: NavigationTab[] = ['home', 'playgrounds', 'leagues', 'matches', 'academies', 'scouting', 'map', 'bookings', 'profile', 'admin'];
+      if (validTabs.includes(hash)) return hash;
+    }
+    return 'home';
+  });
+
+  // Keep URL hash in sync with activeTab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.location.hash = activeTab;
+    }
+  }, [activeTab]);
+
+  // Listen to browser forward/back buttons
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as NavigationTab;
+      const validTabs: NavigationTab[] = ['home', 'playgrounds', 'leagues', 'matches', 'academies', 'scouting', 'map', 'bookings', 'profile', 'admin'];
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>('الكل');
 
   // Modals & Drawers States
@@ -1472,6 +1485,7 @@ function MainApp() {
             academyRegistrations={academyRegistrations}
             friendlyMatches={friendlyMatches}
             playerCvs={playerCvs}
+            users={users}
             onGoBack={() => setActiveTab('home')}
             onUpdateBookingStatus={handleUpdateBookingStatus}
             onUpdateAcademyRegistrationStatus={handleUpdateAcademyRegistrationStatus}
@@ -1487,6 +1501,7 @@ function MainApp() {
             onOpenCreateMatch={handleTriggerCreateMatch}
           />
         )}
+
       </main>
 
       {/* Mobile Bottom Navigation Bar */}

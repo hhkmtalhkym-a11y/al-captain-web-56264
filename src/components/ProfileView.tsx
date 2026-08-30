@@ -35,7 +35,9 @@ import {
   Zap,
   Award,
   Crown,
-  Building
+  Building,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { UserProfile, SyrianGovernorate, Booking, UserRole, Playground, BookingStatus } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
@@ -120,6 +122,30 @@ export default function ProfileView({
     loadFromLocalStorage('kaptan_push_notifications_enabled', true)
   );
   const [pushStatusMessage, setPushStatusMessage] = useState<string | null>(null);
+
+  // Theme Display Mode (Dark/Light) with LocalStorage persistence
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() =>
+    loadFromLocalStorage('kaptan_display_mode_dark', true)
+  );
+  const [themeStatusMessage, setThemeStatusMessage] = useState<string | null>(null);
+
+  const handleToggleThemeMode = () => {
+    const nextMode = !isDarkMode;
+    setIsDarkMode(nextMode);
+    saveToLocalStorage('kaptan_display_mode_dark', nextMode);
+    
+    // Apply or remove dark class to root document element
+    if (nextMode) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light-theme');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light-theme');
+    }
+
+    setThemeStatusMessage(nextMode ? 'تم تفعيل النمط الليلي (الوضع المظلم) 🌙' : 'تم تفعيل النمط النهاري (الوضع الفاتح) ☀️');
+    setTimeout(() => setThemeStatusMessage(null), 3000);
+  };
 
   // Modals
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
@@ -639,6 +665,58 @@ export default function ProfileView({
               <div className="p-3 rounded-xl bg-[#00FFD2]/10 border border-[#00FFD2]/30 text-[#00FFD2] text-xs font-bold animate-fadeIn flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{pushStatusMessage}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Theme Display Mode (Dark / Light Mode) */}
+          <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`p-2.5 rounded-2xl ${
+                    isDarkMode ? 'bg-amber-400/20 text-amber-400' : 'bg-[#00FFD2]/20 text-[#00FFD2]'
+                  }`}
+                >
+                  {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">
+                    نمط العرض والمظهر: {isDarkMode ? 'الوضع المظلم (Dark Mode)' : 'الوضع الفاتح (Light Mode)'}
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    تبديل مظهر واجهة التطبيق بين النمط الليلي الرياضي والنمط النهاري الفاتح مع حفظ التفضيل تلقائياً.
+                  </p>
+                </div>
+              </div>
+
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={handleToggleThemeMode}
+                className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+                  isDarkMode ? 'bg-amber-400' : 'bg-[#00FFD2]'
+                }`}
+                title="تبديل نمط العرض (الوضع المظلم/الفاتح)"
+              >
+                <div
+                  className={`bg-black w-6 h-6 rounded-full shadow-md transform transition-transform flex items-center justify-center ${
+                    isDarkMode ? 'translate-x-0' : '-translate-x-6'
+                  }`}
+                >
+                  {isDarkMode ? (
+                    <Moon className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <Sun className="w-3.5 h-3.5 text-[#00FFD2]" />
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {themeStatusMessage && (
+              <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold animate-fadeIn flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                <span>{themeStatusMessage}</span>
               </div>
             )}
           </div>

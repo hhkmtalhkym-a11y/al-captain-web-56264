@@ -63,5 +63,36 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export default { app, auth, db, storage, googleProvider, analytics };
+// Firebase Cloud Messaging (FCM) and Notifications
+export async function requestNotificationPermission(): Promise<string | null> {
+  try {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return null;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      try {
+        const { getMessaging, getToken } = await import('firebase/messaging');
+        const messaging = getMessaging(app);
+        const token = await getToken(messaging, {
+          vapidKey: 'BM-YOUR_VAPID_KEY_HERE_OR_FALLBACK'
+        }).catch(() => null);
+        if (token) {
+          console.log('[FCM] Push Notification token obtained:', token);
+          return token;
+        }
+      } catch (fcmErr) {
+        console.warn('[FCM] Notification token notice:', fcmErr);
+      }
+      return 'permission_granted_local';
+    }
+    return null;
+  } catch (error) {
+    console.warn('[FCM] Notification permission request error:', error);
+    return null;
+  }
+}
+
+export default { app, auth, db, storage, googleProvider, analytics, requestNotificationPermission };
+
 

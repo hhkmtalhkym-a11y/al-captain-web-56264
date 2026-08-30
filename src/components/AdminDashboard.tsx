@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   BarChart3,
@@ -18,6 +18,7 @@ import {
   MapPin,
   FileSpreadsheet,
   FileText,
+  FileDown,
   Award,
   Archive,
   AlertTriangle,
@@ -51,19 +52,37 @@ import {
   PlayerCv,
   BookingStatus,
   SyrianGovernorate,
-  ObjectionCase
+  ObjectionCase,
+  UserProfile
 } from '../types';
+
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import {
   formatSYP,
   exportBookingsCsv,
   exportLeaguePdf,
   exportToExcel,
+  exportMasterAdminReportPdf,
   openWhatsAppShare,
   loadFromLocalStorage,
   saveToLocalStorage,
   readImageAsBase64
 } from '../utils/helpers';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
+  Legend
+} from 'recharts';
 import InteractiveCalendar from './InteractiveCalendar';
 import { SlideItem, INITIAL_SLIDES } from './HeroBannerSlider';
 
@@ -75,7 +94,9 @@ interface AdminDashboardProps {
   academyRegistrations?: AcademyRegistration[];
   friendlyMatches: FriendlyMatch[];
   playerCvs: PlayerCv[];
+  users?: UserProfile[];
   onUpdateBookingStatus: (bookingId: string, status: BookingStatus) => void;
+
   onUpdateAcademyRegistrationStatus?: (regId: string, status: RegistrationStatus, rejectionReason?: string) => void;
   onUpdateAcademyRegistrationPaymentStatus?: (regId: string, paymentStatus: PaymentStatus) => void;
   onUpdateFriendlyMatchStatus?: (matchId: string, status: MatchStatus, rejectionReason?: string) => void;
@@ -132,6 +153,7 @@ export default function AdminDashboard({
   academyRegistrations = [],
   friendlyMatches,
   playerCvs,
+  users = [],
   onUpdateBookingStatus,
   onUpdateAcademyRegistrationStatus,
   onUpdateAcademyRegistrationPaymentStatus,
@@ -214,7 +236,7 @@ export default function AdminDashboard({
     }
   ]);
 
-  // Users management list with roles
+  // Users management list with roles - synchronized with Firestore users & LocalStorage
   const [usersList, setUsersList] = useState<Array<{
     id: string;
     name: string;
@@ -224,58 +246,104 @@ export default function AdminDashboard({
     role: AdminUserRole;
     isBanned: boolean;
     bookingsCount: number;
-  }>>([
-    {
-      id: 'u-1',
-      name: 'كابتن عامر (المدير العام)',
-      phone: '0988000111',
-      email: 'admin@kaptan-app.sy',
-      governorate: 'دمشق',
-      role: 'admin',
-      isBanned: false,
-      bookingsCount: 28
-    },
-    {
-      id: 'u-2',
-      name: 'كابتن حسام (منظم بطولات)',
-      phone: '0933112233',
-      email: 'organizer@kaptan.sy',
-      governorate: 'دمشق',
-      role: 'league_manager',
-      isBanned: false,
-      bookingsCount: 14
-    },
-    {
-      id: 'u-3',
-      name: 'كابتن مجد الشامي',
-      phone: '0988776655',
-      email: 'majd@kaptan.sy',
-      governorate: 'حلب',
-      role: 'announcer',
-      isBanned: false,
-      bookingsCount: 9
-    },
-    {
-      id: 'u-4',
-      name: 'كابتن وسيم حمصي',
-      phone: '0955443322',
-      email: 'waseem@kaptan.sy',
-      governorate: 'حمص',
-      role: 'user',
-      isBanned: false,
-      bookingsCount: 6
-    },
-    {
-      id: 'u-5',
-      name: 'كابتن تيم اللاذقية',
-      phone: '0944118833',
-      email: 'taym@kaptan.sy',
-      governorate: 'اللاذقية',
-      role: 'user',
-      isBanned: false,
-      bookingsCount: 11
+  }>>(() => {
+    const baseInitial = [
+      {
+        id: 'u-1',
+        name: 'كابتن عامر (المدير العام)',
+        phone: '0988000111',
+        email: 'admin@kaptan-app.sy',
+        governorate: 'دمشق',
+        role: 'admin' as AdminUserRole,
+        isBanned: false,
+        bookingsCount: 28
+      },
+      {
+        id: 'u-2',
+        name: 'كابتن حسام (منظم بطولات)',
+        phone: '0933112233',
+        email: 'organizer@kaptan.sy',
+        governorate: 'دمشق',
+        role: 'league_manager' as AdminUserRole,
+        isBanned: false,
+        bookingsCount: 14
+      },
+      {
+        id: 'u-3',
+        name: 'كابتن مجد الشامي',
+        phone: '0988776655',
+        email: 'majd@kaptan.sy',
+        governorate: 'حلب',
+        role: 'announcer' as AdminUserRole,
+        isBanned: false,
+        bookingsCount: 9
+      },
+      {
+        id: 'u-4',
+        name: 'كابتن وسيم حمصي',
+        phone: '0955443322',
+        email: 'waseem@kaptan.sy',
+        governorate: 'حمص',
+        role: 'user' as AdminUserRole,
+        isBanned: false,
+        bookingsCount: 6
+      },
+      {
+        id: 'u-5',
+        name: 'كابتن تيم اللاذقية',
+        phone: '0944118833',
+        email: 'taym@kaptan.sy',
+        governorate: 'اللاذقية',
+        role: 'user' as AdminUserRole,
+        isBanned: false,
+        bookingsCount: 11
+      }
+    ];
+
+    if (users && users.length > 0) {
+      const mergedMap = new Map<string, any>();
+      baseInitial.forEach((u) => mergedMap.set(u.id, u));
+      users.forEach((u) => {
+        mergedMap.set(u.id, {
+          id: u.id,
+          name: u.name || 'كابتن المنصة',
+          phone: u.phone || '—',
+          email: u.email || '—',
+          governorate: u.governorate || 'دمشق',
+          role: (u.isAdmin ? 'admin' : (u.role as AdminUserRole) || 'user') as AdminUserRole,
+          isBanned: !!(u as any).isBanned,
+          bookingsCount: bookings.filter((b) => b.userId === u.id).length
+        });
+      });
+      return Array.from(mergedMap.values());
     }
-  ]);
+
+    return baseInitial;
+  });
+
+  // Sync usersList whenever Firestore users array changes
+  useEffect(() => {
+    if (users && users.length > 0) {
+      setUsersList((prev) => {
+        const mergedMap = new Map<string, any>();
+        prev.forEach((u) => mergedMap.set(u.id, u));
+        users.forEach((u) => {
+          mergedMap.set(u.id, {
+            id: u.id,
+            name: u.name || 'كابتن المنصة',
+            phone: u.phone || '—',
+            email: u.email || '—',
+            governorate: u.governorate || 'دمشق',
+            role: (u.isAdmin ? 'admin' : (u.role as AdminUserRole) || 'user') as AdminUserRole,
+            isBanned: !!(u as any).isBanned,
+            bookingsCount: bookings.filter((b) => b.userId === u.id).length
+          });
+        });
+        return Array.from(mergedMap.values());
+      });
+    }
+  }, [users, bookings]);
+
 
   // Role filter in users tab
   const [userRoleFilter, setUserRoleFilter] = useState<string>('الكل');
@@ -641,13 +709,23 @@ export default function AdminDashboard({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => exportMasterAdminReportPdf(bookings, leagues, auditLogs, 'bilingual')}
+              className="px-4 py-2.5 rounded-xl bg-[#ff2a5f]/15 hover:bg-[#ff2a5f]/25 text-[#ff2a5f] border border-[#ff2a5f]/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+              title="تصدير تقرير إداري شامل بصيغة PDF باللغتين العربية والإنجليزية"
+            >
+              <FileDown className="w-4 h-4" />
+              تصدير التقرير PDF (عربي/EN)
+            </button>
+
             <button
               onClick={handleExportAllData}
-              className="px-4 py-2.5 rounded-xl bg-[#050707] hover:bg-white/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-[#050707] hover:bg-white/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="تصدير بيانات المنصة كملف Excel"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              تصدير التقرير الشامل Excel
+              تصدير التقرير Excel
             </button>
           </div>
         </div>
@@ -1162,128 +1240,224 @@ export default function AdminDashboard({
       {/* Tab 2: Visual Charts & Analytics */}
       {activeTab === 'charts' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Top Live Statistics Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Revenue Distribution Chart */}
+            {/* Recharts Area Chart: Daily Bookings & Growth */}
+            <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white font-['Cairo'] flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#00FFD2]" />
+                    إحصائيات الحجوزات اليومية والنمو الحي (Recharts)
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    متابعة التدفق الحي لحجوزات الملاعب على مدار الأيام الماضية
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-[#00FFD2]/10 border border-[#00FFD2]/30 text-[#00FFD2] text-[10px] font-bold font-mono">
+                  +34% نمو إيجابي
+                </span>
+              </div>
+
+              <div className="h-64 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={[
+                      { day: 'السبت', bookings: 12, revenue: 1650 },
+                      { day: 'الأحد', bookings: 18, revenue: 2400 },
+                      { day: 'الإثنين', bookings: 15, revenue: 1950 },
+                      { day: 'الثلاثاء', bookings: 22, revenue: 3100 },
+                      { day: 'الأربعاء', bookings: 28, revenue: 4200 },
+                      { day: 'الخميس', bookings: 45, revenue: 6800 },
+                      { day: 'الجمعة', bookings: 52, revenue: 7900 }
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00FFD2" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#00FFD2" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis dataKey="day" stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <YAxis stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0d1211',
+                        borderColor: '#00FFD230',
+                        borderRadius: '12px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                      formatter={(val: any, name: string) => [
+                        name === 'bookings' ? `${val} حجز رياضي` : `${val} ألف ل.س`,
+                        name === 'bookings' ? 'عدد الحجوزات' : 'الحجم المالي'
+                      ]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="bookings"
+                      stroke="#00FFD2"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorBookings)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Recharts Bar Chart: User & Captain Distribution by Governorate */}
+            <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white font-['Cairo'] flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                    توزيع المستخدمين واللاعبين حسب المحافظة (Recharts)
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    كثافة اللاعبين والفرق الرياضية المسجلة عبر المحافظات السورية
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                  14 محافظة نشطة
+                </span>
+              </div>
+
+              <div className="h-64 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart
+                    data={[
+                      { gov: 'دمشق', users: usersList.filter(u => u.governorate === 'دمشق').length || 18, pitches: playgrounds.filter(p => p.governorate === 'دمشق').length || 4 },
+                      { gov: 'ريف دمشق', users: usersList.filter(u => u.governorate === 'ريف دمشق').length || 12, pitches: playgrounds.filter(p => p.governorate === 'ريف دمشق').length || 3 },
+                      { gov: 'حلب', users: usersList.filter(u => u.governorate === 'حلب').length || 14, pitches: playgrounds.filter(p => p.governorate === 'حلب').length || 3 },
+                      { gov: 'حمص', users: usersList.filter(u => u.governorate === 'حمص').length || 9, pitches: playgrounds.filter(p => p.governorate === 'حمص').length || 2 },
+                      { gov: 'اللاذقية', users: usersList.filter(u => u.governorate === 'اللاذقية').length || 8, pitches: playgrounds.filter(p => p.governorate === 'اللاذقية').length || 2 },
+                      { gov: 'طرطوس', users: usersList.filter(u => u.governorate === 'طرطوس').length || 7, pitches: playgrounds.filter(p => p.governorate === 'طرطوس').length || 2 },
+                      { gov: 'حماة', users: usersList.filter(u => u.governorate === 'حماة').length || 6, pitches: playgrounds.filter(p => p.governorate === 'حماة').length || 1 }
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis dataKey="gov" stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <YAxis stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0d1211',
+                        borderColor: '#22c55e30',
+                        borderRadius: '12px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                      formatter={(val: any, name: string) => [
+                        `${val} ${name === 'users' ? 'مستخدم مسجل' : 'ملعب معتمد'}`,
+                        name === 'users' ? 'المستخدمين' : 'الملاعب'
+                      ]}
+                    />
+                    <Bar dataKey="users" fill="#00FFD2" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="pitches" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row: Pie Breakdown & Monthly Growth */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recharts Pie Chart: Activity Breakdown */}
             <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white font-['Cairo'] flex items-center gap-2">
                   <PieChart className="w-4 h-4 text-[#00FFD2]" />
-                  توزيع مصادر النشاط الرياضي
+                  توزيع مصادر النشاط الرياضي (Recharts Donut)
                 </h3>
                 <span className="text-xs text-gray-400">نسبة الإشغال الإجمالية: 86%</span>
               </div>
 
-              {/* Responsive SVG Donut Chart */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-4">
-                <div className="relative w-40 h-40">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    {/* Background circle */}
-                    <path
-                      className="text-gray-800"
-                      strokeWidth="4"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              <div className="h-64 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={[
+                        { name: 'حجوزات الملاعب', value: bookings.length || 45, color: '#00FFD2' },
+                        { name: 'اشتراكات الدوريات', value: leagues.length * 8 || 25, color: '#fbbf24' },
+                        { name: 'المباريات الودية', value: friendlyMatches.length || 20, color: '#ff2a5f' },
+                        { name: 'الأكاديميات', value: academies.length * 4 || 10, color: '#a855f7' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {[
+                        { name: 'حجوزات الملاعب', color: '#00FFD2' },
+                        { name: 'اشتراكات الدوريات', color: '#fbbf24' },
+                        { name: 'المباريات الودية', color: '#ff2a5f' },
+                        { name: 'الأكاديميات', color: '#a855f7' }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0d1211',
+                        borderColor: '#ffffff20',
+                        borderRadius: '12px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                      formatter={(val: any) => [`${val} نشاط`, 'الحجم']}
                     />
-                    {/* Segments */}
-                    <path
-                      className="text-[#00FFD2]"
-                      strokeDasharray="45, 100"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    <Legend
+                      formatter={(val) => <span className="text-xs text-gray-300 mr-2">{val}</span>}
                     />
-                    <path
-                      className="text-amber-400"
-                      strokeDasharray="25, 100"
-                      strokeDashoffset="-45"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className="text-[#ff2a5f]"
-                      strokeDasharray="20, 100"
-                      strokeDashoffset="-70"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className="text-purple-400"
-                      strokeDasharray="10, 100"
-                      strokeDashoffset="-90"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      fill="none"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black text-white font-mono">100%</span>
-                    <span className="text-[9px] text-gray-400">مباشر</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#00FFD2]"></span>
-                    <span className="text-gray-300">حجوزات الملاعب (45%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-amber-400"></span>
-                    <span className="text-gray-300">اشتراكات الدوريات (25%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#ff2a5f]"></span>
-                    <span className="text-gray-300">المباريات الودية (20%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-purple-400"></span>
-                    <span className="text-gray-300">اشتراكات الأكاديميات (10%)</span>
-                  </div>
-                </div>
+                  </RechartsPieChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Monthly Activity Bar Chart */}
+            {/* Monthly Activity Breakdown */}
             <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white font-['Cairo'] flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  النشاط الشهري للحجوزات والمباريات
+                  النشاط الشهري التراكمي للحجوزات
                 </h3>
-                <span className="text-xs text-emerald-400 font-mono font-bold">+34% نمو</span>
+                <span className="text-xs text-emerald-400 font-mono font-bold">+42% نمو تراكمي</span>
               </div>
 
-              {/* Bar Chart Bars */}
-              <div className="h-44 flex items-end justify-between gap-3 pt-6 px-2 border-b border-white/10">
-                {[
-                  { month: 'يناير', count: 45, height: '40%' },
-                  { month: 'فبراير', count: 62, height: '55%' },
-                  { month: 'مارس', count: 78, height: '70%' },
-                  { month: 'أبريل', count: 95, height: '82%' },
-                  { month: 'مايو', count: 110, height: '92%' },
-                  { month: 'يونيو', count: 130, height: '100%' }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                    <span className="text-[10px] text-gray-400 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-                      {item.count}
-                    </span>
-                    <div
-                      style={{ height: item.height }}
-                      className="w-full bg-gradient-to-t from-[#00FFD2]/40 to-[#00FFD2] rounded-t-lg group-hover:brightness-125 transition-all"
-                    ></div>
-                    <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">{item.month}</span>
-                  </div>
-                ))}
+              <div className="h-64 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart
+                    data={[
+                      { month: 'يناير', bookings: 45 },
+                      { month: 'فبراير', bookings: 62 },
+                      { month: 'مارس', bookings: 78 },
+                      { month: 'أبريل', bookings: 95 },
+                      { month: 'مايو', bookings: 110 },
+                      { month: 'يونيو', bookings: 130 }
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                    <XAxis dataKey="month" stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <YAxis stroke="#888888" tick={{ fill: '#888888', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0d1211',
+                        borderColor: '#00FFD230',
+                        borderRadius: '12px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                      formatter={(val: any) => [`${val} حجز معتمد`, 'الحجوزات']}
+                    />
+                    <Bar dataKey="bookings" fill="#00FFD2" radius={[6, 6, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
