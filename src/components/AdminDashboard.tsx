@@ -63,6 +63,7 @@ import {
   exportLeaguePdf,
   exportToExcel,
   exportMasterAdminReportPdf,
+  exportMasterAdminReportExcel,
   openWhatsAppShare,
   loadFromLocalStorage,
   saveToLocalStorage,
@@ -661,17 +662,7 @@ export default function AdminDashboard({
   };
 
   const handleExportAllData = () => {
-    const summaryData = [
-      { 'القسم': 'إجمالي الملاعب', 'العدد / القيمة': playgrounds.length },
-      { 'القسم': 'إجمالي الحجوزات', 'العدد / القيمة': bookings.length },
-      { 'القسم': 'الحجوزات المؤكدة', 'العدد / القيمة': confirmedBookingsCount },
-      { 'القسم': 'إجمالي البطولات', 'العدد / القيمة': leagues.length },
-      { 'القسم': 'إجمالي المباريات الودية', 'العدد / القيمة': friendlyMatches.length },
-      { 'القسم': 'إجمالي الأكاديميات', 'العدد / القيمة': academies.length },
-      { 'القسم': 'إجمالي بطاقات اللاعبين', 'العدد / القيمة': playerCvs.length },
-      { 'القسم': 'إجمالي المداخيل المسجلة (ل.س)', 'العدد / القيمة': totalRevenue }
-    ];
-    exportToExcel(summaryData, 'Al-Kaptan-Platform-Master-Report');
+    exportMasterAdminReportExcel(bookings, leagues, auditLogs, usersList, playgrounds);
   };
 
   return (
@@ -711,7 +702,7 @@ export default function AdminDashboard({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => exportMasterAdminReportPdf(bookings, leagues, auditLogs, 'bilingual')}
+              onClick={() => exportMasterAdminReportPdf(bookings, leagues, auditLogs, usersList, 'bilingual')}
               className="px-4 py-2.5 rounded-xl bg-[#ff2a5f]/15 hover:bg-[#ff2a5f]/25 text-[#ff2a5f] border border-[#ff2a5f]/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
               title="تصدير تقرير إداري شامل بصيغة PDF باللغتين العربية والإنجليزية"
             >
@@ -722,7 +713,7 @@ export default function AdminDashboard({
             <button
               onClick={handleExportAllData}
               className="px-4 py-2.5 rounded-xl bg-[#050707] hover:bg-white/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="تصدير بيانات المنصة كملف Excel"
+              title="تصدير بيانات المنصة كملف Excel شامل ومتعدد الجداول"
             >
               <FileSpreadsheet className="w-4 h-4" />
               تصدير التقرير Excel
