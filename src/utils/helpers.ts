@@ -329,6 +329,97 @@ export function readImageAsBase64(file: File): Promise<string> {
   });
 }
 
+// Export comprehensive multi-sheet League Excel workbook
+export function exportLeagueExcelComprehensive(league: League) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Standings Sheet
+    const standingsData = league.standings.map((s) => ({
+      'المركز (Pos)': s.position,
+      'اسم الفريق (Team)': s.teamName,
+      'لعب (P)': s.played,
+      'فاز (W)': s.won,
+      'تعادل (D)': s.drawn,
+      'خسر (L)': s.lost,
+      'له (GF)': s.goalsFor,
+      'عليه (GA)': s.goalsAgainst,
+      'فارق الأهداف (GD)': s.goalDifference,
+      'النقاط (PTS)': s.points,
+      'آخر 5 مباريات (Form)': (s.form || []).join('-')
+    }));
+    const wsStandings = XLSX.utils.json_to_sheet(standingsData);
+    XLSX.utils.book_append_sheet(workbook, wsStandings, 'جدول الترتيب (Standings)');
+
+    // 2. Fixtures & Results Sheet
+    const fixturesData = league.fixtures.map((f) => ({
+      'الجولة (Round)': f.round,
+      'الفريق الأول (Team A)': f.teamA,
+      'النتيجة أ (Score A)': f.scoreA ?? '-',
+      'النتيجة ب (Score B)': f.scoreB ?? '-',
+      'الفريق الثاني (Team B)': f.teamB,
+      'التاريخ (Date)': f.date,
+      'الوقت (Time)': f.time,
+      'الملعب (Venue)': f.venue,
+      'الحالة (Status)': f.status || (f.isFinished ? 'انتهت' : 'قادمة'),
+      'الحكم الرئيسي (Referee)': f.mainReferee || 'معتمد الاتحاد',
+      'رجل المباراة (MVP)': f.manOfTheMatch || '-',
+      'عدد الأهداف (Goals)': (f.goals || []).length,
+      'البطاقات الصفراء': (f.cards || []).filter((c) => c.cardType === 'صفراء').length,
+      'البطاقات الحمراء': (f.cards || []).filter((c) => c.cardType === 'حمراء').length,
+      'ملاحظات التأجيل': f.postponeReason || '-'
+    }));
+    const wsFixtures = XLSX.utils.json_to_sheet(fixturesData);
+    XLSX.utils.book_append_sheet(workbook, wsFixtures, 'جدول المباريات (Fixtures)');
+
+    // 3. Top Scorers Sheet
+    const topScorers = extractLeagueTopScorers(league.fixtures);
+    const scorersData = topScorers.map((sc, idx) => ({
+      'الترتيب (Rank)': idx + 1,
+      'اسم اللاعب (Player)': sc.name,
+      'الفريق (Team)': sc.team,
+      'الأهداف (Goals)': sc.goals,
+      'التمريرات الحاسمة (Assists)': sc.assists,
+      'ركلات الجزاء (Penalties)': sc.penalties
+    }));
+    const wsScorers = XLSX.utils.json_to_sheet(scorersData);
+    XLSX.utils.book_append_sheet(workbook, wsScorers, 'قائمة الهدافين (Top Scorers)');
+
+    // 4. Disciplinary & Cards Sheet
+    const disciplinary = extractLeagueDisciplinaryRecords(league.fixtures);
+    const disciplinaryData = disciplinary.map((d) => ({
+      'اسم اللاعب (Player)': d.playerName,
+      'الفريق (Team)': d.teamName,
+      'البطاقات الصفراء (Yellows)': d.yellowCardsCount,
+      'البطاقات الحمراء (Reds)': d.redCardsCount,
+      'حالة الأهلية (Status)': d.isSuspended ? `موقوف (${d.suspensionMatchesRemaining} مباراة)` : 'متاح للعب',
+      'سبب الإيقاف (Suspension Reason)': d.suspensionReason || 'سجل نظيف'
+    }));
+    const wsDisciplinary = XLSX.utils.json_to_sheet(disciplinaryData);
+    XLSX.utils.book_append_sheet(workbook, wsDisciplinary, 'سجل العقوبات والإنذارات');
+
+    // 5. Objections Sheet
+    const objections = league.objections || [];
+    if (objections.length > 0) {
+      const objectionsData = objections.map((obj) => ({
+        'رقم الاعتراض (ID)': obj.id,
+        'الفريق المعترض (Team)': obj.teamName,
+        'المباراة المعنية (Fixture)': obj.fixtureId || 'عام',
+        'تاريخ التقديم (Date)': obj.date,
+        'سبب وتفاصيل الاعتراض': obj.reason,
+        'حالة الاعتراض (Status)': obj.status,
+        'قرار اللجنة الإدارية (Decision)': obj.adminDecision || 'قيد الدراسة'
+      }));
+      const wsObjections = XLSX.utils.json_to_sheet(objectionsData);
+      XLSX.utils.book_append_sheet(workbook, wsObjections, 'سجل الاعتراضات');
+    }
+
+    XLSX.writeFile(workbook, `League-Report-${league.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting League Excel:', error);
+  }
+}
+
 // Export data to Excel (.xlsx)
 export function exportToExcel(data: Record<string, any>[], filename: string = 'Al-Kaptan-Data') {
   try {

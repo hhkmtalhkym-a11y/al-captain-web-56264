@@ -20,11 +20,15 @@ import {
   CheckCheck,
   Plus,
   RotateCcw,
-  BellRing
+  BellRing,
+  FileText,
+  Printer
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { formatSYP, openWhatsAppShare, downloadCalendarEvent } from '../utils/helpers';
 import { checkUpcomingBookingReminders } from '../utils/bookingReminderService';
+import { generateBookingInvoicePdf } from '../utils/pdfInvoiceGenerator';
+import BookingInvoiceModal from './BookingInvoiceModal';
 
 interface MyBookingsViewProps {
   bookings: Booking[];
@@ -63,6 +67,7 @@ export default function MyBookingsView({
   const [filterStatus, setFilterStatus] = useState<FilterStatusType>('الكل');
   const [searchQuery, setSearchQuery] = useState('');
   const [cancelModalBooking, setCancelModalBooking] = useState<Booking | null>(null);
+  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<Booking | null>(null);
 
   // 2-Hour Upcoming Bookings Reminders
   const upcomingReminders = useMemo(() => {
@@ -760,7 +765,18 @@ export default function MyBookingsView({
 
                       {/* Actions */}
                       <div className="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {booking.status !== 'ملغي' && (
+                            <button
+                              onClick={() => setSelectedInvoiceBooking(booking)}
+                              className="px-3 py-1.5 rounded-xl bg-[#00FFD2]/15 hover:bg-[#00FFD2] text-[#00FFD2] hover:text-black border border-[#00FFD2]/40 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                              title="تحميل وطباعة فاتورة الحجز الرسمية PDF"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>تحميل الفاتورة (PDF)</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => {
                               const msg = `🏆 *تفاصيل حجز ملعب الكابتن* ⚽\n📌 الملعب: ${booking.playgroundName} (${booking.governorate})\n📅 الموعد: ${booking.selectedDates[0]} (${booking.timeSlot})\n🔢 الرقم المرجعي: ${booking.referenceNumber}\n💰 الإجمالي: ${formatSYP(booking.totalPrice)}`;
@@ -932,7 +948,18 @@ export default function MyBookingsView({
 
                     {/* Actions Footer */}
                     <div className="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {booking.status !== 'ملغي' && (
+                          <button
+                            onClick={() => setSelectedInvoiceBooking(booking)}
+                            className="px-3 py-1.5 rounded-xl bg-[#00FFD2]/15 hover:bg-[#00FFD2] text-[#00FFD2] hover:text-black border border-[#00FFD2]/40 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                            title="تحميل وطباعة فاتورة الحجز الرسمية PDF"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>تحميل الفاتورة (PDF)</span>
+                          </button>
+                        )}
+
                         <button
                           onClick={() => {
                             const msg = `🏆 *تفاصيل حجز ملعب الكابتن* ⚽\n📌 الملعب: ${booking.playgroundName} (${booking.governorate})\n📅 الموعد: ${booking.selectedDates[0]} (${booking.timeSlot})\n🔢 الرقم المرجعي: ${booking.referenceNumber}\n💰 الإجمالي: ${formatSYP(booking.totalPrice)}`;
@@ -1020,6 +1047,13 @@ export default function MyBookingsView({
           </div>
         </div>
       )}
+
+      {/* Booking PDF Invoice Preview & Download Modal */}
+      <BookingInvoiceModal
+        booking={selectedInvoiceBooking}
+        isOpen={!!selectedInvoiceBooking}
+        onClose={() => setSelectedInvoiceBooking(null)}
+      />
     </div>
   );
 }

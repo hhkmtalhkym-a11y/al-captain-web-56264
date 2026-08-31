@@ -41,6 +41,7 @@ import {
   exportLeaguePdf,
   exportMatchSheetPdf,
   exportDisciplinaryReportPdf,
+  exportLeagueExcelComprehensive,
   exportToExcel,
   openWhatsAppShare,
   recalculateLeagueStandings,
@@ -304,21 +305,9 @@ export default function LeagueModal({
     setIsAwardsEditOpen(false);
   };
 
-  // Export Standings Excel
+  // Export Standings & League Multi-Sheet Excel
   const handleExportStandingsExcel = () => {
-    const data = standings.map((s) => ({
-      المركز: s.position,
-      الفريق: s.teamName,
-      لعب: s.played,
-      فاز: s.won,
-      تعادل: s.drawn,
-      خسر: s.lost,
-      'أهداف له': s.goalsFor,
-      'أهداف عليه': s.goalsAgainst,
-      'فارق الأهداف': s.goalDifference,
-      النقاط: s.points
-    }));
-    exportToExcel(data, `جدول-ترتيب-${league.name}`);
+    exportLeagueExcelComprehensive(league);
   };
 
   return (
@@ -378,14 +367,25 @@ export default function LeagueModal({
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => exportLeaguePdf(league)}
                 className="px-3 py-1.5 rounded-xl bg-[#00FFD2]/15 hover:bg-[#00FFD2]/25 text-[#00FFD2] border border-[#00FFD2]/40 text-xs font-bold transition-all flex items-center gap-1.5"
+                title="تصدير تقرير رسمي PDF"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>تقرير الدوري PDF</span>
+                <span>تقرير PDF</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportStandingsExcel}
+                className="px-3 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 text-amber-400 border border-amber-400/40 text-xs font-bold transition-all flex items-center gap-1.5"
+                title="تصدير ملف Excel شامل لجميع الجداول والبيانات"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تصدير Excel</span>
               </button>
 
               <button
