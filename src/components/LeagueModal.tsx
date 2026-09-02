@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Zap,
-  MapPin
+  MapPin,
+  BarChart3
 } from 'lucide-react';
 import {
   League,
@@ -33,8 +34,11 @@ import {
   Objection,
   UserProfile,
   PlayerDisciplinaryRecord,
+  TeamDisciplinaryRecord,
   QualifiedTeam,
-  LeagueAwards
+  LeagueAwards,
+  CardEvent,
+  SendOffEvent
 } from '../types';
 import {
   formatSYP,
@@ -46,12 +50,16 @@ import {
   openWhatsAppShare,
   recalculateLeagueStandings,
   extractLeagueDisciplinaryRecords,
+  extractLeagueTeamDisciplinaryRecords,
   extractLeagueTopScorers,
   generateRoundRobinSchedule,
   calculateQualifiedTeams
 } from '../utils/helpers';
 import RecordMatchResultModal from './RecordMatchResultModal';
 import AddLeagueMatchModal from './AddLeagueMatchModal';
+import LeagueAnalyticsCharts from './LeagueAnalyticsCharts';
+import BatchScheduleModal from './BatchScheduleModal';
+import QuickAddCardModal from './QuickAddCardModal';
 
 interface LeagueModalProps {
   league: League | null;
@@ -69,7 +77,7 @@ interface LeagueModalProps {
   onDeleteMatch?: (leagueId: string, fixtureId: string) => void;
 }
 
-type TabType = 'standings' | 'fixtures' | 'cards' | 'qualifiers' | 'objections' | 'awards' | 'rules';
+type TabType = 'standings' | 'analytics' | 'fixtures' | 'cards' | 'qualifiers' | 'objections' | 'awards' | 'rules';
 
 export default function LeagueModal({
   league,
@@ -92,10 +100,13 @@ export default function LeagueModal({
 
   const [activeTab, setActiveTab] = useState<TabType>('standings');
   const [selectedRoundFilter, setSelectedRoundFilter] = useState<string>('الكل');
+  const [cardViewMode, setCardViewMode] = useState<'teams' | 'players'>('teams');
 
   // Modals
   const [activeFixtureForEdit, setActiveFixtureForEdit] = useState<LeagueFixture | null>(null);
   const [isAddMatchOpen, setIsAddMatchOpen] = useState(false);
+  const [isBatchScheduleOpen, setIsBatchScheduleOpen] = useState(false);
+  const [isQuickAddCardOpen, setIsQuickAddCardOpen] = useState(false);
   const [selectedPlayerForCardHistory, setSelectedPlayerForCardHistory] = useState<PlayerDisciplinaryRecord | null>(null);
 
   // Objections State
@@ -121,10 +132,18 @@ export default function LeagueModal({
     );
   }, [league.fixtures, league.standings]);
 
-  // Disciplinary records
+  // Disciplinary records (players)
   const disciplinaryRecords = useMemo(() => {
     return extractLeagueDisciplinaryRecords(league.fixtures);
   }, [league.fixtures]);
+
+  // Team Disciplinary records (cumulative team fair play)
+  const teamDisciplinaryRecords = useMemo(() => {
+    return extractLeagueTeamDisciplinaryRecords(
+      league.fixtures,
+      league.standings.map((s) => s.teamName)
+    );
+  }, [league.fixtures, league.standings]);
 
   // Top scorers
   const topScorers = useMemo(() => {
@@ -200,9 +219,63 @@ export default function LeagueModal({
     setIsAddMatchOpen(false);
   };
 
+  // Handle Batch Rescheduling & Updating Fixtures
+  const handleBatchUpdateFixtures = (updatedFixtures: LeagueFixture[]) => {
+    const newStandings = recalculateLeagueStandings(
+      standings.map((s) => s.teamName),
+      updatedFixtures
+    );
+    const newQualifiers = calculateQualifiedTeams(newStandings, 4);
+
+    onUpdateLeague({
+      ...league,
+      fixtures: updatedFixtures,
+      standings: newStandings,
+      qualifiedTeams: newQualifiers
+    });
+  };
+
+  // Handle Quick Add Card to Fixture
+  const handleAddCardToFixture = (
+    fixtureId: string,
+    newCard: CardEvent,
+    sendOff?: SendOffEvent
+  ) => {
+    const updatedFixtures = league.fixtures.map((fix) => {
+      if (fix.id === fixtureId) {
+        const existingCards = fix.cards || [];
+        const updatedCards = [...existingCards, newCard];
+        let updatedSendOffs = fix.sendOffs || [];
+        if (sendOff) {
+          updatedSendOffs = [...updatedSendOffs, sendOff];
+        }
+        return {
+          ...fix,
+          cards: updatedCards,
+          sendOffs: updatedSendOffs
+        };
+      }
+      return fix;
+    });
+
+    const newStandings = recalculateLeagueStandings(
+      standings.map((s) => s.teamName),
+      updatedFixtures
+    );
+
+    onUpdateLeague({
+      ...league,
+      fixtures: updatedFixtures,
+      standings: newStandings
+    });
+  };
+
   // Handle Generate Round-Robin Schedule
   const handleGenerateSchedule = () => {
-    if (!isAdmin) return;
+    if (!canManageMatches) {
+      alert('صلاحية إنشاء جدول المباريات متاحة لمنشئ الدوري أو الأدمن');
+      return;
+    }
     const teamNames = league.standings.map((s) => s.teamName);
     if (teamNames.length < 2) {
       alert('يجب وجود فريقين على الأقل لإنشاء جدول المباريات التلقائي');
@@ -225,8 +298,8 @@ export default function LeagueModal({
 
   // Handle Delete Fixture
   const handleDeleteFixture = (fixtureId: string) => {
-    if (!isAdmin) {
-      alert('صلاحية حذف المباريات محصورة بالأدمن فقط');
+    if (!canManageMatches) {
+      alert('صلاحية حذف المباريات متاحة لمنشئ الدوري أو الأدمن فقط');
       return;
     }
 
@@ -404,7 +477,7 @@ export default function LeagueModal({
           </div>
         </div>
 
-        {/* 7 Tabs Bar */}
+        {/* Tabs Bar */}
         <div className="flex items-center gap-1 px-4 pt-3 bg-[#090d0c] border-b border-white/10 overflow-x-auto text-xs font-bold scrollbar-none">
           <button
             type="button"
@@ -417,6 +490,19 @@ export default function LeagueModal({
           >
             <Trophy className="w-4 h-4" />
             <span>جدول الترتيب</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`pb-3 px-3.5 border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'analytics'
+                ? 'border-amber-400 text-amber-400'
+                : 'border-transparent text-gray-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>الرسوم البيانية والإحصائيات</span>
           </button>
 
           <button
@@ -621,6 +707,15 @@ export default function LeagueModal({
             </div>
           )}
 
+          {/* TAB: RECHARTS ANALYTICS & GOAL/FORM DISTRIBUTION */}
+          {activeTab === 'analytics' && (
+            <LeagueAnalyticsCharts
+              standings={standings}
+              fixtures={league.fixtures}
+              teamDisciplinary={teamDisciplinaryRecords}
+            />
+          )}
+
           {/* TAB 2: FIXTURES */}
           {activeTab === 'fixtures' && (
             <div className="space-y-4">
@@ -641,7 +736,19 @@ export default function LeagueModal({
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  {canManageMatches && (
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchScheduleOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition-colors flex items-center gap-1.5"
+                      title="جدولة وتعديل مواعيد الجولات والمباريات دفعة واحدة"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>جدولة وتعديل المواعيد</span>
+                    </button>
+                  )}
+
                   {canManageMatches && (
                     <button
                       type="button"
@@ -649,7 +756,7 @@ export default function LeagueModal({
                       className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-amber-400/20"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>إضافة مباراة جديدة</span>
+                      <span>إضافة مباراة</span>
                     </button>
                   )}
 
@@ -761,6 +868,20 @@ export default function LeagueModal({
                           {canManageMatches && (
                             <button
                               type="button"
+                              onClick={() => {
+                                setIsQuickAddCardOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-xl bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 font-bold text-[11px] transition-colors border border-amber-400/30 flex items-center gap-1"
+                              title="تسجيل بطاقة / إنذار سريع للمباراة"
+                            >
+                              <span>🟨🟥</span>
+                              <span className="hidden sm:inline">إنذار سريع</span>
+                            </button>
+                          )}
+
+                          {canManageMatches && (
+                            <button
+                              type="button"
                               onClick={() => setActiveFixtureForEdit(fix)}
                               className="px-3 py-1 rounded-xl bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-black font-bold text-[11px] transition-all flex items-center gap-1 border border-amber-400/30"
                             >
@@ -792,10 +913,10 @@ export default function LeagueModal({
           {activeTab === 'cards' && (
             <div className="space-y-5">
               {/* Summary Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-gray-400 block">إجمالي البطاقات الصفراء</span>
+                    <span className="text-[11px] text-gray-400 block">إجمالي الإنذارات الصفراء</span>
                     <strong className="text-xl font-bold text-amber-300 font-mono">
                       {disciplinaryRecords.reduce((acc, r) => acc + r.yellowCardsCount, 0)}
                     </strong>
@@ -807,7 +928,7 @@ export default function LeagueModal({
 
                 <div className="p-3.5 rounded-2xl bg-red-600/10 border border-red-500/30 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-gray-400 block">إجمالي البطاقات الحمراء (طرد)</span>
+                    <span className="text-[11px] text-gray-400 block">إجمالي حالات الطرد (حمراء)</span>
                     <strong className="text-xl font-bold text-red-400 font-mono">
                       {disciplinaryRecords.reduce((acc, r) => acc + r.redCardsCount, 0)}
                     </strong>
@@ -819,7 +940,7 @@ export default function LeagueModal({
 
                 <div className="p-3.5 rounded-2xl bg-purple-600/10 border border-purple-500/30 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] text-gray-400 block">اللاعبون الموقوفون حالياً</span>
+                    <span className="text-[11px] text-gray-400 block">اللاعبون الموقوفون</span>
                     <strong className="text-xl font-bold text-purple-300 font-mono">
                       {disciplinaryRecords.filter((r) => r.isSuspended).length}
                     </strong>
@@ -828,87 +949,222 @@ export default function LeagueModal({
                     <AlertTriangle className="w-4 h-4" />
                   </div>
                 </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-gray-400 block">متصدر اللعب النظيف</span>
+                    <strong className="text-xs font-bold text-emerald-300 block truncate max-w-[100px]">
+                      {teamDisciplinaryRecords[0]?.teamName || 'غير محدد'}
+                    </strong>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <Award className="w-4 h-4" />
+                  </div>
+                </div>
               </div>
 
-              {/* Disciplinary Table Header */}
-              <div className="flex items-center justify-between bg-[#070b0a] p-3 rounded-2xl border border-white/5">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-red-400" />
-                    <span>سجل عقوبات وبطاقات اللاعبين (نظام تلقائي)</span>
-                  </h3>
-                  <p className="text-[10px] text-gray-400">
-                    القاعدة: 3 بطاقات صفراء = إيقاف مباراة واحدة تلقائياً • بطاقة حمراء مباشرة = إيقاف مباراتين.
-                  </p>
+              {/* View Switcher & Action Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#070b0a] p-3 rounded-2xl border border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 p-1 bg-[#0d1211] rounded-xl border border-white/10 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setCardViewMode('teams')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        cardViewMode === 'teams'
+                          ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <span>🏆 ترتيب انضباط الفرق (اللعب النظيف)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardViewMode('players')}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${
+                        cardViewMode === 'players'
+                          ? 'bg-amber-400 text-black shadow-md shadow-amber-400/20'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <span>👤 سجل اللاعبين والإنذارات ({disciplinaryRecords.length})</span>
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => exportDisciplinaryReportPdf(league.name, disciplinaryRecords)}
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-xs font-bold transition-colors flex items-center gap-1"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>طباعة تقرير الانضباط PDF</span>
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {canManageMatches && (
+                    <button
+                      type="button"
+                      onClick={() => setIsQuickAddCardOpen(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black transition-all flex items-center gap-1.5 shadow-md shadow-amber-400/20"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>تسجيل بطاقة جديدة 🟨🟥</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => exportDisciplinaryReportPdf(league.name, disciplinaryRecords)}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 text-xs font-bold transition-colors flex items-center gap-1"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">تقرير PDF</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#070b0a]">
-                <table className="w-full text-xs text-right">
-                  <thead>
-                    <tr className="bg-[#121c18] border-b border-white/10 text-gray-300 font-bold">
-                      <th className="py-3 px-3">اسم اللاعب</th>
-                      <th className="py-3 px-3">الفريق</th>
-                      <th className="py-3 px-3 text-center">🟨 إنذارات</th>
-                      <th className="py-3 px-3 text-center">🟥 طرد</th>
-                      <th className="py-3 px-3 text-center">حالة الأهلية والمشاركة</th>
-                      <th className="py-3 px-3 text-center">تفاصيل</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {disciplinaryRecords.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-gray-500">
-                          سجل نظيف! لم يتم تسجيل أية بطاقات في البطولة حتى الآن.
-                        </td>
+              {/* VIEW 1: TEAM FAIR PLAY CUMULATIVE STANDINGS */}
+              {cardViewMode === 'teams' && (
+                <div className="space-y-3">
+                  <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#070b0a]">
+                    <table className="w-full text-xs text-right">
+                      <thead>
+                        <tr className="bg-[#121c18] border-b border-white/10 text-gray-300 font-bold">
+                          <th className="py-3 px-3 text-center">الترتيب</th>
+                          <th className="py-3 px-3">الفريق</th>
+                          <th className="py-3 px-2 text-center">🟨 صفراء</th>
+                          <th className="py-3 px-2 text-center">🟥 حمراء</th>
+                          <th className="py-3 px-2 text-center">إجمالي البطاقات</th>
+                          <th className="py-3 px-2 text-center">نقاط الخصم النظيف</th>
+                          <th className="py-3 px-2 text-center hidden sm:table-cell">معدل/مباراة</th>
+                          <th className="py-3 px-3 text-center">الحالة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {teamDisciplinaryRecords.map((t, idx) => (
+                          <tr
+                            key={t.teamName}
+                            className={`hover:bg-white/5 transition-colors ${
+                              idx === 0 ? 'bg-emerald-500/5' : ''
+                            }`}
+                          >
+                            <td className="py-3 px-3 text-center font-mono font-bold">
+                              <span
+                                className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs ${
+                                  idx === 0
+                                    ? 'bg-emerald-500 text-black font-black shadow-md'
+                                    : 'text-gray-400'
+                                }`}
+                              >
+                                {t.rank}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
+                              <span>{t.teamName}</span>
+                              {idx === 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold">
+                                  🌟 اللعب النظيف
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold text-amber-300">
+                              {t.yellowCards}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold text-red-400">
+                              {t.redCards}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold text-white">
+                              {t.totalCards}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-bold text-purple-400">
+                              {t.fairPlayPoints} نقطة
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono text-gray-400 hidden sm:table-cell">
+                              {t.avgCardsPerMatch}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {t.totalCards === 0 ? (
+                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                                  سجل ناصع ✨
+                                </span>
+                              ) : t.redCards > 0 ? (
+                                <span className="px-2.5 py-0.5 rounded-full bg-red-600/20 text-red-400 text-[10px] font-bold">
+                                  حالات طرد مسجلة
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold">
+                                  إنذارات معتدلة
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#070b0a] border border-white/5 text-[11px] text-gray-400">
+                    <strong className="text-amber-400 font-bold block mb-0.5">
+                      نظام احتساب نقاط اللعب النظيف:
+                    </strong>
+                    <span>
+                      البطاقة الصفراء = 1 نقطة جزائية • البطاقة الحمراء المباشرة أو الطرد = 3 نقاط جزائية. الفريق الحاصل على أقل نقاط يتوج بجائزة الروح الرياضية.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 2: PLAYER DISCIPLINARY TABLE */}
+              {cardViewMode === 'players' && (
+                <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#070b0a]">
+                  <table className="w-full text-xs text-right">
+                    <thead>
+                      <tr className="bg-[#121c18] border-b border-white/10 text-gray-300 font-bold">
+                        <th className="py-3 px-3">اسم اللاعب</th>
+                        <th className="py-3 px-3">الفريق</th>
+                        <th className="py-3 px-3 text-center">🟨 إنذارات</th>
+                        <th className="py-3 px-3 text-center">🟥 طرد</th>
+                        <th className="py-3 px-3 text-center">حالة الأهلية والمشاركة</th>
+                        <th className="py-3 px-3 text-center">تفاصيل</th>
                       </tr>
-                    ) : (
-                      disciplinaryRecords.map((rec) => (
-                        <tr key={`${rec.playerName}_${rec.teamName}`} className="hover:bg-white/5 transition-colors">
-                          <td className="py-3 px-3 font-bold text-white">{rec.playerName}</td>
-                          <td className="py-3 px-3 text-gray-300">{rec.teamName}</td>
-                          <td className="py-3 px-3 text-center font-mono font-bold text-amber-300">
-                            {rec.yellowCardsCount}
-                          </td>
-                          <td className="py-3 px-3 text-center font-mono font-bold text-red-400">
-                            {rec.redCardsCount}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            {rec.isSuspended ? (
-                              <span className="px-2.5 py-1 rounded-full bg-red-600/20 text-red-400 border border-red-500/40 text-[10px] font-bold inline-flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> موقوف ({rec.suspensionMatchesRemaining} مباراة)
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold inline-flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> متاح للمشاركة
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedPlayerForCardHistory(rec)}
-                              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-gray-200 text-[11px]"
-                            >
-                              عرض السجل
-                            </button>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {disciplinaryRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-gray-500">
+                            سجل نظيف! لم يتم تسجيل أية بطاقات في البطولة حتى الآن.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        disciplinaryRecords.map((rec) => (
+                          <tr key={`${rec.playerName}_${rec.teamName}`} className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-3 font-bold text-white">{rec.playerName}</td>
+                            <td className="py-3 px-3 text-gray-300">{rec.teamName}</td>
+                            <td className="py-3 px-3 text-center font-mono font-bold text-amber-300">
+                              {rec.yellowCardsCount}
+                            </td>
+                            <td className="py-3 px-3 text-center font-mono font-bold text-red-400">
+                              {rec.redCardsCount}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {rec.isSuspended ? (
+                                <span className="px-2.5 py-1 rounded-full bg-red-600/20 text-red-400 border border-red-500/40 text-[10px] font-bold inline-flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> موقوف ({rec.suspensionMatchesRemaining} مباراة)
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold inline-flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> متاح للمشاركة
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPlayerForCardHistory(rec)}
+                                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-gray-200 text-[11px]"
+                              >
+                                عرض السجل
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {/* Player Card History Modal */}
               {selectedPlayerForCardHistory && (
@@ -1540,6 +1796,26 @@ export default function LeagueModal({
           league={league}
           onClose={() => setIsAddMatchOpen(false)}
           onAddFixture={handleAddFixture}
+        />
+      )}
+
+      {/* Batch Schedule Modal for Admins/Organizers */}
+      {isBatchScheduleOpen && (
+        <BatchScheduleModal
+          isOpen={isBatchScheduleOpen}
+          league={league}
+          onClose={() => setIsBatchScheduleOpen(false)}
+          onUpdateFixtures={handleBatchUpdateFixtures}
+        />
+      )}
+
+      {/* Quick Add Yellow/Red Card Modal */}
+      {isQuickAddCardOpen && (
+        <QuickAddCardModal
+          isOpen={isQuickAddCardOpen}
+          league={league}
+          onClose={() => setIsQuickAddCardOpen(false)}
+          onAddCardToFixture={handleAddCardToFixture}
         />
       )}
     </div>

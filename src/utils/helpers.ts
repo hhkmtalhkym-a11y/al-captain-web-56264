@@ -8,6 +8,7 @@ import {
   LeagueFixture,
   TeamStanding,
   PlayerDisciplinaryRecord,
+  TeamDisciplinaryRecord,
   GoalEvent,
   CardEvent,
   QualifiedTeam
@@ -659,6 +660,64 @@ export function extractLeagueDisciplinaryRecords(fixtures: LeagueFixture[]): Pla
     }
     return rec;
   });
+}
+
+/**
+ * Extract Cumulative Disciplinary Statistics per Team (Fair Play Ranking)
+ */
+export function extractLeagueTeamDisciplinaryRecords(
+  fixtures: LeagueFixture[],
+  teamNames: string[]
+): TeamDisciplinaryRecord[] {
+  const map: Record<string, { yellow: number; red: number; matches: number }> = {};
+
+  teamNames.forEach((t) => {
+    map[t] = { yellow: 0, red: 0, matches: 0 };
+  });
+
+  fixtures.forEach((fix) => {
+    if (map[fix.teamA]) map[fix.teamA].matches += fix.isFinished ? 1 : 0;
+    if (map[fix.teamB]) map[fix.teamB].matches += fix.isFinished ? 1 : 0;
+
+    (fix.cards || []).forEach((c) => {
+      const team = c.team.trim();
+      if (!map[team]) {
+        map[team] = { yellow: 0, red: 0, matches: 0 };
+      }
+      if (c.cardType === 'صفراء') {
+        map[team].yellow += 1;
+      } else if (c.cardType === 'حمراء') {
+        map[team].red += 1;
+      }
+    });
+  });
+
+  const records: TeamDisciplinaryRecord[] = Object.entries(map).map(([teamName, data]) => {
+    const totalCards = data.yellow + data.red;
+    const fairPlayPoints = data.yellow * 1 + data.red * 3; // 1 pt per yellow, 3 pts per red
+    const matchesPlayed = Math.max(1, data.matches);
+    const avgCardsPerMatch = Number((totalCards / matchesPlayed).toFixed(2));
+
+    return {
+      teamName,
+      yellowCards: data.yellow,
+      redCards: data.red,
+      totalCards,
+      fairPlayPoints,
+      matchesPlayed: data.matches,
+      avgCardsPerMatch,
+      rank: 1
+    };
+  });
+
+  // Sort by fair play points ascending (cleanest team first)
+  records.sort((a, b) => a.fairPlayPoints - b.fairPlayPoints || a.redCards - b.redCards || a.yellowCards - b.yellowCards);
+
+  records.forEach((r, idx) => {
+    r.rank = idx + 1;
+  });
+
+  return records;
 }
 
 /**

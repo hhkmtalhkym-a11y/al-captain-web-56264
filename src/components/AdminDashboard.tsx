@@ -37,7 +37,10 @@ import {
   MoveDown,
   Image as ImageIcon,
   UserPlus,
-  X
+  X,
+  BellRing,
+  Send,
+  Volume2
 } from 'lucide-react';
 import {
   Playground,
@@ -69,6 +72,11 @@ import {
   saveToLocalStorage,
   readImageAsBase64
 } from '../utils/helpers';
+import {
+  notifyAdminBroadcast,
+  playNotificationSound,
+  sendBrowserPushNotification
+} from '../utils/notificationService';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -133,6 +141,7 @@ export interface AuditLogItem {
 type AdminTab =
   | 'overview'
   | 'slider'
+  | 'broadcast'
   | 'global_management'
   | 'users'
   | 'charts'
@@ -546,6 +555,95 @@ export default function AdminDashboard({
     alert(`تمت إضافة المستخدم "${newUser.name}" وتعيين دوره بنجاح.`);
   };
 
+  // Broadcast & Push Notification State & Handlers
+  const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'specific'>('all');
+  const [broadcastRecipientId, setBroadcastRecipientId] = useState<string>('');
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastType, setBroadcastType] = useState<'system' | 'booking' | 'match' | 'league' | 'academy' | 'offer' | 'admin'>('system');
+  const [broadcastPriority, setBroadcastPriority] = useState<'normal' | 'high' | 'urgent'>('normal');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+  const [broadcastSuccessNotice, setBroadcastSuccessNotice] = useState(false);
+  const [broadcastHistory, setBroadcastHistory] = useState<Array<{
+    id: string;
+    title: string;
+    message: string;
+    target: 'all' | 'specific';
+    recipientName?: string;
+    type: string;
+    priority: string;
+    timestamp: string;
+  }>>(() => {
+    return loadFromLocalStorage('kaptan_broadcast_history', [
+      {
+        id: 'bc-1',
+        title: '🏆 انطلاق التسجيل في بطولة دمشق الكبرى للصالات 2026',
+        message: 'تم فتح باب التسجيل لكافة الفرق في جميع المحافظات بجوائز نقدية كبرى!',
+        target: 'all',
+        type: 'league',
+        priority: 'high',
+        timestamp: 'أمس، 06:00 م'
+      }
+    ]);
+  });
+
+  const handleSendAdminBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      alert('يرجى إدخال عنوان ونص الإشعار / التنبيه.');
+      return;
+    }
+
+    if (broadcastTarget === 'specific' && !broadcastRecipientId) {
+      alert('يرجى اختيار المستخدم أو الكابتن المستلم.');
+      return;
+    }
+
+    setIsSendingBroadcast(true);
+
+    const recipientUser = usersList.find((u) => u.id === broadcastRecipientId || u.phone === broadcastRecipientId);
+
+    const newNotif = await notifyAdminBroadcast({
+      title: broadcastTitle.trim(),
+      message: broadcastMessage.trim(),
+      recipientId: broadcastTarget === 'specific' ? broadcastRecipientId : undefined,
+      recipientName: recipientUser?.name,
+      type: (broadcastType === 'offer' ? 'admin' : broadcastType) as any,
+      priority: broadcastPriority
+    });
+
+    const newHistoryItem = {
+      id: newNotif.id,
+      title: broadcastTitle.trim(),
+      message: broadcastMessage.trim(),
+      target: broadcastTarget,
+      recipientName: recipientUser?.name || (broadcastTarget === 'all' ? 'جميع المستخدمين واللاعبين' : broadcastRecipientId),
+      type: broadcastType,
+      priority: broadcastPriority,
+      timestamp: 'الآن'
+    };
+
+    const updatedHistory = [newHistoryItem, ...broadcastHistory];
+    setBroadcastHistory(updatedHistory);
+    saveToLocalStorage('kaptan_broadcast_history', updatedHistory);
+
+    const newLog: AuditLogItem = {
+      id: `log-${Date.now()}`,
+      type: 'security',
+      title: `إرسال إشعار ${broadcastTarget === 'all' ? 'جماعي لكافة المستخدمين' : `فردي لـ ${recipientUser?.name || broadcastRecipientId}`}`,
+      description: `العنوان: "${broadcastTitle}" - الأولوية: ${broadcastPriority}`,
+      performedBy: 'كابتن عامر (Admin)',
+      timestamp: 'الآن'
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+
+    setIsSendingBroadcast(false);
+    setBroadcastSuccessNotice(true);
+    setBroadcastTitle('');
+    setBroadcastMessage('');
+    setTimeout(() => setBroadcastSuccessNotice(false), 4000);
+  };
+
   const handleChangeUserRole = (userId: string, newRole: AdminUserRole) => {
     const targetUser = usersList.find((u) => u.id === userId);
     setUsersList((prev) =>
@@ -759,6 +857,7 @@ export default function AdminDashboard({
       <div className="bg-[#0d1211] p-2 rounded-2xl border border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
         {[
           { id: 'overview', label: 'نظرة عامة والتقارير', icon: BarChart3 },
+          { id: 'broadcast', label: 'إرسال التنبيهات والإشعارات 🔔', icon: BellRing },
           { id: 'slider', label: `لوحة تحكم السلايدر (${slidesList.length})`, icon: Sliders },
           { id: 'users', label: `إدارة وتعيين الأدوار (${usersList.length})`, icon: Users },
           { id: 'global_management', label: `الإدارة الشاملة والتدقيق (${auditLogs.length})`, icon: Activity },
@@ -847,6 +946,284 @@ export default function AdminDashboard({
               >
                 <Plus className="w-3.5 h-3.5" /> إضافة مباراة ودية
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Broadcast & Targeted Notifications (Admin Only) */}
+      {activeTab === 'broadcast' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header Banner */}
+          <div className="bg-[#0d1211] border-2 border-[#00FFD2]/40 rounded-3xl p-6 glow-primary relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-3 py-1 rounded-full bg-[#00FFD2] text-black font-black text-xs">
+                    ميزة الإدارة العليا 🔔
+                  </span>
+                  <span className="text-xs text-gray-400 font-mono">
+                    Firebase Cloud Messaging & Live Alerts
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-['Cairo'] flex items-center gap-2">
+                  <BellRing className="w-6 h-6 text-[#00FFD2]" />
+                  مركز إرسال التنبيهات والإشعارات (جماعي وفردي)
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1 max-w-2xl">
+                  أرسل تنبيهات فورية تظهر مباشرة في درج إشعارات المستخدمين مع صوت تنبيهي وتنبيه المتصفح الفوري (Push Notification).
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playNotificationSound();
+                    sendBrowserPushNotification('تجربة صوت التنبيه', { body: 'تم تشغيل نغمة الإشعارات بنجاح!' });
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center gap-1.5 border border-white/10"
+                >
+                  <Volume2 className="w-4 h-4 text-[#00FFD2]" />
+                  <span>اختبار نغمة التنبيه</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Success Banner */}
+          {broadcastSuccessNotice && (
+            <div className="bg-emerald-500/20 border-2 border-emerald-500/50 rounded-2xl p-4 flex items-center gap-3 text-emerald-300 text-sm font-bold animate-fadeIn">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>تم إرسال التنبيه الفوري بنجاح ووصل لدرج إشعارات المستخدمين! 🚀</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Create & Send Form */}
+            <div className="lg:col-span-2 bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-5">
+              <h4 className="text-base font-bold text-white flex items-center gap-2 font-['Cairo']">
+                <Send className="w-5 h-5 text-[#ff2a5f]" />
+                إنشاء تنبيه أو إشعار جديد
+              </h4>
+
+              {/* Quick Template Tags */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-gray-400 font-semibold block">قوالب وعناوين سريعة:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '🏆 بطولة دوري جديدة', title: '🏆 انطلاق التسجيل في بطولة كروية كبرى', msg: 'تم فتح باب التسجيل لكافة الفرق، سارع بحجز مقعد فريقك قبل اكتمال العدد!', type: 'league' },
+                    { label: '📢 إشعار إداري هام', title: '📢 تنبيه هام من إدارة منصة كابتن سوريا', msg: 'يرجى مراجعة بيانات الحجز والتأكد من التواجد في الموعد المحدد.', type: 'admin' },
+                    { label: '⚡ تحدي كروي ومباراة', title: '⚡ مباراة ودية متاحة في منطقتك', msg: 'فريق كروي يبحث عن منافس للتحدي هذا الأسبوع! تصفح قسم المباريات الآن.', type: 'match' },
+                    { label: '🏷️ خصم خاص على الملاعب', title: '🏷️ عروض وتخفيضات خاصة على الملاعب', msg: 'استفد من حسومات خاصة على حجوزات الملاعب المسائية لهذا الأسبوع.', type: 'offer' }
+                  ].map((tpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setBroadcastTitle(tpl.title);
+                        setBroadcastMessage(tpl.msg);
+                        setBroadcastType(tpl.type as any);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-[11px] border border-white/10 transition-colors"
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleSendAdminBroadcast} className="space-y-4">
+                {/* Target Selection: All vs Specific */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-2">نوع التوجيه والمستلمين:</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBroadcastTarget('all');
+                        setBroadcastRecipientId('');
+                      }}
+                      className={`p-3 rounded-2xl border text-right transition-all flex items-center justify-between ${
+                        broadcastTarget === 'all'
+                          ? 'bg-[#00FFD2]/10 border-[#00FFD2] text-white shadow-lg shadow-[#00FFD2]/10'
+                          : 'bg-[#050707] border-white/10 text-gray-400 hover:border-white/20'
+                      }`}
+                    >
+                      <div>
+                        <strong className="block text-xs font-bold text-white">تنبيه جماعي عام (Broadcast)</strong>
+                        <span className="text-[10px] text-gray-400">يصل لجميع المستخدمين واللاعبين والمنظمين</span>
+                      </div>
+                      <Users className="w-5 h-5 text-[#00FFD2] shrink-0" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBroadcastTarget('specific')}
+                      className={`p-3 rounded-2xl border text-right transition-all flex items-center justify-between ${
+                        broadcastTarget === 'specific'
+                          ? 'bg-[#ff2a5f]/10 border-[#ff2a5f] text-white shadow-lg shadow-[#ff2a5f]/10'
+                          : 'bg-[#050707] border-white/10 text-gray-400 hover:border-white/20'
+                      }`}
+                    >
+                      <div>
+                        <strong className="block text-xs font-bold text-white">تنبيه فردي مخصص (Targeted)</strong>
+                        <span className="text-[10px] text-gray-400">يصل لمستخدم أو كابتن محدد بعينه</span>
+                      </div>
+                      <Shield className="w-5 h-5 text-[#ff2a5f] shrink-0" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* If specific user, show user picker */}
+                {broadcastTarget === 'specific' && (
+                  <div className="p-3 bg-[#050707] border border-white/10 rounded-2xl space-y-2">
+                    <label className="block text-xs font-bold text-gray-300">
+                      اختر المستخدم أو الكابتن المستهدف ({usersList.length} مستخدم مسجل):
+                    </label>
+                    <select
+                      value={broadcastRecipientId}
+                      onChange={(e) => setBroadcastRecipientId(e.target.value)}
+                      required={broadcastTarget === 'specific'}
+                      className="w-full bg-[#0d1211] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff2a5f]"
+                    >
+                      <option value="">-- اضغط لاختيار المستخدم أو الكابتن --</option>
+                      {usersList.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.role}) - جوال: {u.phone} - {u.governorate}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Category & Priority */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-300 font-semibold mb-1">تصنيف الإشعار:</label>
+                    <select
+                      value={broadcastType}
+                      onChange={(e) => setBroadcastType(e.target.value as any)}
+                      className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-[#00FFD2]"
+                    >
+                      <option value="system">إشعار نظام عام (System)</option>
+                      <option value="booking">حجوزات ملاعب (Booking)</option>
+                      <option value="match">مباريات وتحديات (Match)</option>
+                      <option value="league">دوريات وبطولات (League)</option>
+                      <option value="academy">أكاديميات وتدريب (Academy)</option>
+                      <option value="offer">عروض وتخفيضات (Offer)</option>
+                      <option value="admin">توجيه إداري مباشر (Admin)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-300 font-semibold mb-1">درجة الأهمية والتنبيه:</label>
+                    <select
+                      value={broadcastPriority}
+                      onChange={(e) => setBroadcastPriority(e.target.value as any)}
+                      className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-[#00FFD2]"
+                    >
+                      <option value="normal">عادي (Normal Notification)</option>
+                      <option value="high">مرتفع - تنبيه صوتي (High Priority)</option>
+                      <option value="urgent">عاجل جداً - وميض وتنبيه صوتي (Urgent Alert)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="block text-xs text-gray-300 font-semibold mb-1">عنوان الإشعار:</label>
+                  <input
+                    type="text"
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="مثال: 🏆 انطلاق التسجيل في بطولة رمضان الكبرى للصالات"
+                    required
+                    className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="block text-xs text-gray-300 font-semibold mb-1">نص ومحتوى التنبيه:</label>
+                  <textarea
+                    rows={4}
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    placeholder="اكتب التفاصيل الكاملة للتنبيه هنا..."
+                    required
+                    className="w-full bg-[#050707] border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs focus:outline-none focus:border-[#00FFD2]"
+                  />
+                </div>
+
+                {/* Submit */}
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="submit"
+                    disabled={isSendingBroadcast}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#00FFD2] to-emerald-400 text-black font-black text-xs flex items-center gap-2 glow-primary shadow-xl hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>{isSendingBroadcast ? 'جاري الإرسال...' : 'إرسال التنبيه الفوري الآن'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* History of Sent Broadcasts */}
+            <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4 flex flex-col">
+              <div className="flex items-center justify-between">
+                <h4 className="text-base font-bold text-white flex items-center gap-2 font-['Cairo']">
+                  <Clock className="w-5 h-5 text-amber-400" />
+                  سجل التنبيهات المرسلة ({broadcastHistory.length})
+                </h4>
+                {broadcastHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('هل تريد مسح سجل التنبيهات؟')) {
+                        setBroadcastHistory([]);
+                        saveToLocalStorage('kaptan_broadcast_history', []);
+                      }
+                    }}
+                    className="text-[10px] text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    مسح السجل
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3 overflow-y-auto max-h-[500px] scrollbar-thin pr-1 flex-1">
+                {broadcastHistory.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 text-xs">
+                    لم يتم إرسال أي تنبيهات بعد.
+                  </div>
+                ) : (
+                  broadcastHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-2xl bg-[#050707] border border-white/10 space-y-2 hover:border-white/20 transition-all"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            item.target === 'all'
+                              ? 'bg-[#00FFD2]/10 text-[#00FFD2] border border-[#00FFD2]/30'
+                              : 'bg-[#ff2a5f]/10 text-[#ff2a5f] border border-[#ff2a5f]/30'
+                          }`}
+                        >
+                          {item.target === 'all' ? '📢 جماعي (الكل)' : `🎯 فردي: ${item.recipientName || 'مستخدم'}`}
+                        </span>
+
+                        <span className="text-[10px] text-gray-400 font-mono">{item.timestamp}</span>
+                      </div>
+
+                      <h5 className="text-xs font-bold text-white">{item.title}</h5>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">{item.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

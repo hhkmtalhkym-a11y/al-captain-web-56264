@@ -340,6 +340,17 @@ export interface PlayerDisciplinaryRecord {
   }[];
 }
 
+export interface TeamDisciplinaryRecord {
+  teamName: string;
+  yellowCards: number;
+  redCards: number;
+  totalCards: number;
+  fairPlayPoints: number; // 1 for yellow, 3 for red
+  matchesPlayed: number;
+  avgCardsPerMatch: number;
+  rank: number;
+}
+
 export interface ObjectionCase {
   id: string;
   leagueId: string;

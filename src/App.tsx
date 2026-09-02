@@ -72,6 +72,12 @@ import {
   formatSYP,
   openWhatsAppShare
 } from './utils/helpers';
+import {
+  notifyBookingDecision,
+  notifyMatchJoinDecision,
+  notifyAcademyRegistrationDecision,
+  notifyLeagueTeamDecision
+} from './utils/notificationService';
 
 // Components
 import SplashScreen from './components/SplashScreen';
@@ -556,6 +562,7 @@ function MainApp() {
     status: BookingStatus,
     paymentStatus?: 'مدفوع' | 'غير مدفوع' | 'قيد الانتظار'
   ) => {
+    const targetBooking = bookings.find((b) => b.id === bookingId);
     setBookings((prev) =>
       prev.map((b) =>
         b.id === bookingId
@@ -563,6 +570,21 @@ function MainApp() {
           : b
       )
     );
+
+    if (targetBooking && (status === 'مؤكد' || status === 'ملغي')) {
+      notifyBookingDecision({
+        userId: targetBooking.userId || 'all',
+        userName: targetBooking.userName || 'كابتن المنصة',
+        playgroundName: targetBooking.playgroundName,
+        referenceNumber: targetBooking.referenceNumber,
+        timeSlot: targetBooking.timeSlot,
+        dates: targetBooking.selectedDates,
+        isApproved: status === 'مؤكد'
+      }).then((notif) => {
+        setNotifications((prev) => [notif, ...prev]);
+      });
+    }
+
     try {
       const updateData: any = { status };
       if (paymentStatus) {
@@ -757,6 +779,7 @@ function MainApp() {
     status: RegistrationStatus,
     rejectionReason?: string
   ) => {
+    const targetReg = academyRegistrations.find((r) => r.id === regId);
     setAcademyRegistrations((prev) =>
       prev.map((r) =>
         r.id === regId
@@ -764,6 +787,20 @@ function MainApp() {
           : r
       )
     );
+
+    if (targetReg && (status === 'مؤكد' || status === 'مرفوض')) {
+      notifyAcademyRegistrationDecision({
+        userId: targetReg.userId || 'all',
+        studentName: targetReg.studentName,
+        parentName: targetReg.parentName,
+        academyName: targetReg.academyName,
+        isApproved: status === 'مؤكد',
+        rejectionReason
+      }).then((notif) => {
+        setNotifications((prev) => [notif, ...prev]);
+      });
+    }
+
     try {
       await updateDoc(doc(db, 'academy_registrations', regId), {
         status,
@@ -804,7 +841,6 @@ function MainApp() {
     rejectionReason?: string
   ) => {
     const targetMatch = friendlyMatches.find((m) => m.id === matchId);
-    const oldStatus = targetMatch?.status;
 
     setFriendlyMatches((prev) =>
       prev.map((m) =>
@@ -814,36 +850,20 @@ function MainApp() {
       )
     );
 
-    // If status changed to 'مقبولة' or 'مؤكد' (e.g. from 'قيد الانتظار'), trigger a notification!
-    if (
-      (status === 'مقبولة' || status === 'مؤكد') &&
-      oldStatus !== 'مقبولة' &&
-      oldStatus !== 'مؤكد'
-    ) {
-      const targetTitle = targetMatch
-        ? `تم قبول وتأكيد المباراة: ${targetMatch.hostTeamName} ضد ${targetMatch.opponentTeamName || 'المتحدي'} ⚽`
-        : `تم قبول المباراة وتأكيد موعدها بنجاح! ⚽`;
-
-      const targetMessage = targetMatch
-        ? `قام المدير بقبول المباراة وتأكيد الموعد على ${targetMatch.venueName} (${targetMatch.governorate}) بتاريخ ${targetMatch.date} الساعة ${targetMatch.time}.`
-        : `قام المدير بتغيير حالة المباراة من 'قيد الانتظار' إلى 'مقبولة'.`;
-
-      const newNotif: AppNotification = {
-        id: `notif-match-accepted-${Date.now()}`,
-        title: targetTitle,
-        message: targetMessage,
-        date: 'الآن',
-        isRead: false,
-        type: 'match'
-      };
-
-      setNotifications((prev) => [newNotif, ...prev]);
-
-      try {
-        await setDoc(doc(db, 'notifications', newNotif.id), newNotif, { merge: true });
-      } catch (e) {
-        console.warn('Firestore notification error:', e);
-      }
+    if (targetMatch && (status === 'مقبولة' || status === 'مؤكد' || status === 'ملغي')) {
+      notifyMatchJoinDecision({
+        applicantUserId: targetMatch.organizerPhone || 'all',
+        applicantName: targetMatch.opponentCaptainName || targetMatch.opponentTeamName || 'الكابتن المتحدي',
+        hostTeamName: targetMatch.hostTeamName,
+        opponentTeamName: targetMatch.opponentTeamName || 'الفريق المنافس',
+        venueName: targetMatch.venueName,
+        date: targetMatch.date,
+        time: targetMatch.time,
+        isApproved: status === 'مقبولة' || status === 'مؤكد',
+        rejectionReason
+      }).then((notif) => {
+        setNotifications((prev) => [notif, ...prev]);
+      });
     }
 
     try {
