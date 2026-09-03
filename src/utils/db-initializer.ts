@@ -6,7 +6,8 @@ import {
   getDocs,
   setDoc,
   query,
-  limit
+  limit,
+  writeBatch
 } from 'firebase/firestore';
 import {
   INITIAL_PLAYGROUNDS,
@@ -15,6 +16,7 @@ import {
   INITIAL_FRIENDLY_MATCHES as INITIAL_MATCHES,
   INITIAL_PLAYER_CVS
 } from '../constants/syrianData';
+import { getDeletedItemIds } from './deletionRegistry';
 
 export const REQUIRED_COLLECTIONS = [
   'users',
@@ -28,7 +30,8 @@ export const REQUIRED_COLLECTIONS = [
   'friendlyMatches',
   'notifications',
   'adminRequests',
-  'activityLogs'
+  'activityLogs',
+  'deletedRecords'
 ] as const;
 
 export const DEFAULT_ADMIN_USER = {
@@ -80,29 +83,35 @@ export async function initializeDatabase(): Promise<{ success: boolean; message:
 
         if (snap.empty) {
           console.log(`ℹ️ [DB-Initializer] Collection "${colName}" is empty. Bootstrapping baseline schema...`);
+          const deletedIds = getDeletedItemIds();
 
           if (colName === 'playgrounds' && INITIAL_PLAYGROUNDS?.length > 0) {
             for (const pg of INITIAL_PLAYGROUNDS.slice(0, 3)) {
+              if (deletedIds.has(pg.id)) continue; // Never resurrect deleted items
               await setDoc(doc(db, colName, pg.id), pg, { merge: true });
               seededCount++;
             }
           } else if (colName === 'leagues' && INITIAL_LEAGUES?.length > 0) {
             for (const lg of INITIAL_LEAGUES.slice(0, 2)) {
+              if (deletedIds.has(lg.id)) continue;
               await setDoc(doc(db, colName, lg.id), lg, { merge: true });
               seededCount++;
             }
           } else if (colName === 'academies' && INITIAL_ACADEMIES?.length > 0) {
             for (const aca of INITIAL_ACADEMIES.slice(0, 2)) {
+              if (deletedIds.has(aca.id)) continue;
               await setDoc(doc(db, colName, aca.id), aca, { merge: true });
               seededCount++;
             }
           } else if (colName === 'friendlyMatches' && INITIAL_MATCHES?.length > 0) {
             for (const fm of INITIAL_MATCHES.slice(0, 2)) {
+              if (deletedIds.has(fm.id)) continue;
               await setDoc(doc(db, colName, fm.id), fm, { merge: true });
               seededCount++;
             }
           } else if (colName === 'playerCards' && INITIAL_PLAYER_CVS?.length > 0) {
             for (const pc of INITIAL_PLAYER_CVS.slice(0, 2)) {
+              if (deletedIds.has(pc.id)) continue;
               await setDoc(doc(db, colName, pc.id), pc, { merge: true });
               seededCount++;
             }
@@ -150,6 +159,71 @@ export async function initializeDatabase(): Promise<{ success: boolean; message:
       success: false,
       message: error?.message || 'فشل في تهيئة قاعدة البيانات',
       seededCount: 0
+    };
+  }
+}
+
+/**
+ * Uploads and synchronizes all active collections and tabs to Firestore as batches.
+ * Synchronizes: playgrounds, bookings, leagues, academies, academyRegistrations, friendlyMatches, playerCards, users.
+ * Automatically filters out any deleted items.
+ */
+export async function syncAllCollectionsToFirestore(data: {
+  playgrounds?: any[];
+  bookings?: any[];
+  leagues?: any[];
+  academies?: any[];
+  academyRegistrations?: any[];
+  friendlyMatches?: any[];
+  playerCvs?: any[];
+  users?: any[];
+}): Promise<{ success: boolean; syncedCount: number; message: string }> {
+  try {
+    const deletedIds = getDeletedItemIds();
+    let syncedCount = 0;
+
+    const collectionsToSync: { name: string; items: any[] }[] = [
+      { name: 'playgrounds', items: data.playgrounds || [] },
+      { name: 'bookings', items: data.bookings || [] },
+      { name: 'leagues', items: data.leagues || [] },
+      { name: 'academies', items: data.academies || [] },
+      { name: 'academyRegistrations', items: data.academyRegistrations || [] },
+      { name: 'friendlyMatches', items: data.friendlyMatches || [] },
+      { name: 'playerCards', items: data.playerCvs || [] },
+      { name: 'users', items: data.users || [] }
+    ];
+
+    for (const col of collectionsToSync) {
+      if (!col.items || col.items.length === 0) continue;
+
+      // Process in chunks of 20 using writeBatch
+      const validItems = col.items.filter((item) => item?.id && !deletedIds.has(item.id));
+      for (let i = 0; i < validItems.length; i += 20) {
+        const chunk = validItems.slice(i, i + 20);
+        const batch = writeBatch(db);
+
+        for (const item of chunk) {
+          const docRef = doc(db, col.name, item.id);
+          batch.set(docRef, item, { merge: true });
+          syncedCount++;
+        }
+
+        await batch.commit();
+      }
+    }
+
+    console.log(`✅ [DB-Sync] Successfully synchronized ${syncedCount} records across all Firestore collections.`);
+    return {
+      success: true,
+      syncedCount,
+      message: `تم رفع ومزامنة ${syncedCount} سجلاً بنجاح عبر كافة أقسام ومجموعات Firebase Firestore.`
+    };
+  } catch (error: any) {
+    console.error('❌ [DB-Sync] Sync failed:', error);
+    return {
+      success: false,
+      syncedCount: 0,
+      message: `حدث خطأ أثناء المزامنة: ${error?.message || 'تعذر الاتصال بقاعدة البيانات'}`
     };
   }
 }

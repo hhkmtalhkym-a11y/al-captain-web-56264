@@ -474,6 +474,36 @@ export interface SportLogoItem {
   iconName?: string;
 }
 
+export interface AcademyMember {
+  id: string;
+  fullName: string; // الاسم الثلاثي
+  birthDate: string; // المواليد (مثال: 2014-05-15)
+  birthYear?: number; // سنة الميلاد
+  age?: number; // العمر
+  ageGroupMin: number; // الفئة العمرية من
+  ageGroupMax: number; // الفئة العمرية إلى
+  ageGroupLabel?: string; // مسمى الفئة (مثلاً: أشبال 9 - 12 سنة)
+  installmentStatus: 'مدفوع' | 'غير مدفوع' | 'مسدد جزئياً'; // تسديد القسط
+  installmentAmount?: number; // قيمة القسط
+  installmentDate?: string; // تاريخ التسديد
+  paymentMethod?: string; // وسيلة الدفع
+  residence: string; // السكن (المحافظة / المدينة / الحي)
+  phone: string; // رقم الجوال
+  // معلومات شخصية وخاصة باللاعب:
+  position?: PlayerPosition | string; // مركز اللعب
+  preferredFoot?: PreferredFoot | string; // القدم المفضلة
+  height?: number; // الطول (سم)
+  weight?: number; // الوزن (كغ)
+  bloodType?: string; // زمرة الدم
+  medicalNotes?: string; // معلومات صحية
+  emergencyContact?: string; // هاتف الطوارئ
+  personalNotes?: string; // ملاحظات شخصية وخاصة باللاعب
+  jerseyNumber?: number; // رقم القميص
+  photo?: string; // صورة اللاعب
+  joinedDate: string; // تاريخ الانتساب
+  registrationId?: string; // معرف طلب التسجيل التلقائي
+}
+
 export interface AcademyRegistration {
   id: string;
   academyId: string;
@@ -510,6 +540,7 @@ export interface Academy {
   locationDetails: string;
   latitude: number;
   longitude: number;
+  ownerId?: string;
   mainCoach: string;
   contactPhone: string;
   monthlyFee: number;
@@ -530,6 +561,7 @@ export interface Academy {
     allowShamCash: boolean;
     shamCashAccount?: string;
   };
+  members?: AcademyMember[]; // قائمة وجدول المنتسبين للأكاديمية
   status: 'نشط' | 'معلق';
   createdAt: string;
 }

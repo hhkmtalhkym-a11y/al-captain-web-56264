@@ -31,6 +31,7 @@ import {
 import {
   League,
   LeagueFixture,
+  TeamStanding,
   Objection,
   UserProfile,
   PlayerDisciplinaryRecord,
@@ -122,6 +123,59 @@ export default function LeagueModal({
   // Awards Edit Modal State
   const [isAwardsEditOpen, setIsAwardsEditOpen] = useState(false);
   const [editedAwards, setEditedAwards] = useState<LeagueAwards>(league.awards || {});
+
+  // Add Team to League State
+  const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+
+  // Handle Add New Team to League
+  const handleAddNewTeam = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newTeamName.trim();
+    if (!trimmed) return;
+    if (league.standings.some((s) => s.teamName.toLowerCase() === trimmed.toLowerCase())) {
+      alert('هذا الفريق موجود بالفعل في جدول الفرق');
+      return;
+    }
+    const newStanding: TeamStanding = {
+      position: league.standings.length + 1,
+      teamName: trimmed,
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDifference: 0,
+      points: 0,
+      form: []
+    };
+    const updatedStandings = [...league.standings, newStanding];
+    const updatedLeague: League = {
+      ...league,
+      standings: updatedStandings,
+      teamsCount: Math.max(league.teamsCount || 0, updatedStandings.length)
+    };
+    onUpdateLeague(updatedLeague);
+    setNewTeamName('');
+    setIsAddTeamOpen(false);
+  };
+
+  // Handle Delete Team from League
+  const handleDeleteTeam = (teamName: string) => {
+    if (!canManageMatches) return;
+    if (window.confirm(`هل أنت متأكد من حذف فريق "${teamName}" من الدوري نهائياً؟`)) {
+      const updatedStandings = league.standings
+        .filter((s) => s.teamName !== teamName)
+        .map((s, idx) => ({ ...s, position: idx + 1 }));
+      const updatedLeague: League = {
+        ...league,
+        standings: updatedStandings,
+        teamsCount: Math.max(0, updatedStandings.length)
+      };
+      onUpdateLeague(updatedLeague);
+    }
+  };
 
   // Standings recalculation
   const standings = useMemo(() => {
@@ -601,6 +655,17 @@ export default function LeagueModal({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {canManageMatches && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddTeamOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold transition-colors flex items-center gap-1 shadow-md shadow-amber-400/20"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة فريق للدوري</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleExportStandingsExcel}
@@ -628,6 +693,7 @@ export default function LeagueModal({
                       <th className="py-3 px-2 text-center font-mono">الفارق</th>
                       <th className="py-3 px-3 text-center text-amber-400 font-mono font-black">النقاط</th>
                       <th className="py-3 px-3 text-center hidden md:table-cell">آخر 5</th>
+                      {canManageMatches && <th className="py-3 px-2 text-center">إدارة</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -693,6 +759,18 @@ export default function LeagueModal({
                             ))}
                           </div>
                         </td>
+                        {canManageMatches && (
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTeam(team.teamName)}
+                              className="p-1 rounded-lg bg-red-950/40 hover:bg-red-900 text-red-400 transition-colors"
+                              title="إزالة الفريق من الدوري"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -760,14 +838,14 @@ export default function LeagueModal({
                     </button>
                   )}
 
-                  {isAdmin && (
+                  {canManageMatches && (
                     <button
                       type="button"
                       onClick={handleGenerateSchedule}
                       className="px-3 py-1.5 rounded-xl bg-[#00FFD2]/15 hover:bg-[#00FFD2]/25 text-[#00FFD2] border border-[#00FFD2]/30 text-xs font-bold transition-colors flex items-center gap-1.5"
                     >
                       <Zap className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">إنشاء جدول تلقائي</span>
+                      <span className="hidden sm:inline">إنشاء جدول مواعيد تلقائي</span>
                     </button>
                   )}
                 </div>
@@ -1817,6 +1895,69 @@ export default function LeagueModal({
           onClose={() => setIsQuickAddCardOpen(false)}
           onAddCardToFixture={handleAddCardToFixture}
         />
+      )}
+
+      {/* Add Team Modal */}
+      {isAddTeamOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setIsAddTeamOpen(false)}
+        >
+          <div
+            className="bg-[#0d1211] border border-amber-400/40 rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>إضافة فريق جديد للدوري</span>
+              </h4>
+              <button
+                type="button"
+                onClick={() => setIsAddTeamOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNewTeam} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-300 font-bold block">اسم الفريق *</label>
+                <input
+                  type="text"
+                  required
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="مثال: نسور قاسيون، أهلي حلب، صقور بردى..."
+                  className="w-full bg-[#070b0a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                  autoFocus
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-200 text-[11px] leading-relaxed">
+                ℹ️ سيتم إدراج الفريق مباشرة في جدول الترتيب الرسمي، وسيكون جاهزاً لإضافته في مباريات وجداول البطولة القادمة.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsAddTeamOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-bold shadow-md shadow-amber-400/25 transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة الفريق</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

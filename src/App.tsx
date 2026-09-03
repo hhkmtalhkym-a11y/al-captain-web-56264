@@ -41,6 +41,7 @@ import {
   Playground,
   League,
   Academy,
+  AcademyMember,
   AcademyRegistration,
   RegistrationStatus,
   PaymentStatus,
@@ -754,6 +755,20 @@ function MainApp() {
     }
   };
 
+  const handleUpdateAcademy = async (updatedAca: Academy) => {
+    setAcademies((prev) =>
+      prev.map((a) => (a.id === updatedAca.id ? updatedAca : a))
+    );
+    if (selectedAcademy && selectedAcademy.id === updatedAca.id) {
+      setSelectedAcademy(updatedAca);
+    }
+    try {
+      await setDoc(doc(db, 'academies', updatedAca.id), updatedAca, { merge: true });
+    } catch (e) {
+      console.warn('Firestore update academy error:', e);
+    }
+  };
+
   // Firestore CRUD Handlers for Academy Registrations
   const handleCreateAcademyRegistration = async (newReg: AcademyRegistration) => {
     setAcademyRegistrations((prev) => [newReg, ...prev]);
@@ -761,6 +776,41 @@ function MainApp() {
       await setDoc(doc(db, 'academy_registrations', newReg.id), newReg, { merge: true });
     } catch (e) {
       console.warn('Firestore create academy registration error:', e);
+    }
+
+    // Auto-populate student into academy members roster
+    const targetAca = academies.find((a) => a.id === newReg.academyId || a.name === newReg.academyName);
+    if (targetAca) {
+      const birthYear = newReg.birthDate ? new Date(newReg.birthDate).getFullYear() : undefined;
+      const currentYear = new Date().getFullYear();
+      const age = newReg.age || (birthYear ? currentYear - birthYear : 10);
+      const newMember: AcademyMember = {
+        id: `mem-${newReg.id}`,
+        fullName: newReg.studentName,
+        birthDate: newReg.birthDate || '',
+        birthYear,
+        age,
+        ageGroupMin: 8,
+        ageGroupMax: 12,
+        ageGroupLabel: newReg.ageGroup,
+        installmentStatus: newReg.paymentStatus === 'مدفوع' ? 'مدفوع' : 'غير مدفوع',
+        installmentAmount: targetAca.monthlyFee || 75000,
+        installmentDate: newReg.paymentStatus === 'مدفوع' ? newReg.createdAt.split('T')[0] : undefined,
+        paymentMethod: newReg.paymentMethod || 'كاش',
+        residence: `${newReg.governorate} - ${newReg.city || ''}`,
+        phone: newReg.parentPhone || '',
+        position: newReg.preferredPosition || 'وسط',
+        preferredFoot: 'اليمنى',
+        medicalNotes: 'تسجيل تلقائي عبر المنصة',
+        emergencyContact: newReg.parentPhone,
+        personalNotes: newReg.notes || `ولي الأمر: ${newReg.parentName}`,
+        joinedDate: newReg.createdAt ? newReg.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        registrationId: newReg.id,
+        photo: newReg.studentPhoto
+      };
+      const updatedMembers = [newMember, ...(targetAca.members || [])];
+      const updatedAca = { ...targetAca, members: updatedMembers };
+      handleUpdateAcademy(updatedAca);
     }
 
     const newNotif: AppNotification = {
@@ -1667,6 +1717,8 @@ function MainApp() {
           handleTriggerRegisterAcademy(aca);
         }}
         onRateAcademy={handleRateAcademy}
+        onUpdateAcademy={handleUpdateAcademy}
+        academyRegistrations={academyRegistrations}
       />
 
       {/* Register Student in Academy Modal */}
