@@ -38,6 +38,7 @@ interface MatchesViewProps {
   onOpenCreateMatch: () => void;
   onEditMatch?: (match: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
+  onRateOpponent?: (match: FriendlyMatch) => void;
 }
 
 export default function MatchesView({
@@ -48,7 +49,8 @@ export default function MatchesView({
   onJoinChallenge,
   onOpenCreateMatch,
   onEditMatch,
-  onDeleteMatch
+  onDeleteMatch,
+  onRateOpponent
 }: MatchesViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('الكل');
@@ -433,6 +435,7 @@ export default function MatchesView({
                 onJoinChallenge={onJoinChallenge}
                 onEditMatch={onEditMatch}
                 onDeleteMatch={onDeleteMatch}
+                onRateOpponent={onRateOpponent}
               />
             ))}
           </div>

@@ -11,11 +11,18 @@ import {
   Phone,
   Trash2,
   Edit3,
-  Swords
+  Swords,
+  Star,
+  ShieldCheck,
+  MessageSquareQuote,
+  HeartHandshake,
+  Clock
 } from 'lucide-react';
 import { PlayerCv } from '../types';
 import { openWhatsAppShare } from '../utils/helpers';
 import { APP_OFFICIAL_URL } from './ShareAppModal';
+import { getPlayerCredibilityBadge } from '../utils/ratingService';
+import PlayerOpponentReviewsModal from './PlayerOpponentReviewsModal';
 
 interface PlayerCvCardProps {
   key?: React.Key;
@@ -25,6 +32,7 @@ interface PlayerCvCardProps {
   onToggleBeacon?: (playerId: string) => void;
   onEditPlayerCv?: (player: PlayerCv) => void;
   onDeletePlayerCv?: (id: string) => void;
+  onOpenRateOpponent?: (player: PlayerCv) => void;
 }
 
 export default function PlayerCvCard({
@@ -33,10 +41,22 @@ export default function PlayerCvCard({
   isAdmin = false,
   onToggleBeacon,
   onEditPlayerCv,
-  onDeletePlayerCv
+  onDeletePlayerCv,
+  onOpenRateOpponent
 }: PlayerCvCardProps) {
   const [beaconActive, setBeaconActive] = useState(player.isBeaconSent || false);
   const [showBeaconAlert, setShowBeaconAlert] = useState(false);
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
+
+  // Ratings calculation & credibility badge
+  const ratings = player.opponentRatings || [];
+  const ratingsCount = player.ratingsCount || ratings.length;
+  const avgRating =
+    player.averageRating ||
+    (ratings.length > 0
+      ? parseFloat((ratings.reduce((acc, r) => acc + r.overallRating, 0) / ratings.length).toFixed(1))
+      : 0);
+  const credibility = getPlayerCredibilityBadge(avgRating, ratingsCount);
 
   // Strictly check if the current user is an authorized Administrator
   const isSystemAdmin = Boolean(
@@ -210,6 +230,64 @@ export default function PlayerCvCard({
           </div>
         </div>
 
+        {/* Opponent Rating & Credibility Showcase */}
+        <div className="bg-[#050707] p-3 rounded-2xl border border-amber-400/25 mb-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              <span className="text-xs font-bold text-white">متوسط تقييم الخصوم:</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-sm font-black text-amber-400">
+                {avgRating > 0 ? avgRating : '-'}
+              </span>
+              <span className="text-[10px] text-gray-400">/ 5 ⭐</span>
+              <span className="text-[10px] text-gray-500 font-mono">({ratingsCount} تقييم)</span>
+            </div>
+          </div>
+
+          {/* Credibility tier badge */}
+          <div
+            className={`p-1.5 px-2.5 rounded-xl border flex items-center justify-between text-[11px] font-bold ${credibility.bgClass} ${credibility.colorClass} ${credibility.badgeBorder}`}
+          >
+            <span className="flex items-center gap-1">
+              <span>{credibility.iconText}</span>
+              <span>{credibility.label}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsReviewsModalOpen(true)}
+              className="px-2 py-0.5 rounded-lg bg-black/40 hover:bg-black/60 text-white text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors border border-white/10 shrink-0"
+              title="عرض سجل آراء الخصوم وتقييمات المباريات الودية"
+            >
+              <MessageSquareQuote className="w-3 h-3 text-[#00FFD2]" />
+              <span>الآراء ({ratingsCount})</span>
+            </button>
+          </div>
+
+          {/* Criteria Highlights */}
+          {ratingsCount > 0 && (
+            <div className="grid grid-cols-2 gap-1.5 text-[10px] text-gray-300 pt-0.5">
+              <div className="flex items-center justify-between bg-black/40 px-2 py-1 rounded-lg border border-white/5">
+                <span className="text-gray-400 flex items-center gap-1">
+                  <HeartHandshake className="w-3 h-3 text-emerald-400" /> الروح الرياضية:
+                </span>
+                <strong className="text-emerald-400 font-mono">
+                  {player.sportsmanshipAvg || avgRating} ⭐
+                </strong>
+              </div>
+              <div className="flex items-center justify-between bg-black/40 px-2 py-1 rounded-lg border border-white/5">
+                <span className="text-gray-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-blue-400" /> الالتزام بالوقت:
+                </span>
+                <strong className="text-blue-400 font-mono">
+                  {player.punctualityAvg || avgRating} ⭐
+                </strong>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-1.5 bg-[#050707] p-2.5 rounded-2xl border border-white/5 text-center mb-4 font-mono text-xs">
           <div>
@@ -335,6 +413,14 @@ export default function PlayerCvCard({
           </button>
         </div>
       </div>
+
+      {/* Opponent Reviews Modal */}
+      <PlayerOpponentReviewsModal
+        isOpen={isReviewsModalOpen}
+        player={player}
+        onClose={() => setIsReviewsModalOpen(false)}
+        onRateNow={onOpenRateOpponent ? () => onOpenRateOpponent(player) : undefined}
+      />
     </div>
   );
 }

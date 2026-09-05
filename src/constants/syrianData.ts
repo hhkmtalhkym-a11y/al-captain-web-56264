@@ -766,7 +766,30 @@ export const INITIAL_FRIENDLY_MATCHES: FriendlyMatch[] = [
     shamCashAccountNumber: 'SHAM-7729-1940',
     status: 'مؤكد',
     statusApprovedByAdmin: true,
-    createdAt: '2026-08-23'
+    createdAt: '2026-08-23',
+    ratings: [
+      {
+        id: 'or-101',
+        matchId: 'fm-1',
+        matchDate: '2026-08-27',
+        matchVenue: 'ملعب الفيحاء الدولي 1',
+        matchTeams: 'فريق الفيحاء ضد صقور دمشق',
+        reviewerId: 'cap-damascus-hawks',
+        reviewerName: 'طارق الزعبي',
+        reviewerTeam: 'صقور دمشق',
+        reviewerPhone: '0933887766',
+        targetPlayerCvId: 'cv-1',
+        targetPlayerName: 'يوسف رامي الساعاتي',
+        overallRating: 5,
+        sportsmanshipRating: 5,
+        punctualityRating: 5,
+        skillLevelRating: 5,
+        positiveTags: ['روح رياضية عالية 🤝', 'لعب نظيف وبدون خشونة 🕊️', 'تمريرات وصناعة دقيقة 🎯'],
+        comment: 'كابتن خلوق جداً ولاعب من طراز رفيع، ملتزم جداً بالوقت وتقاسم الأجرة بروح عالية.',
+        date: '2026-08-28',
+        createdAt: '2026-08-28T21:40:00Z'
+      }
+    ]
   },
   {
     id: 'fm-2',
@@ -850,7 +873,62 @@ export const INITIAL_PLAYER_CVS: PlayerCv[] = [
     },
     isBeaconSent: true,
     isPublic: true,
-    createdAt: '2026-08-01'
+    createdAt: '2026-08-01',
+    averageRating: 4.9,
+    ratingsCount: 5,
+    sportsmanshipAvg: 5.0,
+    punctualityAvg: 4.8,
+    skillLevelAvg: 4.9,
+    endorsementTags: [
+      { tag: 'روح رياضية عالية 🤝', count: 5 },
+      { tag: 'لعب نظيف وبدون خشونة 🕊️', count: 5 },
+      { tag: 'تمريرات وصناعة دقيقة 🎯', count: 4 },
+      { tag: 'ملتزم بالوقت بدقة ⏰', count: 4 }
+    ],
+    opponentRatings: [
+      {
+        id: 'or-101',
+        matchId: 'fm-1',
+        matchDate: '2026-08-27',
+        matchVenue: 'ملعب الفيحاء الدولي 1',
+        matchTeams: 'فريق الفيحاء ضد صقور دمشق',
+        reviewerId: 'cap-damascus-hawks',
+        reviewerName: 'طارق الزعبي',
+        reviewerTeam: 'صقور دمشق',
+        reviewerPhone: '0933887766',
+        targetPlayerCvId: 'cv-1',
+        targetPlayerName: 'يوسف رامي الساعاتي',
+        overallRating: 5,
+        sportsmanshipRating: 5,
+        punctualityRating: 5,
+        skillLevelRating: 5,
+        positiveTags: ['روح رياضية عالية 🤝', 'لعب نظيف وبدون خشونة 🕊️', 'تمريرات وصناعة دقيقة 🎯'],
+        comment: 'كابتن خلوق جداً ولاعب من طراز رفيع، ملتزم جداً بالوقت وتقاسم الأجرة بروح عالية، وصانع ألعاب استثنائي يستحق اللعب في أندية الدوري الممتاز.',
+        date: '2026-08-28',
+        createdAt: '2026-08-28T21:40:00Z'
+      },
+      {
+        id: 'or-102',
+        matchId: 'fm-102',
+        matchDate: '2026-08-15',
+        matchVenue: 'ملعب تشرين الرياضي',
+        matchTeams: 'فريق الفيحاء ضد شباب الميدان',
+        reviewerId: 'cap-midan',
+        reviewerName: 'وسيم القادري',
+        reviewerTeam: 'شباب الميدان',
+        reviewerPhone: '0944112233',
+        targetPlayerCvId: 'cv-1',
+        targetPlayerName: 'يوسف رامي الساعاتي',
+        overallRating: 5,
+        sportsmanshipRating: 5,
+        punctualityRating: 4,
+        skillLevelRating: 5,
+        positiveTags: ['روح رياضية عالية 🤝', 'ملتزم بالوقت بدقة ⏰', 'مهارات كروية استثنائية ⚡'],
+        comment: 'مباراة حماسية ونظيفة بنسبة 100%. لم نشهد أي احتكاك خشن، والتزام كامل بالقرارات التحكيمية.',
+        date: '2026-08-16',
+        createdAt: '2026-08-16T19:30:00Z'
+      }
+    ]
   },
   {
     id: 'cv-2',
@@ -888,7 +966,40 @@ export const INITIAL_PLAYER_CVS: PlayerCv[] = [
     },
     isBeaconSent: true,
     isPublic: true,
-    createdAt: '2026-08-10'
+    createdAt: '2026-08-10',
+    averageRating: 4.8,
+    ratingsCount: 4,
+    sportsmanshipAvg: 4.8,
+    punctualityAvg: 5.0,
+    skillLevelAvg: 4.7,
+    endorsementTags: [
+      { tag: 'منافس محترم وراقي 🛡️', count: 4 },
+      { tag: 'ملتزم بالوقت بدقة ⏰', count: 4 },
+      { tag: 'لياقة بدنية وتحمل عالي 🏃', count: 3 }
+    ],
+    opponentRatings: [
+      {
+        id: 'or-201',
+        matchId: 'fm-2',
+        matchDate: '2026-08-20',
+        matchVenue: 'مجمع الشهباء الرياضي',
+        matchTeams: 'كتيبة الشهباء ضد فرسان السليمانية',
+        reviewerId: 'cap-sulaimaniyah',
+        reviewerName: 'علاء بركات',
+        reviewerTeam: 'فرسان السليمانية',
+        reviewerPhone: '0933990011',
+        targetPlayerCvId: 'cv-2',
+        targetPlayerName: 'حمزة خالد النجار',
+        overallRating: 5,
+        sportsmanshipRating: 5,
+        punctualityRating: 5,
+        skillLevelRating: 5,
+        positiveTags: ['منافس محترم وراقي 🛡️', 'ملتزم بالوقت بدقة ⏰', 'لياقة بدنية وتحمل عالي 🏃'],
+        comment: 'سد دفاعي منيع، وقائد حقيقي في الملعب يتمتع بأخلاق كروية رفيعة وتواضع كبير بعد نهاية المباراة.',
+        date: '2026-08-21',
+        createdAt: '2026-08-21T18:00:00Z'
+      }
+    ]
   },
   {
     id: 'cv-3',
@@ -926,7 +1037,39 @@ export const INITIAL_PLAYER_CVS: PlayerCv[] = [
     },
     isBeaconSent: false,
     isPublic: true,
-    createdAt: '2026-08-15'
+    createdAt: '2026-08-15',
+    averageRating: 4.7,
+    ratingsCount: 3,
+    sportsmanshipAvg: 4.7,
+    punctualityAvg: 4.6,
+    skillLevelAvg: 5.0,
+    endorsementTags: [
+      { tag: 'مهارات كروية استثنائية ⚡', count: 3 },
+      { tag: 'روح رياضية عالية 🤝', count: 3 }
+    ],
+    opponentRatings: [
+      {
+        id: 'or-301',
+        matchId: 'fm-301',
+        matchDate: '2026-08-18',
+        matchVenue: 'ملعب الباسل الدولي',
+        matchTeams: 'أمواج اللاذقية ضد شباب جبلة',
+        reviewerId: 'cap-jableh',
+        reviewerName: 'إبراهيم علي',
+        reviewerTeam: 'شباب جبلة',
+        reviewerPhone: '0955776655',
+        targetPlayerCvId: 'cv-3',
+        targetPlayerName: 'ليث عمار الدرويش',
+        overallRating: 5,
+        sportsmanshipRating: 5,
+        punctualityRating: 4,
+        skillLevelRating: 5,
+        positiveTags: ['مهارات كروية استثنائية ⚡', 'روح رياضية عالية 🤝'],
+        comment: 'موهبة شابة وسريعة جداً، لعب قمة في الاحترام.',
+        date: '2026-08-19',
+        createdAt: '2026-08-19T20:00:00Z'
+      }
+    ]
   }
 ];
 

@@ -596,6 +596,32 @@ export interface FriendlyMatch {
   statusApprovedByAdmin: boolean;
   adminRejectionReason?: string;
   createdAt: string;
+  ratings?: OpponentRating[];
+  isFinished?: boolean;
+  finalScore?: { host: number; opponent: number };
+}
+
+export interface OpponentRating {
+  id: string;
+  matchId: string;
+  matchDate?: string;
+  matchVenue?: string;
+  matchTeams?: string; // e.g. "فريق الشهباء ضد أبطال الفيحاء"
+  reviewerId: string;
+  reviewerName: string;
+  reviewerTeam: string;
+  reviewerPhone?: string;
+  targetPlayerCvId?: string; // معرف بطاقة اللاعب المستهدف لربط التقييم بها مباشرة
+  targetPlayerName: string;
+  targetTeamName?: string;
+  overallRating: number; // 1 to 5 stars
+  sportsmanshipRating: number; // 1 to 5 (الروح الرياضية واللعب النظيف)
+  punctualityRating: number; // 1 to 5 (الالتزام بالموعد)
+  skillLevelRating: number; // 1 to 5 (المستوى الفني والمهارة)
+  positiveTags: string[]; // وسوم تميز: ['روح رياضية عالية 🤝', 'ملتزم بالوقت ⏰', ...]
+  comment: string;
+  date: string;
+  createdAt: string;
 }
 
 
@@ -640,6 +666,13 @@ export interface PlayerCv {
   isBeaconSent?: boolean;
   isPublic: boolean;
   createdAt: string;
+  opponentRatings?: OpponentRating[];
+  averageRating?: number;
+  ratingsCount?: number;
+  sportsmanshipAvg?: number;
+  punctualityAvg?: number;
+  skillLevelAvg?: number;
+  endorsementTags?: { tag: string; count: number }[];
 }
 
 export interface UserBadge {

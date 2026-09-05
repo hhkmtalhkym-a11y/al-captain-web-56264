@@ -13,7 +13,9 @@ import {
   Edit3,
   MessageCircle,
   Copy,
-  Check
+  Check,
+  Star,
+  HeartHandshake
 } from 'lucide-react';
 import { FriendlyMatch, UserProfile } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
@@ -26,6 +28,7 @@ interface MatchChallengeCardProps {
   onJoinChallenge: (match: FriendlyMatch) => void;
   onEditMatch?: (match: FriendlyMatch) => void;
   onDeleteMatch?: (id: string) => void;
+  onRateOpponent?: (match: FriendlyMatch) => void;
 }
 
 export default function MatchChallengeCard({
@@ -34,7 +37,8 @@ export default function MatchChallengeCard({
   isAdmin = false,
   onJoinChallenge,
   onEditMatch,
-  onDeleteMatch
+  onDeleteMatch,
+  onRateOpponent
 }: MatchChallengeCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -167,6 +171,12 @@ ${match.hostJerseyColor ? `👕 *طقم ${match.hostTeamName}:* ${match.hostJers
               <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 مؤكد
+              </span>
+            )}
+            {match.ratings && match.ratings.length > 0 && (
+              <span className="bg-amber-400/15 text-amber-300 border border-amber-400/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                تقييم موثق ({match.ratings.length})
               </span>
             )}
           </div>
@@ -344,6 +354,24 @@ ${match.hostJerseyColor ? `👕 *طقم ${match.hostTeamName}:* ${match.hostJers
               <Share2 className="w-4 h-4 text-white" />
               <span>مشاركة تأكيد الحجز مع الأصدقاء عبر واتس 📲</span>
             </button>
+
+            {/* Rate Opponent Button after match conclusion */}
+            {onRateOpponent && (
+              <button
+                type="button"
+                id={`btn-rate-opponent-${match.id}`}
+                onClick={() => onRateOpponent(match)}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black text-xs font-black transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer group/rate"
+                title="تقييم أداء الخصم والروح الرياضية لتعزيز المصداقية"
+              >
+                <Star className="w-4 h-4 fill-black text-black group-hover/rate:rotate-45 transition-transform" />
+                <span>
+                  {match.ratings && match.ratings.length > 0
+                    ? `تقييم الخصم (${match.ratings.length} مسجل) ⭐`
+                    : 'تقييم أداء الخصم بعد انتهاء المباراة ⭐'}
+                </span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="p-2.5 rounded-xl bg-gray-900/50 border border-gray-700/40 text-center text-xs text-gray-400 font-semibold">

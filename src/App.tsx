@@ -55,8 +55,10 @@ import {
   BookingStatus,
   Objection,
   Review,
-  UserProfile
+  UserProfile,
+  OpponentRating
 } from './types';
+import { addRatingToPlayerCv } from './utils/ratingService';
 
 
 import {
@@ -104,6 +106,7 @@ import RegisterAcademyModal from './components/RegisterAcademyModal';
 import JoinMatchModal from './components/JoinMatchModal';
 import PlayerCvCard from './components/PlayerCvCard';
 import CreatePlayerCvModal from './components/CreatePlayerCvModal';
+import RateOpponentModal from './components/RateOpponentModal';
 import CreateMatchModal from './components/CreateMatchModal';
 import ChallengeBookingModal from './components/ChallengeBookingModal';
 import MyBookingsView from './components/MyBookingsView';
@@ -347,6 +350,11 @@ function MainApp() {
   const [isCreateAcademyOpen, setIsCreateAcademyOpen] = useState(false);
   const [isCreateMatchOpen, setIsCreateMatchOpen] = useState(false);
   const [isCreatePlayerCvOpen, setIsCreatePlayerCvOpen] = useState(false);
+
+  // Rate Opponent Modal States
+  const [rateOpponentModalOpen, setRateOpponentModalOpen] = useState(false);
+  const [matchForOpponentRating, setMatchForOpponentRating] = useState<FriendlyMatch | null>(null);
+  const [targetCvForRating, setTargetCvForRating] = useState<PlayerCv | null>(null);
 
   // Authentication Guard Modal for Guests
   const [authModal, setAuthModal] = useState<{
@@ -1161,6 +1169,146 @@ function MainApp() {
     }
   };
 
+  // Opponent Rating Handlers (تقييم أداء الخصم والروح الرياضية لتعزيز المصداقية)
+  const handleOpenRateOpponent = (match: FriendlyMatch) => {
+    requireAuth('تقييم أداء الخصم في المباراة', () => {
+      setMatchForOpponentRating(match);
+      const targetCv = playerCvs.find(
+        (p) =>
+          p.phoneNumber === match.organizerPhone ||
+          p.fullName.includes(match.organizerName) ||
+          (match.opponentTeamName && match.opponentTeamName.includes(p.fullName))
+      );
+      setTargetCvForRating(targetCv || null);
+      setRateOpponentModalOpen(true);
+    });
+  };
+
+  const handleOpenRateOpponentForPlayer = (player: PlayerCv) => {
+    requireAuth('تقييم أداء اللاعب لتعزيز مصداقيته', () => {
+      setTargetCvForRating(player);
+      const matchWithPlayer =
+        friendlyMatches.find(
+          (m) =>
+            m.organizerPhone === player.phoneNumber ||
+            m.organizerName.includes(player.fullName) ||
+            (m.opponentTeamName && m.opponentTeamName.includes(player.fullName))
+        ) ||
+        friendlyMatches[0] ||
+        null;
+
+      if (matchWithPlayer) {
+        setMatchForOpponentRating(matchWithPlayer);
+      } else {
+        const dummyMatch: FriendlyMatch = {
+          id: `match-eval-${player.id}`,
+          hostTeamName: 'فريق الكابتن',
+          hostTeamImage: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=400&q=80',
+          opponentTeamName: player.fullName,
+          venueName: `ملعب معتمد في ${player.governorate}`,
+          venueLocation: player.area,
+          governorate: player.governorate,
+          date: new Date().toISOString().split('T')[0],
+          time: '20:00 - 21:30',
+          ageGroup: 'شباب',
+          costSplitMethod: 'مناصفة بين الفريقين (50-50)',
+          pitchPrice: 100000,
+          refereePrice: 30000,
+          organizerName: player.fullName,
+          organizerPhone: player.phoneNumber,
+          paymentMethod: 'نقداً عند الحضور (كاش)',
+          status: 'مؤكد',
+          statusApprovedByAdmin: true,
+          createdAt: new Date().toISOString()
+        };
+        setMatchForOpponentRating(dummyMatch);
+      }
+      setRateOpponentModalOpen(true);
+    });
+  };
+
+  const handleSubmitOpponentRating = async (rating: OpponentRating, targetCvId?: string) => {
+    // 1. Update Friendly Match with the rating
+    if (matchForOpponentRating) {
+      const matchId = matchForOpponentRating.id;
+      const currentRatings = matchForOpponentRating.ratings || [];
+      const updatedRatings = [rating, ...currentRatings.filter((r) => r.id !== rating.id)];
+
+      setFriendlyMatches((prev) =>
+        prev.map((m) =>
+          m.id === matchId
+            ? { ...m, ratings: updatedRatings }
+            : m
+        )
+      );
+
+      try {
+        await updateDoc(doc(db, 'friendly_matches', matchId), {
+          ratings: updatedRatings
+        });
+      } catch (e) {
+        console.warn('Firestore update friendly_matches rating error:', e);
+      }
+    }
+
+    // 2. Link & update target PlayerCv with recalculated averages and tags
+    const targetId = targetCvId || rating.targetPlayerCvId;
+    let updatedCv: PlayerCv | undefined;
+
+    if (targetId) {
+      const targetPlayer = playerCvs.find((p) => p.id === targetId);
+      if (targetPlayer) {
+        updatedCv = addRatingToPlayerCv(targetPlayer, rating);
+      }
+    } else {
+      const targetPlayer = playerCvs.find(
+        (p) =>
+          p.fullName.toLowerCase().trim() === rating.targetPlayerName.toLowerCase().trim() ||
+          p.fullName.includes(rating.targetPlayerName)
+      );
+      if (targetPlayer) {
+        updatedCv = addRatingToPlayerCv(targetPlayer, rating);
+      }
+    }
+
+    if (updatedCv) {
+      const finalCv = updatedCv;
+      setPlayerCvs((prev) =>
+        prev.map((p) => (p.id === finalCv.id ? finalCv : p))
+      );
+
+      try {
+        await setDoc(doc(db, 'player_cards', finalCv.id), finalCv, { merge: true });
+      } catch (e) {
+        console.warn('Firestore update player_cards rating error:', e);
+      }
+    }
+
+    // 3. Save rating record to match_ratings collection for durability & rules audit
+    try {
+      await setDoc(doc(db, 'match_ratings', rating.id), rating, { merge: true });
+    } catch (e) {
+      console.warn('Firestore save match_ratings error:', e);
+    }
+
+    // 4. In-App Notification
+    const newNotif: AppNotification = {
+      id: `notif-rating-${Date.now()}`,
+      title: 'توثيق تقييم خصم وروح رياضية ⭐',
+      message: `تم توثيق تقييمك الرياضي (${rating.overallRating}/5) للاعب ${rating.targetPlayerName} بنجاح، وتحديث مصداقية بطاقة اللاعب في المنصة.`,
+      date: 'الآن',
+      isRead: false,
+      type: 'match'
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+
+    try {
+      await setDoc(doc(db, 'notifications', newNotif.id), newNotif, { merge: true });
+    } catch (e) {
+      console.warn('Firestore notification error:', e);
+    }
+  };
+
   // Admin Login Handler
   const handleAdminLoginSuccess = () => {
     updateCurrentUser({ ...currentUser, isAdmin: true, role: 'admin' });
@@ -1423,6 +1571,7 @@ function MainApp() {
             onJoinChallenge={handleTriggerJoinChallenge}
             onOpenCreateMatch={handleTriggerCreateMatch}
             onDeleteMatch={handleDeleteMatch}
+            onRateOpponent={handleOpenRateOpponent}
           />
         )}
 

@@ -107,6 +107,10 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if true;
     }
+    match /friendly_matches/{matchId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
 
     // ==========================================
     // 9. PLAYER CARDS & SCOUTING (بطاقات اللاعبين وكشاف المواهب)
@@ -114,6 +118,47 @@ service cloud.firestore {
     match /playerCards/{cardId} {
       allow read: if true;
       allow create, update, delete: if true;
+    }
+    match /player_cards/{cardId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // ==========================================
+    // 9.1 OPPONENT RATINGS & CREDIBILITY (تقييمات الخصم والروح الرياضية)
+    // ==========================================
+    match /match_ratings/{ratingId} {
+      // قراءة التقييمات متاحة للجميع لتعزيز الشفافية والمصداقية
+      allow read: if true;
+
+      // إنشاء تقييم جديد مع التحقق من صحة المعايير (1 - 5 نجوم)
+      allow create: if request.resource.data.overallRating >= 1 
+                    && request.resource.data.overallRating <= 5
+                    && request.resource.data.sportsmanshipRating >= 1 
+                    && request.resource.data.sportsmanshipRating <= 5
+                    && request.resource.data.targetPlayerName is string
+                    && request.resource.data.reviewerName is string;
+
+      // التعديل متاح للإدارة أو صاحب التقييم
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.reviewerId);
+
+      // الحذف متاح للمدير العام فقط لحماية مصداقية سجلات اللاعبين من التلاعب
+      allow delete: if isAdmin();
+    }
+
+    match /matchRatings/{ratingId} {
+      allow read: if true;
+      allow create: if request.resource.data.overallRating >= 1 
+                    && request.resource.data.overallRating <= 5;
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.reviewerId);
+      allow delete: if isAdmin();
+    }
+
+    match /opponent_ratings/{ratingId} {
+      allow read: if true;
+      allow create: if request.resource.data.overallRating >= 1 
+                    && request.resource.data.overallRating <= 5;
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.reviewerId);
     }
 
     // ==========================================
