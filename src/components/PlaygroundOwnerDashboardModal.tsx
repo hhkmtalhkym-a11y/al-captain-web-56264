@@ -25,7 +25,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { Playground, Booking, UserProfile, BookingDuration, PaymentMethodType } from '../types';
-import { formatSYP, exportToExcel } from '../utils/helpers';
+import { formatSYP, exportToExcel, exportPlaygroundReportExcel } from '../utils/helpers';
 import jsPDF from 'jspdf';
 
 interface PlaygroundOwnerDashboardModalProps {
@@ -299,6 +299,12 @@ export default function PlaygroundOwnerDashboardModal({
     doc.save(`AlKaptan_Report_${currentPlayground.name.replace(/\s+/g, '_')}.pdf`);
   };
 
+  // Export Excel Report for Playground
+  const handleExportExcelReport = () => {
+    if (!currentPlayground) return;
+    exportPlaygroundReportExcel(currentPlayground, bookings);
+  };
+
   return (
     <div
       id="modal-playground-owner-dashboard"
@@ -496,6 +502,15 @@ export default function PlaygroundOwnerDashboardModal({
                   <option value="ملغي">ملغي</option>
                   <option value="منتهي">منتهي</option>
                 </select>
+
+                <button
+                  onClick={handleExportExcelReport}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-md transition-all cursor-pointer"
+                  title="تصدير كشف حساب وإحصائيات وحجوزات هذا الملعب إلى ملف إكسل XLSX"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>تصدير إكسل (XLSX)</span>
+                </button>
 
                 <button
                   onClick={handleExportPdfReport}

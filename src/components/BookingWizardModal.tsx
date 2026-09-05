@@ -13,6 +13,7 @@ import {
   Share2,
   Download,
   AlertCircle,
+  AlertTriangle,
   Lock
 } from 'lucide-react';
 import {
@@ -280,6 +281,15 @@ export default function BookingWizardModal({
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-gray-400">
                   <span>حالة الحجز وفترة الملعب:</span>
                   <span className="text-emerald-400 font-bold">محجوز ومحمي من التكرار 🔒</span>
+                </div>
+
+                {/* Explicit Payment Warning Notice */}
+                <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 leading-relaxed">
+                    <strong className="text-amber-300 block font-bold">تنبيه هام بشأن التسديد:</strong>
+                    <span>التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري.</span>
+                  </div>
                 </div>
               </div>
 
@@ -590,6 +600,19 @@ export default function BookingWizardModal({
                       />
                     </div>
                   )}
+
+                  {/* Payment Terms & Deadline Notice */}
+                  <div className="p-3.5 rounded-2xl bg-amber-400/10 border-2 border-amber-400/40 text-amber-200 text-xs flex items-start gap-3 shadow-lg">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <strong className="text-amber-300 block font-bold text-xs">
+                        تنبيه هام بشأن شروط وموعد الدفع:
+                      </strong>
+                      <p className="text-xs text-amber-100 font-medium leading-relaxed">
+                        « التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري »
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

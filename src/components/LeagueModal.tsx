@@ -638,6 +638,23 @@ export default function LeagueModal({
           </button>
         </div>
 
+        {/* League Payment Notice Bar */}
+        <div className="bg-amber-400/10 border-b border-amber-400/20 px-4 py-2.5 text-xs flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 text-amber-200">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-[11px] sm:text-xs leading-relaxed">
+              <strong className="text-amber-300">تنبيه للمشاركين والفرق:</strong> التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('rules')}
+            className="text-[10px] text-amber-400 underline hover:text-amber-300 shrink-0 font-bold"
+          >
+            الشروط
+          </button>
+        </div>
+
         {/* Content Body */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
           {/* TAB 1: STANDINGS */}
@@ -1827,6 +1844,19 @@ export default function LeagueModal({
                   <h4 className="font-bold text-amber-400">بنود اللائحة:</h4>
                   <div className="p-3.5 rounded-xl bg-[#0d1211] border border-white/5 text-gray-300 leading-relaxed whitespace-pre-line">
                     {league.termsAndConditions}
+                  </div>
+                </div>
+
+                {/* Important Payment & Participation Terms Notice */}
+                <div className="p-3.5 rounded-xl bg-amber-400/10 border-2 border-amber-400/40 text-amber-200 flex items-start gap-3 shadow-md">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <strong className="text-amber-300 block font-bold text-xs">
+                      شروط تأكيد المشاركة وتسديد رسوم الدوري:
+                    </strong>
+                    <p className="text-xs text-amber-100 font-semibold leading-relaxed">
+                      « التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري »
+                    </p>
                   </div>
                 </div>
               </div>

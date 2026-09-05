@@ -21,10 +21,11 @@ import {
   UserCheck,
   Send,
   X,
-  Clock
+  Clock,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Academy, AcademyMember, AcademyRegistration, PlayerPosition, PreferredFoot } from '../types';
-import { formatSYP, openWhatsAppShare } from '../utils/helpers';
+import { formatSYP, openWhatsAppShare, exportAcademyReportExcel } from '../utils/helpers';
 
 interface AcademyMembersRosterProps {
   academy: Academy;
@@ -425,6 +426,16 @@ export default function AcademyMembersRoster({
                 <span>استيراد تلقائي ({newImportableRegistrations.length})</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => exportAcademyReportExcel(academy, academyRegistrations)}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer"
+              title="تصدير كشف المنتسبين والبيانات المالية للأكاديمية إلى ملف إكسل XLSX"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>تصدير إكسل Excel</span>
+            </button>
 
             <button
               type="button"

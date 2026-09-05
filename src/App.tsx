@@ -25,7 +25,8 @@ import {
   Sliders,
   DollarSign,
   User,
-  LogIn
+  LogIn,
+  QrCode
 } from 'lucide-react';
 import {
   collection,
@@ -110,6 +111,7 @@ import ProfileView from './components/ProfileView';
 import AdminDashboard from './components/AdminDashboard';
 import LoginPage from './components/LoginPage';
 import PermissionDeniedModal from './components/PermissionDeniedModal';
+import ShareAppModal from './components/ShareAppModal';
 import { canUserCreatePlayground, canUserCreateLeague, canUserCreateAcademy } from './utils/permissions';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { initializeDatabase } from './utils/db-initializer';
@@ -337,6 +339,7 @@ function MainApp() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Creation Modals
   const [isCreatePlaygroundOpen, setIsCreatePlaygroundOpen] = useState(false);
@@ -1293,6 +1296,17 @@ function MainApp() {
 
           {/* LEFT SIDE (الجهة اليسارية): Google Maps & Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Quick Share App and QR Barcode Button */}
+            <button
+              id="header-btn-share-qr"
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all bg-[#0d1211] text-[#00FFD2] hover:bg-[#00FFD2]/10 border border-[#00FFD2]/30 cursor-pointer shadow-sm"
+              title="مشاركة رابط تطبيق الكابتن والباركود (QR Code)"
+            >
+              <QrCode className="w-4 h-4 text-[#00FFD2] shrink-0" />
+              <span className="hidden sm:inline text-xs">مشاركة</span>
+            </button>
+
             {/* Google Maps Interactive Button */}
             <button
               id="header-btn-map"
@@ -1321,6 +1335,7 @@ function MainApp() {
             academies={academies}
             friendlyMatches={friendlyMatches}
             playerCvs={playerCvs}
+            bookings={bookings}
             currentUser={currentUser}
             selectedGovernorate={selectedGovernorate}
             onSelectGovernorate={setSelectedGovernorate}
@@ -1340,6 +1355,7 @@ function MainApp() {
         {activeTab === 'playgrounds' && (
           <PlaygroundsView
             playgrounds={playgrounds}
+            bookings={bookings}
             currentUser={currentUser}
             selectedGovernorate={selectedGovernorate}
             isAdmin={currentUser.isAdmin}
@@ -1785,6 +1801,12 @@ function MainApp() {
           setPermissionModal({ ...permissionModal, isOpen: false });
           setActiveTab('profile');
         }}
+      />
+
+      {/* Global Share App and Barcode (QR Code) Modal */}
+      <ShareAppModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
       />
     </div>
   );

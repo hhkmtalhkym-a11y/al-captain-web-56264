@@ -10,10 +10,12 @@ import {
   CheckCircle2,
   Phone,
   Trash2,
-  Edit3
+  Edit3,
+  Swords
 } from 'lucide-react';
 import { PlayerCv } from '../types';
 import { openWhatsAppShare } from '../utils/helpers';
+import { APP_OFFICIAL_URL } from './ShareAppModal';
 
 interface PlayerCvCardProps {
   key?: React.Key;
@@ -77,6 +79,32 @@ export default function PlayerCvCard({
         openWhatsAppShare(text);
       }
     }
+  };
+
+  const handleQuickChallenge = () => {
+    const currentCaptain = currentUser?.name || currentUser?.fullName || 'كابتن الفريق';
+    const text = `⚔️ *طلب تحدي كروي سريع ومباراة ودية - منصة الكابتن* ⚽
+━━━━━━━━━━━━━━━━━━━━━
+أهلاً كابتن *${player.fullName}*، تحياتي الرياضية لك! 🤝
+معك الكابتن *${currentCaptain}*.
+
+لقد شاهدت بطاقتك الكروية المعتمدة في كشاف المواهب:
+🎯 المركز: ${player.position}
+📍 المحافظة: ${player.governorate} (${player.area})
+🦶 القدم المفضلة: ${player.preferredFoot}
+📊 التقييم العام: ${overall} OVR
+
+🔥 نود دعوتك والتنسيق معك لتنظيم مباراة ودية / تحدي كروي بين فريقينا، أو دعوتك للمشاركة في مباراتنا القادمة!
+
+📅 الموعد المقترح: أقرب فرصة تناسب جدولكم
+🏟️ الملعب المقترح: ملعب معتمد في ${player.governorate}
+💰 التكلفة: مناصفة 50-50 وبـ 0% عمولة عبر منصة الكابتن
+
+هل أنتم متاحون وجاهزون للتحدي؟ بانتظار ردكم الكريم لتنسيق الساعة وتثبيت الحجز! ⚽🔥
+
+📲 رابط المنصة: ${APP_OFFICIAL_URL}`;
+
+    openWhatsAppShare(text, player.phoneNumber);
   };
 
   const calculateOverallRating = () => {
@@ -270,6 +298,18 @@ export default function PlayerCvCard({
             <span>تم إطلاق إشارة الكشاف! بطاقتك مميزة وتظهر في صدارة كشافي الأندية.</span>
           </div>
         )}
+
+        {/* Quick Challenge Direct WhatsApp Button */}
+        <button
+          type="button"
+          id={`btn-quick-challenge-${player.id}`}
+          onClick={handleQuickChallenge}
+          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#ff2a5f] to-rose-600 hover:from-[#e02050] hover:to-rose-700 text-white font-black text-xs transition-all shadow-lg glow-pink flex items-center justify-center gap-2 cursor-pointer group/challenge"
+          title="تنظيم مباراة ودية أو دعوة اللاعب للتحدي عبر واتساب مباشرة"
+        >
+          <Swords className="w-4 h-4 text-white group-hover/challenge:rotate-12 transition-transform" />
+          <span>تحدي سريع (تنظيم ودية عبر واتساب) ⚔️</span>
+        </button>
 
         <div className="grid grid-cols-2 gap-2">
           {/* Beacon Button */}

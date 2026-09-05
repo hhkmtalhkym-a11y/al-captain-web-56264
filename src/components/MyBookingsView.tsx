@@ -22,11 +22,14 @@ import {
   RotateCcw,
   BellRing,
   FileText,
-  Printer
+  Printer,
+  Trophy,
+  Activity,
+  Flame
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { formatSYP, openWhatsAppShare, downloadCalendarEvent } from '../utils/helpers';
-import { checkUpcomingBookingReminders } from '../utils/bookingReminderService';
+import { checkUpcomingBookingReminders, getBookingStartDateTime } from '../utils/bookingReminderService';
 import { generateBookingInvoicePdf } from '../utils/pdfInvoiceGenerator';
 import BookingInvoiceModal from './BookingInvoiceModal';
 
@@ -72,6 +75,60 @@ export default function MyBookingsView({
   // 2-Hour Upcoming Bookings Reminders
   const upcomingReminders = useMemo(() => {
     return checkUpcomingBookingReminders(bookings);
+  }, [bookings]);
+
+  // Personal User Booking Statistics (عدد المباريات الملعوبة، أكثر ملعب، إجمالي الساعات)
+  const userStats = useMemo(() => {
+    const now = new Date();
+    let matchesPlayed = 0;
+    let totalHoursBooked = 0;
+    const playgroundCounts: Record<string, { count: number; name: string }> = {};
+
+    (bookings || []).forEach((b) => {
+      // Exclude cancelled bookings from played and total hours
+      const isCancelled = b.status === 'ملغي';
+      const datesCount = Math.max(1, b.selectedDates?.length || 1);
+
+      let durationHours = 1;
+      if (b.duration === 'ساعة ونصف') durationHours = 1.5;
+      else if (b.duration === 'ساعتين') durationHours = 2;
+
+      if (!isCancelled) {
+        totalHoursBooked += durationHours * datesCount;
+
+        const pgName = b.playgroundName || 'ملعب غير محدد';
+        if (!playgroundCounts[pgName]) {
+          playgroundCounts[pgName] = { count: 0, name: pgName };
+        }
+        playgroundCounts[pgName].count += datesCount;
+
+        // Check if played
+        if (b.status === 'مكتمل' || b.status === 'منتهي') {
+          matchesPlayed += datesCount;
+        } else if (b.status === 'مؤكد') {
+          (b.selectedDates || []).forEach((dStr) => {
+            try {
+              const startDateTime = getBookingStartDateTime(dStr, b.timeSlot);
+              if (startDateTime <= now) {
+                matchesPlayed += 1;
+              }
+            } catch {
+              // fallback
+            }
+          });
+        }
+      }
+    });
+
+    const sortedPlaygrounds = Object.values(playgroundCounts).sort((a, b) => b.count - a.count);
+    const mostVisited = sortedPlaygrounds.length > 0 ? sortedPlaygrounds[0] : null;
+
+    return {
+      matchesPlayed,
+      totalHoursBooked,
+      mostVisitedPlayground: mostVisited ? mostVisited.name : 'لا يوجد حجز بعد',
+      mostVisitedCount: mostVisited ? mostVisited.count : 0
+    };
   }, [bookings]);
 
   // Calendar navigation state
@@ -267,6 +324,55 @@ export default function MyBookingsView({
             <Plus className="w-4 h-4" />
             <span>حجز ملعب جديد</span>
           </button>
+        </div>
+      </div>
+
+      {/* Personal Statistics Bar (إحصائيات المستخدم الشخصية) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* Metric 1: Matches Played */}
+        <div className="bg-[#0d1211] border border-[#00FFD2]/25 hover:border-[#00FFD2]/60 p-4 sm:p-4.5 rounded-3xl flex items-center gap-3.5 transition-all shadow-lg group">
+          <div className="w-12 h-12 rounded-2xl bg-[#00FFD2]/10 border border-[#00FFD2]/30 flex items-center justify-center text-[#00FFD2] group-hover:scale-105 transition-transform shrink-0 shadow-md">
+            <Trophy className="w-6 h-6" />
+          </div>
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="text-[11px] text-gray-400 font-medium">عدد المباريات التي لعبتها</div>
+            <div className="text-xl sm:text-2xl font-black text-white font-mono flex items-baseline gap-1.5">
+              <span>{userStats.matchesPlayed}</span>
+              <span className="text-xs font-bold text-gray-400">مباراة</span>
+            </div>
+            <div className="text-[10px] text-[#00FFD2] font-semibold truncate">مباريات مؤكدة وملعوبة</div>
+          </div>
+        </div>
+
+        {/* Metric 2: Most Visited Playground */}
+        <div className="bg-[#0d1211] border border-amber-400/25 hover:border-amber-400/60 p-4 sm:p-4.5 rounded-3xl flex items-center gap-3.5 transition-all shadow-lg group">
+          <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform shrink-0 shadow-md">
+            <Flame className="w-6 h-6" />
+          </div>
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="text-[11px] text-gray-400 font-medium">أكثر ملعب ترتاده</div>
+            <div className="text-base sm:text-lg font-black text-white truncate" title={userStats.mostVisitedPlayground}>
+              {userStats.mostVisitedPlayground}
+            </div>
+            <div className="text-[10px] text-amber-400 font-semibold truncate">
+              {userStats.mostVisitedCount > 0 ? `${userStats.mostVisitedCount} مرات حجز سابقة` : 'ابدأ بحجز أول مباراة'}
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 3: Total Booked Hours */}
+        <div className="bg-[#0d1211] border border-[#ff2a5f]/25 hover:border-[#ff2a5f]/60 p-4 sm:p-4.5 rounded-3xl flex items-center gap-3.5 transition-all shadow-lg group">
+          <div className="w-12 h-12 rounded-2xl bg-[#ff2a5f]/10 border border-[#ff2a5f]/30 flex items-center justify-center text-[#ff2a5f] group-hover:scale-105 transition-transform shrink-0 shadow-md">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <div className="text-[11px] text-gray-400 font-medium">إجمالي الساعات المحجوزة</div>
+            <div className="text-xl sm:text-2xl font-black text-white font-mono flex items-baseline gap-1.5">
+              <span>{userStats.totalHoursBooked}</span>
+              <span className="text-xs font-bold text-gray-400">ساعة</span>
+            </div>
+            <div className="text-[10px] text-[#ff2a5f] font-semibold truncate">إجمالي وقت النشاط المحجوز</div>
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
-import { X, CheckCheck, Bell, Shield, Calendar, Users, Trophy } from 'lucide-react';
+import { X, CheckCheck, Bell, Shield, Calendar, Users, Trophy, Share2 } from 'lucide-react';
 import { NotificationItem } from '../types';
+import { openWhatsAppShare } from '../utils/helpers';
 
 interface NotificationsDrawerProps {
   isOpen: boolean;
@@ -114,6 +115,22 @@ export default function NotificationsDrawer({
                       </span>
                     </div>
                     <p className="text-xs text-gray-300 leading-relaxed">{notif.message}</p>
+                    {(notif.type === 'match' || notif.type === 'booking') && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const shareText = `📢 *إشعار من تطبيق الكابتن:* ⚽\n📌 *${notif.title}*\n${notif.message}\n\n📲 رابط منصة الكابتن الرياضي: ${window.location.origin}`;
+                            openWhatsAppShare(shareText);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Share2 className="w-3 h-3" />
+                          <span>مشاركة عبر واتس</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

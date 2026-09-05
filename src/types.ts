@@ -642,6 +642,25 @@ export interface PlayerCv {
   createdAt: string;
 }
 
+export interface UserBadge {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;
+  category: 'activity' | 'skill' | 'fairplay' | 'organizer' | 'special';
+  badgeColor: string;
+  textColor: string;
+  borderColor: string;
+  bgGlow: string;
+  isEarned: boolean;
+  earnedDate?: string;
+  currentProgress: number;
+  targetProgress: number;
+  unit: string;
+  rewardXp: number;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -657,6 +676,8 @@ export interface UserProfile {
   favoritePlaygrounds?: string[];
   isBanned?: boolean;
   banReason?: string;
+  earnedBadgeIds?: string[];
+  badges?: UserBadge[];
   activityCount?: {
     bookings: number;
     matches: number;

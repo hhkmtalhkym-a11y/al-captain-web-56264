@@ -10,7 +10,10 @@ import {
   AlertCircle,
   Trash2,
   Shield,
-  Edit3
+  Edit3,
+  MessageCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import { FriendlyMatch, UserProfile } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
@@ -42,9 +45,70 @@ export default function MatchChallengeCard({
     currentUser?.role === 'admin'
   );
 
-  const handleShare = () => {
-    const text = `⚽ *تحدي مباراة ودية عبر تطبيق الكابتن* 🚩\n\n📌 *المستضيف:* فريق ${match.hostTeamName}\n📍 *الملعب:* ${match.venueName} (${match.governorate})\n📅 *الموعد:* ${match.date} (${match.time})\n👥 *الفئة:* ${match.ageGroup}\n💰 *طريقة تقسيم التكلفة:* ${match.costSplitMethod}\n📞 *للتواصل والتحدي:* ${match.organizerPhone}`;
+  const totalCost = match.pitchPrice + (match.refereePrice || 0);
+  const isConfirmed = match.status === 'مؤكد' || match.status === 'مقبولة' || match.status === 'مكتمل';
+
+  // Format standard match details for WhatsApp sharing
+  const buildMatchDetailsText = () => {
+    return `⚽ *دعوة لمباراة ودية وتحدي كروي - تطبيق الكابتن* 🚩
+━━━━━━━━━━━━━━━━━━━━━
+📌 *الفريق المستضيف:* فريق ${match.hostTeamName}
+⚔️ *المنافس:* ${match.opponentTeamName ? `فريق ${match.opponentTeamName}` : 'بانتظار فريق متحدي للانضمام'}
+📍 *الملعب:* ${match.venueName} (${match.governorate}${match.venueLocation ? ` - ${match.venueLocation}` : ''})
+📅 *الموعد:* ${match.date} (${match.time})
+👥 *الفئة العمرية:* ${match.ageGroup}
+💰 *أجرة وتكاليف اللقاء:* ${formatSYP(totalCost)}
+🤝 *طريقة تقاسم الأجرة:* ${match.costSplitMethod}
+${match.refereeName ? `⚖️ *حكم اللقاء:* ${match.refereeName} (+${formatSYP(match.refereePrice)})\n` : ''}${match.notesAndChallengeRules ? `📝 *شروط وملاحظات التحدي:* ${match.notesAndChallengeRules}\n` : ''}📞 *للتواصل والتحدي:* ${match.organizerPhone}
+━━━━━━━━━━━━━━━━━━━━━
+📲 احجز واقبل التحدي الآن عبر تطبيق الكابتن: ${window.location.origin}`;
+  };
+
+  // Format confirmed match & booking confirmation for sharing with friends
+  const buildConfirmedBookingText = () => {
+    return `🏆 *تأكيد حجز وموعد مباراة ودية رسمية - تطبيق الكابتن* ⚽
+━━━━━━━━━━━━━━━━━━━━━
+✅ *تم تأكيد الحجز وقبول التحدي رسمياً!*
+
+⚔️ *طرفا اللقاء:* فريق ${match.hostTeamName} 🆚 فريق ${match.opponentTeamName || 'المتحدي'}
+📍 *الملعب:* ${match.venueName} (${match.governorate}${match.venueLocation ? ` - ${match.venueLocation}` : ''})
+📅 *تاريخ اللقاء:* ${match.date}
+⏰ *التوقيت:* ${match.time}
+👥 *الفئة العمرية:* ${match.ageGroup}
+💰 *أجرة وتكاليف اللقاء:* ${formatSYP(totalCost)}
+🤝 *طريقة تقاسم الأجرة:* ${match.costSplitMethod}
+💳 *طريقة الدفع:* ${match.paymentMethod}
+${match.hostJerseyColor ? `👕 *طقم ${match.hostTeamName}:* ${match.hostJerseyColor}\n` : ''}${match.guestJerseyColor ? `👕 *طقم ${match.opponentTeamName || 'المتحدي'}:* ${match.guestJerseyColor}\n` : ''}${match.refereeName ? `⚖️ *طاقم التحكيم المعتمد:* ${match.refereeName}\n` : ''}${match.notesAndChallengeRules ? `📝 *تعليمات اللقاء:* ${match.notesAndChallengeRules}\n` : ''}📞 *منسق اللقاء:* ${match.organizerName || 'الكابتن'} (${match.organizerPhone})
+━━━━━━━━━━━━━━━━━━━━━
+📢 يرجى من جميع اللاعبين الحضور والتواجد قبل صافرة البداية بنصف ساعة للإحماء والجاهزية.
+📱 تفاصيل اللقاء وتأكيد الحجز عبر تطبيق الكابتن: ${window.location.origin}`;
+  };
+
+  // Share match details with friends & groups via WhatsApp
+  const handleShareToFriends = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const text = isConfirmed ? buildConfirmedBookingText() : buildMatchDetailsText();
+    openWhatsAppShare(text);
+  };
+
+  // Chat directly with the match organizer
+  const handleChatWithOrganizer = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const text = isConfirmed
+      ? `مرحباً كابتن ${match.organizerName}، أتواصل معك بخصوص مباراتنا المؤكدة (${match.hostTeamName} ضد ${match.opponentTeamName || 'المتحدي'}) في ملعب ${match.venueName} بتاريخ ${match.date} الساعة ${match.time}.`
+      : `مرحباً كابتن ${match.organizerName}، أتواصل معك بخصوص تحدي مباراة ${match.hostTeamName} في ملعب ${match.venueName} بتاريخ ${match.date}.`;
     openWhatsAppShare(text, match.organizerPhone);
+  };
+
+  // Copy text to clipboard
+  const handleCopyDetails = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const text = isConfirmed ? buildConfirmedBookingText() : buildMatchDetailsText();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -58,8 +122,6 @@ export default function MatchChallengeCard({
       if (onDeleteMatch) onDeleteMatch(match.id);
     }
   };
-
-  const totalCost = match.pitchPrice + (match.refereePrice || 0);
 
   return (
     <div
@@ -96,15 +158,36 @@ export default function MatchChallengeCard({
       <div>
         {/* Top Header */}
         <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="bg-[#ff2a5f]/15 text-[#ff2a5f] border border-[#ff2a5f]/30 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-            <Swords className="w-3.5 h-3.5" />
-            مباراة {match.ageGroup}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="bg-[#ff2a5f]/15 text-[#ff2a5f] border border-[#ff2a5f]/30 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+              <Swords className="w-3.5 h-3.5" />
+              مباراة {match.ageGroup}
+            </span>
+            {isConfirmed && (
+              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                مؤكد
+              </span>
+            )}
+          </div>
 
-          <span className="bg-black/60 text-gray-300 text-[11px] px-2.5 py-0.5 rounded-full border border-white/10 flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-[#00FFD2]" />
-            {match.governorate}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {/* WhatsApp Share Button in Header */}
+            <button
+              type="button"
+              onClick={handleShareToFriends}
+              className="px-2 py-1 rounded-full bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 transition-colors flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+              title={isConfirmed ? "مشاركة تأكيد الحجز مع الأصدقاء عبر واتساب" : "مشاركة تفاصيل المباراة عبر واتساب"}
+            >
+              <Share2 className="w-3 h-3" />
+              <span>مشاركة</span>
+            </button>
+
+            <span className="bg-black/60 text-gray-300 text-[11px] px-2.5 py-0.5 rounded-full border border-white/10 flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-[#00FFD2]" />
+              {match.governorate}
+            </span>
+          </div>
         </div>
 
         {/* Teams Matchup Visual */}
@@ -193,35 +276,82 @@ export default function MatchChallengeCard({
       </div>
 
       {/* Pricing & CTA */}
-      <div className="pt-3 border-t border-white/5">
-        <div className="flex items-center justify-between mb-3 text-xs">
+      <div className="pt-3 border-t border-white/5 space-y-3">
+        {/* Price & Sharing Toolbar */}
+        <div className="flex items-center justify-between text-xs">
           <div>
             <span className="text-gray-400 block text-[10px]">التكلفة الإجمالية:</span>
             <span className="text-sm font-bold text-white font-mono">{formatSYP(totalCost)}</span>
           </div>
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition-colors"
-          >
-            <Share2 className="w-3.5 h-3.5" /> مشاركة واتساب
-          </button>
+          
+          <div className="flex items-center gap-1.5">
+            {/* Share to WhatsApp Button */}
+            <button
+              type="button"
+              onClick={handleShareToFriends}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title={isConfirmed ? "مشاركة تأكيد الحجز مع الأصدقاء والفرق عبر واتساب" : "مشاركة تفاصيل التحدي عبر واتساب"}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{isConfirmed ? 'مشاركة التأكيد' : 'مشاركة واتس'}</span>
+            </button>
+
+            {/* Chat with Organizer */}
+            <button
+              type="button"
+              onClick={handleChatWithOrganizer}
+              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-emerald-400 border border-white/10 transition-colors cursor-pointer"
+              title="مراسلة منسق المباراة عبر واتساب"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Copy Details */}
+            <button
+              type="button"
+              onClick={handleCopyDetails}
+              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-[#00FFD2] border border-white/10 transition-colors cursor-pointer"
+              title="نسخ تفاصيل المباراة"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
 
+        {/* Action button based on match status */}
         {match.status === 'مفتوح' ? (
           <button
+            type="button"
             onClick={() => onJoinChallenge(match)}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-1.5 glow-pink"
+            className="w-full py-2.5 px-4 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-1.5 glow-pink cursor-pointer"
           >
             <Swords className="w-4 h-4" />
-            قبول التحدي والانضمام للمباراة
+            <span>قبول التحدي والانضمام للمباراة</span>
           </button>
+        ) : isConfirmed ? (
+          <div className="space-y-2">
+            <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center text-xs text-emerald-300 font-semibold flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>المباراة مؤكدة الحجز وجاهزة للانطلاق</span>
+            </div>
+
+            {/* Prominent Share Confirmed Booking Button */}
+            <button
+              type="button"
+              onClick={handleShareToFriends}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-2 shadow-emerald-900/30 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 text-white" />
+              <span>مشاركة تأكيد الحجز مع الأصدقاء عبر واتس 📲</span>
+            </button>
+          </div>
         ) : (
-          <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center text-xs text-emerald-300 font-semibold flex items-center justify-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4" />
-            المباراة مكتملة الطرفين وجاهزة للانطلاق
+          <div className="p-2.5 rounded-xl bg-gray-900/50 border border-gray-700/40 text-center text-xs text-gray-400 font-semibold">
+            حالة المباراة: {match.status}
           </div>
         )}
       </div>
     </div>
   );
 }
+

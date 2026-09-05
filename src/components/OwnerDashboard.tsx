@@ -23,7 +23,8 @@ import {
   Share2,
   Activity,
   Check,
-  ShieldCheck
+  ShieldCheck,
+  FileSpreadsheet
 } from 'lucide-react';
 import {
   Booking,
@@ -32,7 +33,7 @@ import {
   BookingStatus,
   SyrianGovernorate
 } from '../types';
-import { formatSYP, openWhatsAppShare } from '../utils/helpers';
+import { formatSYP, openWhatsAppShare, exportPlaygroundReportExcel, exportAllPlaygroundsExcel } from '../utils/helpers';
 import { isUserAdmin, isUserAdvertiser } from '../utils/permissions';
 import AddManualBookingModal from './AddManualBookingModal';
 import BookingAnalytics from './BookingAnalytics';
@@ -214,6 +215,18 @@ export default function OwnerDashboard({
     }
   };
 
+  // Export Excel Handler for Owner Playgrounds & Bookings
+  const handleExportExcel = () => {
+    if (selectedPlaygroundId !== 'all') {
+      const selectedPg = myPlaygrounds.find((p) => p.id === selectedPlaygroundId);
+      if (selectedPg) {
+        exportPlaygroundReportExcel(selectedPg, bookings);
+        return;
+      }
+    }
+    exportAllPlaygroundsExcel(myPlaygrounds, bookings);
+  };
+
   if (!isAuthorized) {
     return (
       <div className="text-center py-16 bg-[#0d1211] rounded-3xl border border-amber-400/20 p-8 space-y-4 font-['Cairo']">
@@ -271,6 +284,16 @@ export default function OwnerDashboard({
           >
             <Plus className="w-4 h-4" />
             <span>تسجيل حجز يدوي (هاتف/واتساب)</span>
+          </button>
+
+          {/* Excel Export Button */}
+          <button
+            onClick={handleExportExcel}
+            className="px-3.5 py-2.5 rounded-2xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            title="تصدير كشف حساب الملاعب والحجوزات إلى ملف إكسل XLSX"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>تصدير إكسل Excel</span>
           </button>
 
           {/* PDF Report Button */}

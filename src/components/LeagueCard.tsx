@@ -1,7 +1,7 @@
 import React from 'react';
-import { Trophy, Users, MapPin, Calendar, FileText, ArrowLeft, Zap, Trash2, Edit3 } from 'lucide-react';
+import { Trophy, Users, MapPin, Calendar, FileText, ArrowLeft, Zap, Trash2, Edit3, FileSpreadsheet } from 'lucide-react';
 import { League } from '../types';
-import { formatSYP, exportLeaguePdf } from '../utils/helpers';
+import { formatSYP, exportLeaguePdf, exportLeagueExcelComprehensive } from '../utils/helpers';
 
 interface LeagueCardProps {
   key?: React.Key;
@@ -132,6 +132,12 @@ export default function LeagueCard({
             </div>
           </div>
 
+          {/* Payment Terms Reminder */}
+          <div className="bg-amber-400/10 border border-amber-400/25 p-2 rounded-xl text-[10px] text-amber-200/90 mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+            <span className="line-clamp-1">التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري</span>
+          </div>
+
           {/* Quick Standings Leader */}
           {league.standings.length > 0 && (
             <div className="bg-[#050707] p-2.5 rounded-xl border border-white/5 mb-3 text-xs">
@@ -151,15 +157,22 @@ export default function LeagueCard({
         {/* Actions */}
         <div className="pt-3 border-t border-white/5 flex items-center gap-2">
           <button
+            onClick={() => exportLeagueExcelComprehensive(league)}
+            className="p-2.5 rounded-xl bg-[#050707] hover:bg-emerald-950/40 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
+            title="تصدير كشوف وجداول ونتائج البطولة إلى ملف إكسل Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => exportLeaguePdf(league)}
-            className="p-2.5 rounded-xl bg-[#050707] hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors"
+            className="p-2.5 rounded-xl bg-[#050707] hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-colors cursor-pointer"
             title="تحميل تقرير الدوري PDF"
           >
             <FileText className="w-4 h-4 text-amber-400" />
           </button>
           <button
             onClick={() => onViewDetails(league)}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-500 text-black text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-lg"
+            className="flex-1 py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-500 text-black text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-lg cursor-pointer"
           >
             <span>جدول المباريات والترتيب</span>
             <ArrowLeft className="w-3.5 h-3.5" />

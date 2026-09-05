@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Compass,
   Trophy,
@@ -19,7 +19,10 @@ import {
   Navigation,
   Activity,
   Layers,
-  AlertTriangle
+  AlertTriangle,
+  BellRing,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import {
   Playground,
@@ -27,11 +30,13 @@ import {
   FriendlyMatch,
   Academy,
   PlayerCv,
-  UserProfile
+  UserProfile,
+  Booking
 } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
 import { isUserAdmin, isUserAdvertiser } from '../utils/permissions';
+import { checkUpcoming24HourBookings, Upcoming24HourBookingAlert } from '../utils/bookingReminderService';
 import PlaygroundCard from './PlaygroundCard';
 import LeagueCard from './LeagueCard';
 import MatchChallengeCard from './MatchChallengeCard';
@@ -43,6 +48,7 @@ interface HomeViewProps {
   friendlyMatches: FriendlyMatch[];
   academies: Academy[];
   playerCvs: PlayerCv[];
+  bookings?: Booking[];
   currentUser: UserProfile;
   selectedGovernorate: string;
   onSelectGovernorate: (gov: string) => void;
@@ -69,6 +75,7 @@ export default function HomeView({
   friendlyMatches,
   academies,
   playerCvs,
+  bookings = [],
   currentUser,
   selectedGovernorate,
   onSelectGovernorate,
@@ -88,6 +95,13 @@ export default function HomeView({
   onEditMatch,
   onDeleteMatch
 }: HomeViewProps) {
+  const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
+
+  // 24-Hour Upcoming Confirmed Bookings Detection
+  const upcoming24hAlerts = useMemo(() => {
+    const alerts = checkUpcoming24HourBookings(bookings, currentUser, playgrounds);
+    return alerts.filter((a) => !dismissedAlertKeys.includes(`${a.booking.id}-${a.dateStr}`));
+  }, [bookings, currentUser, playgrounds, dismissedAlertKeys]);
   // Filter items by governorate if needed
   const filteredPlaygrounds =
     selectedGovernorate === 'الكل'
@@ -108,6 +122,109 @@ export default function HomeView({
 
   return (
     <div id="view-home" className="space-y-6 animate-fadeIn pb-16 font-['Cairo']">
+      {/* 24-Hour Upcoming Confirmed Match Alert (تنبيه حجز مؤكد خلال أقل من 24 ساعة مع زر خرائط Google) */}
+      {upcoming24hAlerts.length > 0 && (
+        <div className="space-y-3">
+          {upcoming24hAlerts.map((alert) => {
+            const alertKey = `${alert.booking.id}-${alert.dateStr}`;
+            return (
+              <div
+                key={alertKey}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0c1f19] via-[#091512] to-[#181308] border-2 border-[#00FFD2]/60 p-4 sm:p-5 shadow-2xl shadow-[#00FFD2]/10 glow-primary transition-all animate-fadeIn"
+              >
+                {/* Background decorative glow */}
+                <div className="absolute top-0 left-0 w-32 h-32 bg-[#00FFD2]/10 rounded-full blur-2xl pointer-events-none -translate-x-10 -translate-y-10" />
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none translate-x-10 translate-y-10" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {/* Left: Info */}
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-[#00FFD2]/15 border border-[#00FFD2]/40 flex items-center justify-center shrink-0 text-[#00FFD2] shadow-lg shadow-[#00FFD2]/20">
+                      <BellRing className="w-6 h-6 animate-bounce" />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="bg-[#ff2a5f] text-white text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-md animate-pulse">
+                          🚨 موعد حجز مؤكد يقترب (خلال 24 ساعة)
+                        </span>
+                        <span className="bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {alert.hoursRemaining > 0
+                              ? `متبقي ${alert.hoursRemaining} ساعة و ${alert.minutesRemaining} دقيقة`
+                              : `متبقي ${alert.minutesRemaining} دقيقة فقط!`}
+                          </span>
+                        </span>
+                        {alert.isToday && (
+                          <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            اليوم ⚽
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2 flex-wrap">
+                        <span>مباراتك في:</span>
+                        <span className="text-[#00FFD2] underline decoration-[#00FFD2]/40 underline-offset-4">
+                          {alert.booking.playgroundName}
+                        </span>
+                      </h3>
+
+                      <div className="flex items-center gap-3 text-xs text-gray-300 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-[#00FFD2]" />
+                          <span>التاريخ: {alert.dateStr}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <span>التوقيت: {alert.timeSlot}</span>
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                          <span>{alert.booking.governorate} - {alert.booking.detailedArea}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Quick Action Buttons including Google Maps */}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+                    <a
+                      href={alert.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer group"
+                      title="فتح موقع الملعب المباشر عبر تطبيق أو موقع خرائط Google"
+                    >
+                      <Navigation className="w-4 h-4 group-hover:rotate-45 transition-transform text-black" />
+                      <span>موقع الملعب عبر Google Maps</span>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => onNavigateTab('bookings')}
+                      className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>عرض التذكرة</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                      className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      title="إخفاء التنبيه مؤقتاً"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* 1. Animated Hero Banner Slider with Natural Colors & Admin Controls */}
       <HeroBannerSlider
         onNavigateTab={onNavigateTab}
@@ -428,6 +545,7 @@ export default function HomeView({
               <PlaygroundCard
                 key={pg.id}
                 playground={pg}
+                bookings={bookings}
                 currentUser={currentUser}
                 isAdmin={isAdmin}
                 onViewDetails={onViewPlayground}

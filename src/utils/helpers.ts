@@ -11,7 +11,11 @@ import {
   TeamDisciplinaryRecord,
   GoalEvent,
   CardEvent,
-  QualifiedTeam
+  QualifiedTeam,
+  Academy,
+  AcademyRegistration,
+  FriendlyMatch,
+  PlayerCv
 } from '../types';
 
 // Format Syrian Pounds currency
@@ -234,13 +238,18 @@ export function exportMasterAdminReportPdf(
 
 /**
  * Export Multi-Sheet Comprehensive Excel Workbook (Bilingual AR/EN)
+ * Covers all platform modules: Playgrounds, Bookings, Academies, Registrations, Leagues, Matches, Player CVs, Users, Audit Logs
  */
 export function exportMasterAdminReportExcel(
   bookings: Booking[],
   leagues: League[],
   activityLogs: Array<{ id: string; type?: string; title: string; description: string; performedBy: string; timestamp: string }> = [],
   users: Array<{ id: string; name: string; phone?: string; email?: string; governorate?: string; role?: string; isAdmin?: boolean }> = [],
-  playgrounds: Playground[] = []
+  playgrounds: Playground[] = [],
+  academies: Academy[] = [],
+  academyRegistrations: AcademyRegistration[] = [],
+  friendlyMatches: FriendlyMatch[] = [],
+  playerCvs: PlayerCv[] = []
 ) {
   try {
     const workbook = XLSX.utils.book_new();
@@ -249,37 +258,181 @@ export function exportMasterAdminReportExcel(
     const totalRev = bookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
     const confirmedCount = bookings.filter((b) => b.status === 'مؤكد').length;
     const summarySheetData = [
-      { 'المؤشر / KPI': 'إجمالي الملاعب (Total Pitches)', 'القيمة / Value': playgrounds.length },
+      { 'المؤشر / KPI': 'إجمالي الملاعب المسجلة (Total Pitches)', 'القيمة / Value': playgrounds.length },
       { 'المؤشر / KPI': 'إجمالي الحجوزات (Total Bookings)', 'القيمة / Value': bookings.length },
-      { 'المؤشر / KPI': 'الحجوزات المؤكدة (Confirmed Bookings)', 'القيمة / Value': confirmedCount },
+      { 'المؤشر / KPI': 'الحجوزات المؤكدة والمكتملة (Confirmed)', 'القيمة / Value': confirmedCount },
       { 'المؤشر / KPI': 'الحجم المالي التراكمي (Total Volume SYP)', 'القيمة / Value': `${totalRev.toLocaleString()} ل.س` },
-      { 'المؤشر / KPI': 'إجمالي البطولات (Active Leagues)', 'القيمة / Value': leagues.length },
-      { 'المؤشر / KPI': 'إجمالي المستخدمين (Registered Users)', 'القيمة / Value': users.length },
-      { 'المؤشر / KPI': 'النشاطات المسجلة (Activity Logs)', 'القيمة / Value': activityLogs.length },
-      { 'المؤشر / KPI': 'نسبة العمولة (Platform Commission)', 'القيمة / Value': '0% مجانية بالكامل' },
-      { 'المؤشر / KPI': 'تاريخ التصدير (Export Date)', 'القيمة / Value': new Date().toLocaleString('ar-SY') }
+      { 'المؤشر / KPI': 'الأكاديميات والمدارس الكروية (Academies)', 'القيمة / Value': academies.length },
+      { 'المؤشر / KPI': 'طلبات تسجيل الطلاب بالأكاديميات (Registrations)', 'القيمة / Value': academyRegistrations.length },
+      { 'المؤشر / KPI': 'إجمالي البطولات والدوريات (Active Leagues)', 'القيمة / Value': leagues.length },
+      { 'المؤشر / KPI': 'مباريات التحدي والوديات (Friendly Matches)', 'القيمة / Value': friendlyMatches.length },
+      { 'المؤشر / KPI': 'سير اللاعبين وكشاف المواهب (Player CVs)', 'القيمة / Value': playerCvs.length },
+      { 'المؤشر / KPI': 'إجمالي المستخدمين المسجلين (Registered Users)', 'القيمة / Value': users.length },
+      { 'المؤشر / KPI': 'سجل العمليات والتدقيق (Activity Logs)', 'القيمة / Value': activityLogs.length },
+      { 'المؤشر / KPI': 'نسبة عمولة المنصة (Platform Commission)', 'القيمة / Value': '0% مجانية بالكامل لجميع المعلنين' },
+      { 'المؤشر / KPI': 'تاريخ ووقت استخراج التقرير (Export Date)', 'القيمة / Value': new Date().toLocaleString('ar-SY') }
     ];
     const wsSummary = XLSX.utils.json_to_sheet(summarySheetData);
     XLSX.utils.book_append_sheet(workbook, wsSummary, 'الملخص العام (Summary)');
 
-    // 2. Bookings Sheet
+    // 2. Playgrounds Sheet
+    if (playgrounds.length > 0) {
+      const playgroundsData = playgrounds.map((pg) => {
+        const pgBookings = bookings.filter((b) => b.playgroundId === pg.id || b.playgroundName === pg.name);
+        const pgRev = pgBookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+        return {
+          'معرف الملعب (ID)': pg.id,
+          'اسم الملعب (Name)': pg.name,
+          'المحافظة (Governorate)': pg.governorate,
+          'المنطقة التفصيلية (Area)': pg.detailedArea,
+          'اسم المسؤول (Manager)': pg.managerName,
+          'رقم هاتف المسؤول (Phone)': pg.managerPhone,
+          'أجرة الساعة ل.س (Hourly Price)': pg.pricePerHour,
+          'نوع الأرضية (Surface)': pg.surface,
+          'سعة الملعب (Capacity)': pg.capacity,
+          'الإنارة الليلية (Lighting)': pg.lighting,
+          'التقييم (Rating)': pg.rating || 5.0,
+          'عدد الحجوزات (Bookings Count)': pgBookings.length,
+          'إجمالي الإيرادات ل.س (Revenue)': pgRev
+        };
+      });
+      const wsPlaygrounds = XLSX.utils.json_to_sheet(playgroundsData);
+      XLSX.utils.book_append_sheet(workbook, wsPlaygrounds, 'الملاعب (Playgrounds)');
+    }
+
+    // 3. Bookings Sheet
     const bookingsData = bookings.map((b) => ({
       'الرقم المرجعي (Ref Code)': b.referenceNumber || b.id,
       'الملعب (Pitch Name)': b.playgroundName,
       'المحافظة (Governorate)': b.governorate,
       'الكابتن (Captain Name)': b.userName,
       'رقم الهاتف (Phone)': b.userPhone,
-      'التواريخ (Dates)': b.selectedDates.join(', '),
+      'التواريخ (Dates)': (b.selectedDates || []).join(', '),
       'التوقيت (Time Slot)': b.timeSlot,
+      'المدة (Duration)': b.duration || 'ساعة ونصف',
       'المبلغ بالليرة (Amount SYP)': b.totalPrice,
       'طريقة الدفع (Payment Method)': b.paymentMethod,
+      'حالة الدفع (Payment Status)': b.paymentStatus || 'غير مدفوع',
       'حالة الحجز (Status)': b.status,
+      'المصدر (Source)': b.source === 'offline' ? 'خارجي (يدوي)' : 'إلكتروني (تطبيق)',
+      'ملاحظات (Notes)': b.notes || b.specialRequests || '—',
       'تاريخ التسجيل (Created At)': b.createdAt || '—'
     }));
     const wsBookings = XLSX.utils.json_to_sheet(bookingsData);
     XLSX.utils.book_append_sheet(workbook, wsBookings, 'سجل الحجوزات (Bookings)');
 
-    // 3. Users Sheet
+    // 4. Academies Sheet
+    if (academies.length > 0) {
+      const academiesData = academies.map((aca) => {
+        const regs = academyRegistrations.filter((r) => r.academyId === aca.id || r.academyName === aca.name);
+        return {
+          'معرف الأكاديمية (ID)': aca.id,
+          'اسم الأكاديمية (Name)': aca.name,
+          'المحافظة (Governorate)': aca.governorate,
+          'العنوان التفصيلي (Location)': aca.locationDetails,
+          'المدرب الرئيسي (Head Coach)': aca.mainCoach,
+          'هاتف التواصل (Phone)': aca.contactPhone,
+          'القسط الشهري ل.س (Monthly Fee)': aca.monthlyFee,
+          'الفئات العمرية المستهدفة (Ages)': aca.targetAgeGroups,
+          'خدمة المواصلات (Transport)': aca.transportStatus,
+          'التقييم (Rating)': aca.rating,
+          'عدد المنتسبين (Members Count)': aca.members?.length || 0,
+          'عدد طلبات التسجيل (Registrations)': regs.length,
+          'حالة الأكاديمية': aca.status || 'نشط'
+        };
+      });
+      const wsAcademies = XLSX.utils.json_to_sheet(academiesData);
+      XLSX.utils.book_append_sheet(workbook, wsAcademies, 'الأكاديميات (Academies)');
+    }
+
+    // 5. Academy Registrations Sheet
+    if (academyRegistrations.length > 0) {
+      const regsData = academyRegistrations.map((r) => ({
+        'رقم الطلب (Reg ID)': r.id,
+        'الأكاديمية (Academy)': r.academyName,
+        'اسم الطالب (Student)': r.studentName,
+        'تاريخ الميلاد (Birth Date)': r.birthDate,
+        'العمر (Age)': r.age,
+        'الفئة (Group)': r.ageGroup,
+        'المركز المفضل (Position)': r.preferredPosition,
+        'ولي الأمر (Parent)': r.parentName,
+        'رقم ولي الأمر (Phone)': r.parentPhone,
+        'المحافظة والمدينة': `${r.governorate} - ${r.city}`,
+        'المواصلات (Transport)': r.transportOption,
+        'طريقة الدفع': r.paymentMethod,
+        'حالة الدفع': r.paymentStatus,
+        'حالة الطلب': r.status,
+        'تاريخ التسجيل': r.createdAt
+      }));
+      const wsRegs = XLSX.utils.json_to_sheet(regsData);
+      XLSX.utils.book_append_sheet(workbook, wsRegs, 'طلبات التسجيل (Registrations)');
+    }
+
+    // 6. Leagues Sheet
+    if (leagues.length > 0) {
+      const leaguesData = leagues.map((l) => ({
+        'معرف البطولة (ID)': l.id,
+        'اسم البطولة (League Name)': l.name,
+        'الموسم (Season)': l.season,
+        'المحافظة (Governorate)': l.governorate,
+        'الملعب المستضيف (Venue)': l.hostingVenue,
+        'المنظم (Organizer)': l.organizerName || 'إدارة المنصة',
+        'هاتف المنظم (Phone)': l.organizerPhone || '—',
+        'عدد الفرق (Teams Count)': l.teamsCount,
+        'حالة الدوري (Status)': l.status,
+        'رسوم الاشتراك ل.س': l.entryFee || 0,
+        'الجائزة المالية ل.س (Prize)': l.prizes?.cashPrize || 0,
+        'عدد المباريات المجدولة': l.fixtures?.length || 0,
+        'المتصدر الحالي': l.standings?.[0]?.teamName || '—',
+        'تاريخ الإنشاء': l.createdAt || '—'
+      }));
+      const wsLeagues = XLSX.utils.json_to_sheet(leaguesData);
+      XLSX.utils.book_append_sheet(workbook, wsLeagues, 'الدوريات (Leagues)');
+    }
+
+    // 7. Friendly Matches & Challenges Sheet
+    if (friendlyMatches.length > 0) {
+      const matchesData = friendlyMatches.map((m) => ({
+        'رقم التحدي (ID)': m.id,
+        'الفريق المضيف (Host Team)': m.hostTeamName,
+        'الفريق المنافس (Opponent)': m.opponentTeamName || 'بانتظار قبول التحدي',
+        'المحافظة والملعب': `${m.governorate} - ${m.venueName}`,
+        'تاريخ وتوقيت المباراة': `${m.date} (${m.time})`,
+        'الفئة العمرية': m.ageGroup,
+        'المنظم': m.organizerName,
+        'هاتف المنظم': m.organizerPhone,
+        'أجرة الملعب ل.س': m.pitchPrice,
+        'أجرة الحكم ل.س': m.refereePrice,
+        'طريقة تقاسم التكلفة': m.costSplitMethod,
+        'حالة التحدي': m.status,
+        'تاريخ الإنشاء': m.createdAt
+      }));
+      const wsMatches = XLSX.utils.json_to_sheet(matchesData);
+      XLSX.utils.book_append_sheet(workbook, wsMatches, 'المباريات والوديات (Matches)');
+    }
+
+    // 8. Player CVs (Scouting) Sheet
+    if (playerCvs.length > 0) {
+      const cvsData = playerCvs.map((cv) => ({
+        'معرف اللاعب (ID)': cv.id,
+        'الاسم الكامل (Full Name)': cv.fullName,
+        'المحافظة والمنطقة': `${cv.governorate} - ${cv.area}`,
+        'مركز اللعب (Position)': cv.position,
+        'المواليد (Birth Date)': cv.birthDate,
+        'الطول والوزن': `${cv.heightCm} سم / ${cv.weightKg} كغ`,
+        'القدم المفضلة (Foot)': cv.preferredFoot,
+        'رقم الهاتف (Phone)': cv.phoneNumber,
+        'الحالة الكروية (Status)': cv.seekingStatus,
+        'الأندية السابقة': cv.previousClubs || 'لاعب حر',
+        'الأهداف المسجلة': cv.stats?.goals || 0,
+        'صناعة الأهداف': cv.stats?.assists || 0,
+        'المباريات الملعوبة': cv.stats?.matchesPlayed || 0
+      }));
+      const wsCvs = XLSX.utils.json_to_sheet(cvsData);
+      XLSX.utils.book_append_sheet(workbook, wsCvs, 'كشاف المواهب (Player CVs)');
+    }
+
+    // 9. Users Sheet
     const usersData = users.map((u) => ({
       'اسم المستخدم (Name)': u.name,
       'رقم الهاتف (Phone)': u.phone || '—',
@@ -291,7 +444,7 @@ export function exportMasterAdminReportExcel(
     const wsUsers = XLSX.utils.json_to_sheet(usersData);
     XLSX.utils.book_append_sheet(workbook, wsUsers, 'المستخدمين (Users)');
 
-    // 4. Activity Logs Sheet
+    // 10. Activity Logs Sheet
     if (activityLogs.length > 0) {
       const logsData = activityLogs.map((l) => ({
         'التوقيت (Timestamp)': l.timestamp,
@@ -304,9 +457,449 @@ export function exportMasterAdminReportExcel(
       XLSX.utils.book_append_sheet(workbook, wsLogs, 'سجل العمليات (Activity Logs)');
     }
 
-    XLSX.writeFile(workbook, `Al-Kaptan-Master-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Al-Kaptan-Comprehensive-Master-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
   } catch (error) {
     console.error('Error exporting Master Admin Excel:', error);
+  }
+}
+
+/**
+ * Export Individual Playground Report to Excel (for Playground Advertiser / Owner & Admin)
+ */
+export function exportPlaygroundReportExcel(playground: Playground, bookings: Booking[] = []) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    // Filter bookings belonging to this specific playground
+    const pgBookings = bookings.filter(
+      (b) => b.playgroundId === playground.id || b.playgroundName === playground.name
+    );
+
+    // Financial calculations
+    const totalRev = pgBookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+    const onlineBookings = pgBookings.filter((b) => b.source !== 'offline');
+    const offlineBookings = pgBookings.filter((b) => b.source === 'offline');
+    const onlineRev = onlineBookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+    const offlineRev = offlineBookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+    const confirmedCount = pgBookings.filter((b) => b.status === 'مؤكد').length;
+    const paidCount = pgBookings.filter((b) => b.paymentStatus === 'مدفوع').length;
+    const cancelledCount = pgBookings.filter((b) => b.status === 'ملغي').length;
+
+    // 1. Playground Specifications Sheet
+    const infoData = [
+      { 'البند': 'اسم الملعب', 'القيمة': playground.name },
+      { 'البند': 'المحافظة', 'القيمة': playground.governorate },
+      { 'البند': 'المنطقة التفصيلية', 'القيمة': playground.detailedArea },
+      { 'البند': 'اسم مسؤول الملعب / المعلن', 'القيمة': playground.managerName },
+      { 'البند': 'رقم هاتف المسؤول', 'القيمة': playground.managerPhone },
+      { 'البند': 'سعر الساعة ل.س', 'القيمة': `${playground.pricePerHour.toLocaleString()} ل.س` },
+      { 'البند': 'سعة الملعب', 'القيمة': playground.capacity },
+      { 'البند': 'نوع الأرضية', 'القيمة': playground.surface },
+      { 'البند': 'الإنارة الليلية', 'القيمة': playground.lighting },
+      { 'البند': 'الأبعاد (طول × عرض)', 'القيمة': `${playground.specs?.lengthMeters || '—'} م × ${playground.specs?.widthMeters || '—'} م` },
+      { 'البند': 'سعة المدرجات', 'القيمة': `${playground.specs?.standsCapacity || 0} مشجع` },
+      { 'البند': 'التقييم العام', 'القيمة': `${playground.rating || 5.0} من 5 نجوم (${playground.reviewsCount || 0} تقييم)` },
+      { 'البند': 'نسبة العمولة للمنصة', 'القيمة': '0% مجانية بالكامل' },
+      { 'البند': 'تاريخ إصدار التقرير', 'القيمة': new Date().toLocaleString('ar-SY') }
+    ];
+    const wsInfo = XLSX.utils.json_to_sheet(infoData);
+    XLSX.utils.book_append_sheet(workbook, wsInfo, 'بيانات الملعب (Info)');
+
+    // 2. Bookings Sheet
+    const bookingsData = pgBookings.map((b, idx) => ({
+      'م': idx + 1,
+      'الرقم المرجعي (Ref)': b.referenceNumber || b.id,
+      'اسم الكابتن / العميل': b.userName,
+      'رقم الجوال': b.userPhone,
+      'التاريخ المحجوز': (b.selectedDates || []).join(', '),
+      'التوقيت (الوقت)': b.timeSlot,
+      'المدة': b.duration || 'ساعة ونصف',
+      'المبلغ ل.س': b.totalPrice,
+      'طريقة الدفع': b.paymentMethod || 'نقداً',
+      'حالة الدفع': b.paymentStatus || 'غير مدفوع',
+      'حالة الحجز': b.status,
+      'مصدر الحجز': b.source === 'offline' ? 'حجز يدوي (خارجي)' : 'حجز التطبيق (أونلاين)',
+      'ملاحظات': b.notes || b.specialRequests || '—',
+      'تاريخ الإنشاء': b.createdAt || '—'
+    }));
+    const wsBookings = XLSX.utils.json_to_sheet(bookingsData);
+    XLSX.utils.book_append_sheet(workbook, wsBookings, 'سجل الحجوزات (Bookings)');
+
+    // 3. Financial & Operational Summary
+    const summaryData = [
+      { 'المؤشر التشغيلي والمالي': 'إجمالي الحجوزات المسجلة', 'القيمة': pgBookings.length },
+      { 'المؤشر التشغيلي والمالي': 'الحجوزات المؤكدة', 'القيمة': confirmedCount },
+      { 'المؤشر التشغيلي والمالي': 'الحجوزات المدفوعة', 'القيمة': paidCount },
+      { 'المؤشر التشغيلي والمالي': 'الحجوزات الملغاة', 'القيمة': cancelledCount },
+      { 'المؤشر التشغيلي والمالي': 'إجمالي الإيرادات الفعلية ل.س', 'القيمة': `${totalRev.toLocaleString()} ل.س` },
+      { 'المؤشر التشغيلي والمالي': 'حجوزات التطبيق المباشرة (Online)', 'القيمة': `${onlineBookings.length} حجز (${onlineRev.toLocaleString()} ل.س)` },
+      { 'المؤشر التشغيلي والمالي': 'حجوزات الهاتف واليدوية (Offline)', 'القيمة': `${offlineBookings.length} حجز (${offlineRev.toLocaleString()} ل.س)` },
+      { 'المؤشر التشغيلي والمالي': 'متوسط قيمة الحجز الواحد ل.س', 'القيمة': pgBookings.length > 0 ? `${Math.round(totalRev / Math.max(1, pgBookings.length - cancelledCount)).toLocaleString()} ل.س` : '0 ل.س' }
+    ];
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, wsSummary, 'الملخص المالي (Financial)');
+
+    const safeName = playground.name.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '_');
+    XLSX.writeFile(workbook, `Playground-Report-${safeName}-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting Playground Excel:', error);
+  }
+}
+
+/**
+ * Export All Playgrounds (Directory & Aggregate Bookings) to Excel for Admin
+ */
+export function exportAllPlaygroundsExcel(playgrounds: Playground[], bookings: Booking[] = []) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    const pgData = playgrounds.map((pg, idx) => {
+      const pBookings = bookings.filter((b) => b.playgroundId === pg.id || b.playgroundName === pg.name);
+      const rev = pBookings.reduce((sum, b) => sum + (b.status !== 'ملغي' ? (Number(b.totalPrice) || 0) : 0), 0);
+      return {
+        'م': idx + 1,
+        'معرف الملعب': pg.id,
+        'اسم الملعب': pg.name,
+        'المحافظة': pg.governorate,
+        'المنطقة التفصيلية': pg.detailedArea,
+        'المسؤول / المعلن': pg.managerName,
+        'رقم هاتف المسؤول': pg.managerPhone,
+        'سعر الساعة ل.س': pg.pricePerHour,
+        'السعة': pg.capacity,
+        'الأرضية': pg.surface,
+        'الإنارة': pg.lighting,
+        'التقييم': pg.rating || 5.0,
+        'عدد الحجوزات': pBookings.length,
+        'إجمالي الدخل ل.س': rev
+      };
+    });
+    const wsPg = XLSX.utils.json_to_sheet(pgData);
+    XLSX.utils.book_append_sheet(workbook, wsPg, 'دليل الملاعب (Playgrounds)');
+
+    if (bookings.length > 0) {
+      const allBkData = bookings.map((b, idx) => ({
+        'م': idx + 1,
+        'الرقم المرجعي': b.referenceNumber || b.id,
+        'الملعب': b.playgroundName,
+        'المحافظة': b.governorate,
+        'الكابتن': b.userName,
+        'رقم الجوال': b.userPhone,
+        'التاريخ': (b.selectedDates || []).join(', '),
+        'الوقت': b.timeSlot,
+        'المبلغ ل.س': b.totalPrice,
+        'طريقة الدفع': b.paymentMethod,
+        'حالة الدفع': b.paymentStatus || 'غير مدفوع',
+        'حالة الحجز': b.status,
+        'المصدر': b.source === 'offline' ? 'يدوي (Offline)' : 'تطبيق (Online)'
+      }));
+      const wsBk = XLSX.utils.json_to_sheet(allBkData);
+      XLSX.utils.book_append_sheet(workbook, wsBk, 'سجل كافة الحجوزات (All Bookings)');
+    }
+
+    XLSX.writeFile(workbook, `Al-Kaptan-All-Playgrounds-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting All Playgrounds Excel:', error);
+  }
+}
+
+/**
+ * Export Individual Academy Report to Excel (for Academy Owner / Coach & Admin)
+ */
+export function exportAcademyReportExcel(academy: Academy, registrations: AcademyRegistration[] = []) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    // Filter registrations for this academy
+    const acaRegs = registrations.filter(
+      (r) => r.academyId === academy.id || r.academyName === academy.name
+    );
+
+    // 1. Profile Sheet
+    const profileData = [
+      { 'البند': 'اسم الأكاديمية', 'القيمة': academy.name },
+      { 'البند': 'المحافظة', 'القيمة': academy.governorate },
+      { 'البند': 'العنوان التفصيلي والمقر', 'القيمة': academy.locationDetails },
+      { 'البند': 'المدرب الرئيسي المشرف', 'القيمة': academy.mainCoach },
+      { 'البند': 'رقم هاتف التواصل والإدارة', 'القيمة': academy.contactPhone },
+      { 'البند': 'الاشتراك الشهري للطالب ل.س', 'القيمة': `${academy.monthlyFee.toLocaleString()} ل.س` },
+      { 'البند': 'الفئات العمرية المشمولة', 'القيمة': academy.targetAgeGroups },
+      { 'البند': 'خدمة المواصلات ونقل الطلاب', 'القيمة': academy.transportStatus },
+      { 'البند': 'التقييم العام للأكاديمية', 'القيمة': `${academy.rating || 5.0} من 5 نجوم` },
+      { 'البند': 'عدد المنتسبين المعتمدين', 'القيمة': academy.members?.length || 0 },
+      { 'البند': 'عدد طلبات التسجيل الواردة', 'القيمة': acaRegs.length },
+      { 'البند': 'تاريخ تصدير التقرير', 'القيمة': new Date().toLocaleString('ar-SY') }
+    ];
+    const wsProfile = XLSX.utils.json_to_sheet(profileData);
+    XLSX.utils.book_append_sheet(workbook, wsProfile, 'ملف الأكاديمية (Profile)');
+
+    // 2. Members Roster Sheet
+    const membersList = academy.members || [];
+    if (membersList.length > 0) {
+      const membersData = membersList.map((m, idx) => ({
+        'م': idx + 1,
+        'الاسم الثلاثي': m.fullName,
+        'تاريخ الميلاد': m.birthDate,
+        'العمر': m.age || '—',
+        'الفئة العمرية': m.ageGroupLabel || `${m.ageGroupMin} - ${m.ageGroupMax} سنة`,
+        'رقم الجوال': m.phone,
+        'مكان السكن': m.residence,
+        'مركز اللعب': m.position || '—',
+        'القدم المفضلة': m.preferredFoot || '—',
+        'تسديد القسط الشهري': m.installmentStatus,
+        'قيمة القسط ل.س': m.installmentAmount || academy.monthlyFee,
+        'تاريخ التسديد': m.installmentDate || '—',
+        'طريقة الدفع': m.paymentMethod || 'نقداً',
+        'تاريخ الانتساب': m.joinedDate
+      }));
+      const wsMembers = XLSX.utils.json_to_sheet(membersData);
+      XLSX.utils.book_append_sheet(workbook, wsMembers, 'كشف المنتسبين والطلاب (Roster)');
+    }
+
+    // 3. New Registrations Sheet
+    if (acaRegs.length > 0) {
+      const regsData = acaRegs.map((r, idx) => ({
+        'م': idx + 1,
+        'رقم الطلب': r.id,
+        'اسم الطالب': r.studentName,
+        'تاريخ الميلاد': r.birthDate,
+        'العمر': r.age,
+        'الفئة العمرية': r.ageGroup,
+        'مركز اللعب المفضل': r.preferredPosition,
+        'اسم ولي الأمر': r.parentName,
+        'رقم هاتف ولي الأمر': r.parentPhone,
+        'المدينة / الحي': r.city,
+        'خدمة المواصلات': r.transportOption,
+        'طريقة الدفع': r.paymentMethod,
+        'حالة سداد الرسوم': r.paymentStatus,
+        'حالة القبول والاعتماد': r.status,
+        'تاريخ التقديم': r.createdAt
+      }));
+      const wsRegs = XLSX.utils.json_to_sheet(regsData);
+      XLSX.utils.book_append_sheet(workbook, wsRegs, 'طلبات التسجيل (Registrations)');
+    }
+
+    // 4. Coaches & Training Programs Sheet
+    const coaches = academy.trainers || [];
+    const programs = academy.programs || [];
+    if (coaches.length > 0 || programs.length > 0) {
+      const staffAndPrograms = [
+        ...coaches.map((c) => ({
+          'النوع': 'مدرب فني',
+          'الاسم': c.name,
+          'التخصص': c.specialization,
+          'سنوات الخبرة': `${c.experienceYears} سنوات`,
+          'التفاصيل': 'كادر فني معتمد'
+        })),
+        ...programs.map((p) => ({
+          'النوع': 'برنامج تدريبي',
+          'الاسم': p.title,
+          'التخصص': `الفئة المستهدفة: ${p.targetAge}`,
+          'سنوات الخبرة': `الأيام: ${p.daysSchedule} (المدة: ${p.durationMonths} شهر)`,
+          'التفاصيل': p.objectives || '—'
+        }))
+      ];
+      const wsStaff = XLSX.utils.json_to_sheet(staffAndPrograms);
+      XLSX.utils.book_append_sheet(workbook, wsStaff, 'الكادر والبرامج (Staff & Programs)');
+    }
+
+    const safeName = academy.name.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '_');
+    XLSX.writeFile(workbook, `Academy-Report-${safeName}-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting Academy Excel:', error);
+  }
+}
+
+/**
+ * Export All Academies Directory to Excel for Admin
+ */
+export function exportAllAcademiesExcel(academies: Academy[], registrations: AcademyRegistration[] = []) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    const acaData = academies.map((aca, idx) => {
+      const regs = registrations.filter((r) => r.academyId === aca.id || r.academyName === aca.name);
+      return {
+        'م': idx + 1,
+        'معرف الأكاديمية': aca.id,
+        'اسم الأكاديمية': aca.name,
+        'المحافظة': aca.governorate,
+        'المقر والتفاصيل': aca.locationDetails,
+        'المدرب المشرف': aca.mainCoach,
+        'هاتف التواصل': aca.contactPhone,
+        'الاشتراك الشهري ل.س': aca.monthlyFee,
+        'الفئات العمرية': aca.targetAgeGroups,
+        'المواصلات': aca.transportStatus,
+        'التقييم': aca.rating,
+        'عدد الطلاب المقيدين': aca.members?.length || 0,
+        'عدد طلبات التسجيل': regs.length,
+        'الحالة': aca.status || 'نشط'
+      };
+    });
+    const wsAca = XLSX.utils.json_to_sheet(acaData);
+    XLSX.utils.book_append_sheet(workbook, wsAca, 'دليل الأكاديميات (Academies)');
+
+    if (registrations.length > 0) {
+      const allRegsData = registrations.map((r, idx) => ({
+        'م': idx + 1,
+        'رقم الطلب': r.id,
+        'الأكاديمية': r.academyName,
+        'اسم الطالب': r.studentName,
+        'العمر': r.age,
+        'الفئة': r.ageGroup,
+        'ولي الأمر': r.parentName,
+        'هاتف ولي الأمر': r.parentPhone,
+        'المحافظة': r.governorate,
+        'المواصلات': r.transportOption,
+        'حالة الدفع': r.paymentStatus,
+        'حالة القبول': r.status,
+        'تاريخ التقديم': r.createdAt
+      }));
+      const wsRegs = XLSX.utils.json_to_sheet(allRegsData);
+      XLSX.utils.book_append_sheet(workbook, wsRegs, 'كافة طلبات التسجيل (All Registrations)');
+    }
+
+    XLSX.writeFile(workbook, `Al-Kaptan-All-Academies-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting All Academies Excel:', error);
+  }
+}
+
+/**
+ * Export All Leagues Directory & Standings to Excel (for Organizer & Admin)
+ */
+export function exportAllLeaguesExcel(leagues: League[]) {
+  try {
+    const workbook = XLSX.utils.book_new();
+
+    // 1. Leagues Overview
+    const leaguesData = leagues.map((l, idx) => ({
+      'م': idx + 1,
+      'معرف البطولة': l.id,
+      'اسم البطولة': l.name,
+      'الموسم': l.season,
+      'المحافظة': l.governorate,
+      'الملعب المستضيف': l.hostingVenue,
+      'المنظم': l.organizerName || 'إدارة المنصة',
+      'هاتف المنظم': l.organizerPhone || '—',
+      'عدد الفرق': l.teamsCount,
+      'حالة الدوري': l.status,
+      'رسوم الاشتراك ل.س': l.entryFee || 0,
+      'الجائزة المالية ل.س': l.prizes?.cashPrize || 0,
+      'المتصدر الحالي': l.standings?.[0]?.teamName || '—'
+    }));
+    const wsOverview = XLSX.utils.json_to_sheet(leaguesData);
+    XLSX.utils.book_append_sheet(workbook, wsOverview, 'دليل البطولات (Leagues)');
+
+    // 2. Aggregate Standings
+    const allStandings: any[] = [];
+    leagues.forEach((l) => {
+      (l.standings || []).forEach((s) => {
+        allStandings.push({
+          'اسم البطولة': l.name,
+          'المركز': s.position,
+          'الفريق': s.teamName,
+          'لعب': s.played,
+          'فاز': s.won,
+          'تعادل': s.drawn,
+          'خسر': s.lost,
+          'له': s.goalsFor,
+          'عليه': s.goalsAgainst,
+          'فارق الأهداف': s.goalDifference,
+          'النقاط': s.points
+        });
+      });
+    });
+    if (allStandings.length > 0) {
+      const wsStandings = XLSX.utils.json_to_sheet(allStandings);
+      XLSX.utils.book_append_sheet(workbook, wsStandings, 'جداول الترتيب (Standings)');
+    }
+
+    // 3. Aggregate Fixtures
+    const allFixtures: any[] = [];
+    leagues.forEach((l) => {
+      (l.fixtures || []).forEach((f) => {
+        allFixtures.push({
+          'اسم البطولة': l.name,
+          'الجولة': f.round,
+          'الفريق الأول': f.teamA,
+          'النتيجة': f.scoreA !== undefined && f.scoreB !== undefined ? `${f.scoreA} - ${f.scoreB}` : 'لم تلعب بعد',
+          'الفريق الثاني': f.teamB,
+          'التاريخ': f.date,
+          'الوقت': f.time,
+          'الملعب': f.venue,
+          'الحكم': f.mainReferee || '—',
+          'الحالة': f.status || (f.isFinished ? 'انتهت' : 'قادمة')
+        });
+      });
+    });
+    if (allFixtures.length > 0) {
+      const wsFixtures = XLSX.utils.json_to_sheet(allFixtures);
+      XLSX.utils.book_append_sheet(workbook, wsFixtures, 'كافة المباريات (All Fixtures)');
+    }
+
+    XLSX.writeFile(workbook, `Al-Kaptan-Leagues-Comprehensive-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting All Leagues Excel:', error);
+  }
+}
+
+/**
+ * Export Friendly Matches & Challenges to Excel for Admin
+ */
+export function exportAllFriendlyMatchesExcel(matches: FriendlyMatch[]) {
+  try {
+    const workbook = XLSX.utils.book_new();
+    const data = matches.map((m, idx) => ({
+      'م': idx + 1,
+      'رقم التحدي': m.id,
+      'الفريق المضيف': m.hostTeamName,
+      'الفريق المتحدي / المنافس': m.opponentTeamName || 'بانتظار قبول التحدي',
+      'المحافظة والملعب': `${m.governorate} - ${m.venueName}`,
+      'التاريخ والتوقيت': `${m.date} (${m.time})`,
+      'الفئة العمرية': m.ageGroup,
+      'المنظم المسؤول': m.organizerName,
+      'هاتف المنظم': m.organizerPhone,
+      'أجرة الملعب ل.س': m.pitchPrice,
+      'أجرة الحكم ل.س': m.refereePrice,
+      'طريقة تقاسم التكلفة': m.costSplitMethod,
+      'حالة التحدي': m.status
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(workbook, ws, 'مباريات التحدي (Friendly Matches)');
+    XLSX.writeFile(workbook, `Al-Kaptan-Friendly-Matches-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting Friendly Matches Excel:', error);
+  }
+}
+
+/**
+ * Export Talent Scouting (Player CVs) to Excel for Admin
+ */
+export function exportPlayerCvsExcel(playerCvs: PlayerCv[]) {
+  try {
+    const workbook = XLSX.utils.book_new();
+    const data = playerCvs.map((cv, idx) => ({
+      'م': idx + 1,
+      'معرف اللاعب': cv.id,
+      'الاسم الكامل': cv.fullName,
+      'المحافظة والمنطقة': `${cv.governorate} - ${cv.area}`,
+      'مركز اللعب': cv.position,
+      'تاريخ الميلاد': cv.birthDate,
+      'الطول (سم)': cv.heightCm,
+      'الوزن (كغ)': cv.weightKg,
+      'القدم المفضلة': cv.preferredFoot,
+      'رقم الجوال': cv.phoneNumber,
+      'الحالة والجاهزية': cv.seekingStatus,
+      'الأندية والفرق السابقة': cv.previousClubs || 'لاعب حر',
+      'الأهداف المسجلة': cv.stats?.goals || 0,
+      'صناعة الأهداف': cv.stats?.assists || 0,
+      'المباريات الملعوبة': cv.stats?.matchesPlayed || 0
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(workbook, ws, 'كشاف المواهب (Player CVs)');
+    XLSX.writeFile(workbook, `Al-Kaptan-Player-CVs-Report-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (error) {
+    console.error('Error exporting Player CVs Excel:', error);
   }
 }
 

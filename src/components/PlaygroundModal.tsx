@@ -14,7 +14,8 @@ import {
   Info,
   Clock,
   ShieldCheck,
-  Send
+  Send,
+  AlertTriangle
 } from 'lucide-react';
 import { Playground, Review } from '../types';
 import { formatSYP, openWhatsAppShare } from '../utils/helpers';
@@ -311,6 +312,16 @@ export default function PlaygroundModal({
                 </button>
               </div>
             )}
+            {/* Payment & Booking Notice */}
+            <div className="mt-4 p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <strong className="text-amber-300 block font-bold">تنبيه شروط الحجز والتسديد:</strong>
+                <p className="text-amber-100 font-medium leading-relaxed text-xs">
+                  « التسديد بأقرب وقت أو قبل 24 ساعة من الموعد بعد الاتفاق مع المعلن أو المنظم للدوري »
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Full Pitch Specs & Dimensions */}

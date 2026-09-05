@@ -15,7 +15,8 @@ import {
   Clock,
   Sparkles,
   Zap,
-  Share2
+  Share2,
+  MessageCircle
 } from 'lucide-react';
 import {
   FriendlyMatch,
@@ -148,6 +149,27 @@ export default function ChallengeBookingModal({
     }
   };
 
+  // Share confirmation directly with friends & team groups via WhatsApp (no prefilled phone)
+  const handleShareWithFriends = () => {
+    if (!confirmedPayload) return;
+    const friendsMsg = `🏆 *تأكيد حجز وموعد مباراة ودية رسمية - تطبيق الكابتن* ⚽
+━━━━━━━━━━━━━━━━━━━━━
+✅ *تم قبول التحدي وتأكيد الموعد رسمياً!*
+
+⚔️ *المباراة:* فريقنا (${confirmedPayload.challengerName}) 🆚 فريق ${match.hostTeamName}
+📍 *الملعب:* ${match.venueName} (${match.governorate})
+📅 *تاريخ اللقاء:* ${match.date}
+⏰ *التوقيت:* ${match.time}
+👥 *الفئة العمرية:* ${match.ageGroup}
+👕 *لون طقم فريقنا:* ${confirmedPayload.challengerJerseyColor}
+💰 *حصتنا من التكلفة:* ${formatSYP(confirmedPayload.challengerShare)} (${confirmedPayload.costSplitMethod})
+💳 *طريقة الدفع:* ${confirmedPayload.paymentMethod}
+${match.refereeName ? `⚖️ *حكم اللقاء:* ${match.refereeName}\n` : ''}${confirmedPayload.additionalNotes ? `📝 *ملاحظات:* ${confirmedPayload.additionalNotes}\n` : ''}━━━━━━━━━━━━━━━━━━━━━
+📢 يرجى من جميع لاعبي الفريق التواجد قبل موعد المباراة بنصف ساعة للإحماء والجاهزية!
+📲 رابط تفاصيل اللقاء عبر تطبيق الكابتن: ${window.location.origin}`;
+    openWhatsAppShare(friendsMsg);
+  };
+
   const handleShareWhatsApp = () => {
     if (!confirmedPayload) return;
     const msg = `⚔️ *تأكيد قبول تحدي مباراة ودية - تطبيق الكابتن* ⚽\n\n📌 *المباراة ضد:* فريق ${match.hostTeamName}\n📍 *الملعب:* ${match.venueName} (${match.governorate})\n📅 *الموعد:* ${match.date} (${match.time})\n👤 *كابتن الفريق المتحدي:* ${confirmedPayload.challengerName} (${confirmedPayload.challengerPhone})\n👕 *لون طقم الفريق:* ${confirmedPayload.challengerJerseyColor}\n💰 *طريقة التقاسم:* ${confirmedPayload.costSplitMethod}\n💳 *طريقة الدفع:* ${confirmedPayload.paymentMethod}\n💵 *المبلغ المطلوب:* ${formatSYP(confirmedPayload.challengerShare)} (بدون عمولة 0%)\n${confirmedPayload.additionalNotes ? `📝 *ملاحظات:* ${confirmedPayload.additionalNotes}` : ''}`;
@@ -248,16 +270,28 @@ export default function ChallengeBookingModal({
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
-                  onClick={handleShareWhatsApp}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-lg"
+                  type="button"
+                  onClick={handleShareWithFriends}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/40 cursor-pointer"
                 >
-                  <Share2 className="w-4 h-4" />
-                  مشاركة التأكيد عبر واتساب مع كابتن الخصم
+                  <Share2 className="w-4 h-4 text-white" />
+                  مشاركة تأكيد الحجز مع الأصدقاء وفريقي عبر واتس
                 </button>
 
                 <button
+                  type="button"
+                  onClick={handleShareWhatsApp}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors border border-white/10 cursor-pointer"
+                  title="إرسال إشعار لمنظم المباراة"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-400" />
+                  إشعار كابتن المستضيف
+                </button>
+
+                <button
+                  type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#00FFD2] text-black font-bold text-xs transition-colors glow-primary"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#00FFD2] text-black font-bold text-xs transition-colors glow-primary cursor-pointer"
                 >
                   تم والعودة
                 </button>

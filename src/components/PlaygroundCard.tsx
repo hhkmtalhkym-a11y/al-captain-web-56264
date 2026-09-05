@@ -10,14 +10,19 @@ import {
   Zap,
   Calendar,
   Trash2,
-  Edit3
+  Edit3,
+  Clock,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
-import { Playground } from '../types';
+import { Playground, Booking } from '../types';
 import { formatSYP } from '../utils/helpers';
+import { getPlaygroundBookingStatus } from '../utils/bookingReminderService';
 
 interface PlaygroundCardProps {
   key?: React.Key;
   playground: Playground;
+  bookings?: Booking[];
   currentUser?: any;
   isAdmin?: boolean;
   onViewDetails: (pg: Playground) => void;
@@ -30,6 +35,7 @@ interface PlaygroundCardProps {
 
 export default function PlaygroundCard({
   playground,
+  bookings,
   currentUser,
   isAdmin = false,
   onViewDetails,
@@ -40,6 +46,9 @@ export default function PlaygroundCard({
   onDeletePlayground
 }: PlaygroundCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Real-time booking availability status: 'متاح' | 'محجوز حالياً' | 'مغلق'
+  const availability = getPlaygroundBookingStatus(playground, bookings);
 
   // Strictly check if the current user is an authorized Administrator
   const isSystemAdmin = Boolean(
@@ -129,6 +138,20 @@ export default function PlaygroundCard({
             <Zap className="w-3 h-3 fill-black" />
             بدون عمولة 0%
           </span>
+        </div>
+
+        {/* Real-time Booking Availability Status Badge */}
+        <div className="absolute bottom-2.5 right-2.5 z-10">
+          <div
+            className={`backdrop-blur-md text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5 shadow-lg transition-all ${availability.badgeClass}`}
+            title={`حالة حجز الملعب الحالية: ${availability.label} (${availability.subText})`}
+          >
+            <span className={`w-2 h-2 rounded-full ${availability.dotClass}`} />
+            <span>{availability.label}</span>
+            <span className="text-[9px] opacity-80 border-r border-current pr-1.5 mr-0.5 hidden sm:inline">
+              {availability.subText}
+            </span>
+          </div>
         </div>
 
         {/* Carousel Arrows if multiple images */}

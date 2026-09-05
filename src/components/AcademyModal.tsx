@@ -13,10 +13,11 @@ import {
   Send,
   MessageSquare,
   ClipboardList,
-  UserCheck
+  UserCheck,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Academy, Review, AcademyRegistration } from '../types';
-import { formatSYP, openWhatsAppShare } from '../utils/helpers';
+import { formatSYP, openWhatsAppShare, exportAcademyReportExcel } from '../utils/helpers';
 import AcademyMembersRoster from './AcademyMembersRoster';
 
 interface AcademyModalProps {
@@ -184,10 +185,21 @@ export default function AcademyModal({
           </div>
 
           {canManage && (
-            <span className="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" />
-              <span>لوحة الإدارة والمعلن</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => exportAcademyReportExcel(academy, academyRegistrations)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="تصدير كشف حساب وتقارير الأكاديمية إلى إكسل"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">تصدير إكسل</span>
+              </button>
+              <span className="text-[10px] px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
+                <span>لوحة الإدارة والمعلن</span>
+              </span>
+            </div>
           )}
         </div>
 

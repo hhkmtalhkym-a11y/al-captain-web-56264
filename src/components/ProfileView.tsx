@@ -37,17 +37,22 @@ import {
   Crown,
   Building,
   Sun,
-  Moon
+  Moon,
+  Share2,
+  QrCode
 } from 'lucide-react';
 import { UserProfile, SyrianGovernorate, Booking, UserRole, Playground, BookingStatus } from '../types';
 import { SYRIAN_GOVERNORATES } from '../constants/syrianData';
 import { openWhatsAppShare, readImageAsBase64, formatSYP, loadFromLocalStorage, saveToLocalStorage } from '../utils/helpers';
+import { LegalTabType } from './LegalDocumentsModal';
 import { useAuth } from '../context/AuthContext';
 import { isUserAdmin, isUserAdvertiser, getUserRoleBadge } from '../utils/permissions';
 import AppOfficialLogo from './AppOfficialLogo';
 import LegalDocumentsModal from './LegalDocumentsModal';
 import BookingAnalytics from './BookingAnalytics';
 import OwnerDashboard from './OwnerDashboard';
+import ShareAppModal from './ShareAppModal';
+import UserBadgesSection from './UserBadgesSection';
 
 interface ProfileViewProps {
   currentUser: UserProfile;
@@ -149,14 +154,20 @@ export default function ProfileView({
 
   // Modals
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
-  const [legalModalTab, setLegalModalTab] = useState<'privacy' | 'security' | 'terms' | 'version'>('terms');
+  const [legalModalTab, setLegalModalTab] = useState<LegalTabType>('terms');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [shareAppNotice, setShareAppNotice] = useState<string | null>(null);
 
   const roleInfo = getUserRoleBadge(currentUser);
+
+  const handleShareAppWithFriends = () => {
+    setIsShareModalOpen(true);
+  };
 
   const handleTogglePushNotifications = () => {
     const nextState = !pushEnabled;
@@ -496,6 +507,19 @@ export default function ProfileView({
                   <span className="bg-[#050707] px-3 py-1 rounded-xl border border-white/5 text-emerald-400">
                     ✨ عمولة المنصة: 0% مجاني
                   </span>
+
+                  {/* Share App with Friends & QR Barcode Button */}
+                  <button
+                    type="button"
+                    id="btn-share-app-with-friends"
+                    onClick={handleShareAppWithFriends}
+                    className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black px-3.5 py-1.5 rounded-xl border border-emerald-500/40 font-black text-xs transition-all flex items-center gap-1.5 shadow-md glow-primary cursor-pointer"
+                    title="مشاركة رابط تطبيق الكابتن والباركود (QR Code) مع الأصدقاء"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>مشاركة التطبيق والباركود 📲</span>
+                  </button>
+
                   {/* Direct "إدارة ملعبي" button leading directly to OwnerDashboard - Only for Owners & Admin */}
                   {isOwnerOrAdmin && (
                     <button
@@ -514,9 +538,19 @@ export default function ProfileView({
                     <span>تسجيل الدخول / تبديل الحساب</span>
                   </button>
                 </div>
+
+                {shareAppNotice && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold animate-fadeIn flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{shareAppNotice}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Active User Badges System (أوسمة التميز والتفاعل الرياضي) */}
+          <UserBadgesSection currentUser={currentUser} bookings={bookings} />
 
           {/* Edit Profile Form */}
           <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-5">
@@ -721,14 +755,20 @@ export default function ProfileView({
             )}
           </div>
 
-          {/* Legal Documents, Privacy Policy & Version Info */}
+          {/* Legal Documents, Privacy Policy, Security, Fair Play & Version Info */}
           <div className="bg-[#0d1211] border border-white/10 rounded-3xl p-6 space-y-4">
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#00FFD2]" />
-              <span>المستندات الرسمية، الخصوصية ومعلومات التطبيق</span>
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Scale className="w-4 h-4 text-[#00FFD2]" />
+                <span>المستندات الرسمية، الخصوصية ومعلومات التطبيق</span>
+              </h4>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#00FFD2]/10 text-[#00FFD2] border border-[#00FFD2]/20">
+                شاملة ومعتمدة 2026
+              </span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* 1. Terms of Use */}
               <button
                 type="button"
                 onClick={() => {
@@ -738,15 +778,16 @@ export default function ProfileView({
                 className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <FileText className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
                     <strong className="text-white text-xs block">شروط الاستخدام والخدمة</strong>
-                    <span className="text-[11px] text-gray-400">قواعد الحجوزات وعدم العمولة 0%</span>
+                    <span className="text-[11px] text-gray-400">قواعد تثبيت الحجز وعدم العمولة 0%</span>
                   </div>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0" />
               </button>
 
+              {/* 2. Privacy Policy */}
               <button
                 type="button"
                 onClick={() => {
@@ -756,13 +797,86 @@ export default function ProfileView({
                 className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5">
-                  <Shield className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <Shield className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
                     <strong className="text-white text-xs block">سياسة الخصوصية وحماية البيانات</strong>
-                    <span className="text-[11px] text-gray-400">تشفير البيانات وحماية أرقام الهواتف</span>
+                    <span className="text-[11px] text-gray-400">تشفير البيانات وسرية الهواتف</span>
                   </div>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white" />
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0" />
+              </button>
+
+              {/* 3. Security Policy */}
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('security');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-[#ff2a5f] group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <strong className="text-white text-xs block">سياسة الأمان والتحكم</strong>
+                    <span className="text-[11px] text-gray-400">منظومة RBAC وسجل العمليات</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0" />
+              </button>
+
+              {/* 4. Fair Play Charter */}
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('fairplay');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Award className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <strong className="text-white text-xs block">ميثاق اللعب النظيف</strong>
+                    <span className="text-[11px] text-gray-400">الأخلاق الرياضية ولائحة الانضباط</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0" />
+              </button>
+
+              {/* 5. App Version & Info */}
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalModalTab('version');
+                  setIsLegalModalOpen(true);
+                }}
+                className="p-3.5 rounded-2xl bg-[#050707] hover:bg-white/5 border border-white/10 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Info className="w-4 h-4 text-[#00FFD2] group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <strong className="text-white text-xs block">معلومات التطبيق والدعم</strong>
+                    <span className="text-[11px] text-gray-400">الإصدار v2.6.0 وإشراف الإدارة</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-white shrink-0" />
+              </button>
+
+              {/* 6. Quick Share App Card */}
+              <button
+                type="button"
+                onClick={handleShareAppWithFriends}
+                className="p-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-right transition-all flex items-center justify-between cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Share2 className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <strong className="text-emerald-300 text-xs block">مشاركة التطبيق مع الأصدقاء</strong>
+                    <span className="text-[11px] text-gray-400">دعوة كباتن الفرق عبر واتساب</span>
+                  </div>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white shrink-0" />
               </button>
             </div>
           </div>
@@ -1546,6 +1660,12 @@ export default function ProfileView({
         isOpen={isLegalModalOpen}
         defaultTab={legalModalTab}
         onClose={() => setIsLegalModalOpen(false)}
+      />
+
+      {/* Share App and QR Code Modal */}
+      <ShareAppModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
       />
     </div>
   );

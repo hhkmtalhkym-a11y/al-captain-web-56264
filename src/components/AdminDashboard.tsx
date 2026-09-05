@@ -40,7 +40,8 @@ import {
   X,
   BellRing,
   Send,
-  Volume2
+  Volume2,
+  Share2
 } from 'lucide-react';
 import {
   Playground,
@@ -67,6 +68,14 @@ import {
   exportToExcel,
   exportMasterAdminReportPdf,
   exportMasterAdminReportExcel,
+  exportPlaygroundReportExcel,
+  exportAllPlaygroundsExcel,
+  exportAcademyReportExcel,
+  exportAllAcademiesExcel,
+  exportAllLeaguesExcel,
+  exportLeagueExcelComprehensive,
+  exportAllFriendlyMatchesExcel,
+  exportPlayerCvsExcel,
   openWhatsAppShare,
   loadFromLocalStorage,
   saveToLocalStorage,
@@ -760,7 +769,17 @@ export default function AdminDashboard({
   };
 
   const handleExportAllData = () => {
-    exportMasterAdminReportExcel(bookings, leagues, auditLogs, usersList, playgrounds);
+    exportMasterAdminReportExcel(
+      bookings,
+      leagues,
+      auditLogs,
+      usersList,
+      playgrounds,
+      academies,
+      academyRegistrations || [],
+      friendlyMatches,
+      playerCvs
+    );
   };
 
   return (
@@ -1942,16 +1961,29 @@ export default function AdminDashboard({
       {/* Tab 4: Playgrounds Management */}
       {activeTab === 'playgrounds' && (
         <div className="space-y-4 animate-fadeIn">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-white text-sm font-['Cairo']">
-              الملاعب المسجلة ({playgrounds.length})
-            </h3>
-            <button
-              onClick={onOpenCreatePlayground}
-              className="px-4 py-2 rounded-xl bg-[#00FFD2] text-black font-bold text-xs glow-primary flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> إضافة ملعب جديد
-            </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1211] p-4 rounded-2xl border border-white/10">
+            <div>
+              <h3 className="font-bold text-white text-sm font-['Cairo']">
+                الملاعب المسجلة ({playgrounds.length})
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">إدارة الملاعب والأسعار وتصدير التقارير المالية والإحصائية</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => exportAllPlaygroundsExcel(playgrounds, bookings)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                title="تصدير تقرير شامل لكافة الملاعب مع الحجوزات والإيرادات إلى ملف إكسل"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                تصدير الملاعب Excel
+              </button>
+              <button
+                onClick={onOpenCreatePlayground}
+                className="px-4 py-2 rounded-xl bg-[#00FFD2] text-black font-bold text-xs glow-primary flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> إضافة ملعب جديد
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1967,10 +1999,17 @@ export default function AdminDashboard({
                 </div>
 
                 <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs mt-3">
+                  <button
+                    onClick={() => exportPlaygroundReportExcel(pg, bookings)}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-bold"
+                    title="تصدير تقرير هذا الملعب وحجوزاته إلى إكسل"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> إكسل
+                  </button>
                   <span className="text-gray-400 font-mono">{pg.managerPhone}</span>
                   <button
                     onClick={() => onDeletePlayground(pg.id)}
-                    className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-[#ff2a5f] transition-colors"
+                    className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-[#ff2a5f] transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1984,16 +2023,29 @@ export default function AdminDashboard({
       {/* Tab 5: Leagues Management */}
       {activeTab === 'leagues' && (
         <div className="space-y-4 animate-fadeIn">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-white text-sm font-['Cairo']">
-              البطولات والدوريات ({leagues.length})
-            </h3>
-            <button
-              onClick={onOpenCreateLeague}
-              className="px-4 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> إنشاء بطولة دوري جديدة
-            </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1211] p-4 rounded-2xl border border-white/10">
+            <div>
+              <h3 className="font-bold text-white text-sm font-['Cairo']">
+                البطولات والدوريات ({leagues.length})
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">متابعة الدوريات والترتيب وتصدير الجداول والمباريات</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => exportAllLeaguesExcel(leagues)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                title="تصدير تقرير شامل لكافة الدوريات والترتيب والمباريات إلى ملف إكسل"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                تصدير كافة الدوريات Excel
+              </button>
+              <button
+                onClick={onOpenCreateLeague}
+                className="px-4 py-2 rounded-xl bg-amber-400 text-black font-bold text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> إنشاء بطولة دوري جديدة
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -2008,16 +2060,25 @@ export default function AdminDashboard({
                   <p className="text-xs text-gray-300 font-mono mt-1">الفرق: {l.teamsCount} • الجائزة: {formatSYP(l.prizes.cashPrize || 0)}</p>
                 </div>
 
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs mt-3">
-                  <button
-                    onClick={() => exportLeaguePdf(l)}
-                    className="text-xs text-[#00FFD2] hover:underline flex items-center gap-1"
-                  >
-                    <FileText className="w-3.5 h-3.5" /> تقرير PDF
-                  </button>
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs mt-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => exportLeagueExcelComprehensive(l)}
+                      className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-bold"
+                      title="تصدير ملف إكسل شامل للبطولة وجداول الترتيب والمباريات"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" /> تقرير Excel
+                    </button>
+                    <button
+                      onClick={() => exportLeaguePdf(l)}
+                      className="text-xs text-[#00FFD2] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> PDF
+                    </button>
+                  </div>
                   <button
                     onClick={() => onDeleteLeague(l.id)}
-                    className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-[#ff2a5f] transition-colors"
+                    className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-[#ff2a5f] transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -2040,7 +2101,7 @@ export default function AdminDashboard({
               <p className="text-xs text-gray-400 mt-0.5">مراجعة وتأكيد طلبات التحديات وإدارتها وإرسال التنبيهات للفرق</p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={matchStatusFilter}
                 onChange={(e) => setMatchStatusFilter(e.target.value)}
@@ -2054,8 +2115,16 @@ export default function AdminDashboard({
               </select>
 
               <button
+                onClick={() => exportAllFriendlyMatchesExcel(friendlyMatches)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+                title="تصدير سجل المباريات الودية والتحديات إلى ملف إكسل"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> تصدير التحديات Excel
+              </button>
+
+              <button
                 onClick={onOpenCreateMatch}
-                className="px-4 py-2 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white font-bold text-xs glow-pink flex items-center gap-1 shrink-0"
+                className="px-4 py-2 rounded-xl bg-[#ff2a5f] hover:bg-[#e02050] text-white font-bold text-xs glow-pink flex items-center gap-1 shrink-0 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> نشر تحدي جديد
               </button>
@@ -2146,6 +2215,20 @@ export default function AdminDashboard({
                       >
                         واتساب
                       </button>
+
+                      {(m.status === 'مؤكد' || m.status === 'مقبولة') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const confirmText = `🏆 *تأكيد حجز وموعد مباراة ودية رسمية - تطبيق الكابتن* ⚽\n━━━━━━━━━━━━━━━━━━━━━\n✅ *تم اعتماد وتأكيد المباراة رسمياً!*\n\n⚔️ *المباراة:* فريق ${m.hostTeamName} 🆚 ${m.opponentTeamName || 'المتحدي'}\n📍 *الملعب:* ${m.venueName} (${m.governorate})\n📅 *التاريخ:* ${m.date}\n⏰ *التوقيت:* ${m.time}\n👥 *الفئة العمرية:* ${m.ageGroup}\n💰 *التكلفة الإجمالية:* ${formatSYP(m.pitchPrice + (m.refereePrice || 0))}\n🤝 *طريقة تقاسم الأجرة:* ${m.costSplitMethod}\n📞 *المنسق:* ${m.organizerName} (${m.organizerPhone})\n━━━━━━━━━━━━━━━━━━━━━\n📱 منصة وتطبيق الكابتن: ${window.location.origin}`;
+                            openWhatsAppShare(confirmText);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-[11px] font-bold flex items-center gap-1 border border-emerald-500/30 cursor-pointer"
+                          title="مشاركة تأكيد الحجز مع الأصدقاء والفرق عبر واتساب"
+                        >
+                          <Share2 className="w-3.5 h-3.5 text-emerald-400" /> مشاركة التأكيد
+                        </button>
+                      )}
                     </div>
 
                     <button
@@ -2193,16 +2276,55 @@ export default function AdminDashboard({
             </div>
 
             {academySubTab === 'academies' && (
-              <button
-                onClick={onOpenCreateAcademy}
-                className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" /> إضافة أكاديمية جديدة
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => exportAllAcademiesExcel(academies, academyRegistrations)}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+                  title="تصدير تقرير شامل لكافة الأكاديميات الكروية إلى ملف إكسل"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  تصدير الأكاديميات Excel
+                </button>
+                <button
+                  onClick={onOpenCreateAcademy}
+                  className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1 shadow-lg cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" /> إضافة أكاديمية جديدة
+                </button>
+              </div>
             )}
 
             {academySubTab === 'registrations' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const data = academyRegistrations.map((r, i) => ({
+                      'م': i + 1,
+                      'رقم الطلب': r.id,
+                      'اسم الطالب': r.studentName,
+                      'الأكاديمية': r.academyName,
+                      'المحافظة': r.governorate,
+                      'المدينة': r.city,
+                      'تاريخ الميلاد': r.birthDate,
+                      'العمر': r.age,
+                      'الفئة العمرية': r.ageGroup,
+                      'المركز المفضل': r.preferredPosition,
+                      'ولي الأمر': r.parentName,
+                      'هاتف ولي الأمر': r.parentPhone,
+                      'المواصلات': r.transportOption,
+                      'طريقة الدفع': r.paymentMethod,
+                      'حالة الدفع': r.paymentStatus,
+                      'حالة التسجيل': r.status,
+                      'تاريخ الطلب': r.createdAt
+                    }));
+                    exportToExcel(data, `Academy-Student-Registrations-${new Date().toISOString().split('T')[0]}`);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+                  title="تصدير جدول طلبات تسجيل الطلاب والاشتراكات إلى إكسل"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  تصدير طلبات الطلاب Excel
+                </button>
                 <label className="text-xs text-gray-400">تصفية الحالة:</label>
                 <select
                   value={registrationStatusFilter}
@@ -2452,19 +2574,28 @@ export default function AdminDashboard({
                     <p className="text-xs text-gray-400 mt-1">المدرب: {a.mainCoach} ({a.contactPhone})</p>
                   </div>
 
-                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs mt-3">
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs mt-3 flex-wrap gap-2">
                     <span className="text-gray-400 font-mono">مواصلات: {a.transportStatus}</span>
-                    <button
-                      onClick={() =>
-                        openWhatsAppShare(
-                          `مرحباً كابتن ${a.mainCoach} بإدارة ${a.name}`,
-                          a.contactPhone
-                        )
-                      }
-                      className="text-xs text-purple-300 hover:underline flex items-center gap-1"
-                    >
-                      تواصل مع الأكاديمية
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => exportAcademyReportExcel(a, academyRegistrations)}
+                        className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-bold"
+                        title="تصدير كشف شامل لبيانات الأكاديمية والطلاب والمدربين إلى ملف إكسل"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" /> إكسل
+                      </button>
+                      <button
+                        onClick={() =>
+                          openWhatsAppShare(
+                            `مرحباً كابتن ${a.mainCoach} بإدارة ${a.name}`,
+                            a.contactPhone
+                          )
+                        }
+                        className="text-xs text-purple-300 hover:underline flex items-center gap-1"
+                      >
+                        تواصل
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2476,9 +2607,22 @@ export default function AdminDashboard({
       {/* Tab 8: Scouting Management */}
       {activeTab === 'scouting' && (
         <div className="space-y-4 animate-fadeIn">
-          <h3 className="font-bold text-white text-sm font-['Cairo']">
-            بطاقات اللاعبين وكشاف المواهب ({playerCvs.length})
-          </h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1211] p-4 rounded-2xl border border-white/10">
+            <div>
+              <h3 className="font-bold text-white text-sm font-['Cairo']">
+                بطاقات اللاعبين وكشاف المواهب ({playerCvs.length})
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">قاعدة بيانات المواهب الرياضية والسير الذاتية والإحصائيات</p>
+            </div>
+            <button
+              onClick={() => exportPlayerCvsExcel(playerCvs)}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+              title="تصدير قاعدة بيانات كشاف المواهب وبطاقات اللاعبين إلى ملف إكسل"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              تصدير كشاف المواهب Excel
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {playerCvs.map((pl) => (
@@ -2510,13 +2654,34 @@ export default function AdminDashboard({
               </p>
             </div>
 
-            <button
-              onClick={() => setIsAddUserModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs flex items-center gap-1.5 shadow-lg shadow-[#00FFD2]/20 transition-all cursor-pointer shrink-0 active:scale-95"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>إضافة مستخدم وتحديد دوره</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  const data = usersList.map((u, i) => ({
+                    'م': i + 1,
+                    'اسم الحساب': u.name,
+                    'رقم الهاتف': u.phone || '—',
+                    'البريد الإلكتروني': u.email || '—',
+                    'المحافظة': u.governorate || 'دمشق',
+                    'الرتبة والدور': u.isAdmin ? 'مدير نظام (Admin)' : (u.role === 'league_manager' ? 'منظم دوريات' : (u.role === 'academy_manager' ? 'معلن أكاديمية' : (u.role === 'pitch_manager' ? 'معلن ملعب' : 'لاعب/مستخدم'))),
+                    'حالة الحظر': u.isBanned ? 'محظور' : 'نشط'
+                  }));
+                  exportToExcel(data, `Al-Kaptan-Users-Directory-${new Date().toISOString().split('T')[0]}`);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+                title="تصدير قائمة كافة المستخدمين والمعلنين إلى ملف إكسل"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                تصدير المستخدمين Excel
+              </button>
+              <button
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-[#00FFD2] hover:bg-[#00e6bd] text-black font-black text-xs flex items-center gap-1.5 shadow-lg shadow-[#00FFD2]/20 transition-all cursor-pointer shrink-0 active:scale-95"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>إضافة مستخدم وتحديد دوره</span>
+              </button>
+            </div>
           </div>
 
           {/* Role Filter Chips & Search */}
